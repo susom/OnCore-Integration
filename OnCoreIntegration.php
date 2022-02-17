@@ -18,6 +18,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     use emLoggerTrait;
 
     const ONCORE_PROTOCOLS = 'oncore_protocols';
+    const REDCAP_ENTITY_ONCORE_PROTOCOLS = 'redcap_entity_oncore_protocols';
 
     /**
      * @var Users
@@ -140,8 +141,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $protocol = $this->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
 
                 if (!empty($protocol)) {
-                    $entity_oncore_protocol = self::query("select * from redcap_entity_oncore_protocols where irb_number = ? AND redcap_project_id = ? ", [$irb, $id]);
-                    if ($entity_oncore_protocol->num_rows == 0) {
+                    $entity_oncore_protocol = $this->getProtocols()->getProtocolEntityRecord($irb, $id);
+                    if (empty($entity_oncore_protocol)) {
                         $data = array(
                             'redcap_project_id' => $id,
                             'irb_number' => $irb,
@@ -158,8 +159,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             throw new \Exception(implode(',', $this->getProtocols()->errors));
                         }
                     } else {
-                        $record = $entity_oncore_protocol->fetch_assoc();
-                        self::query("UPDATE redcap_entity_oncore_protocols set last_date_scanned = ? WHERE id = ?", [time(), $record['id']]);
+                        $this->getProtocols()->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
                     }
                 } else {
                     $this->emLog(date('m/d/Y H:i:s') . ' : IRB' . $irb . ' has no OnCore Protocol.');

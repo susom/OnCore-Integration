@@ -51,6 +51,21 @@ class Protocols extends Entities
         }
     }
 
+    public function getProtocolEntityRecord($irbNum, $redcapProjectId)
+    {
+        $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where irb_number = " . $irbNum . " AND redcap_project_id = " . $redcapProjectId . " ");
+        if ($record->num_rows == 0) {
+            return [];
+        } else {
+            return db_fetch_assoc($record);
+        }
+    }
+
+    public function updateProtocolEntityRecordTimestamp($entityId)
+    {
+        db_query("UPDATE " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " set last_date_scanned = '" . time() . "' WHERE id = " . $entityId . "");
+    }
+
     /**
      * @return Users
      */
