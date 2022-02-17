@@ -19,6 +19,12 @@
     "enable-every-page-hooks-on-system-pages": false,
     "links": {
         "project": [
+            {
+                "name": "Test Page",
+                "icon": "fas fa-columns",
+                "url": "pages/test.php",
+                "show-header-and-footer": true
+            }
         ],
         "control-center": [
         ]
@@ -74,6 +80,15 @@
             "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
             "required": false,
             "type": "checkbox"
+        }
+    ],
+    "crons": [
+        {
+            "cron_name": "oncore_protocols_scan",
+            "cron_description": "This cron will run daily to scan OnCore API for new Projects.",
+            "method": "onCoreProtocolsScanCron",
+            "cron_frequency": "86400",
+            "cron_max_run_time": "3600"
         }
     ],
     "compatibility": {

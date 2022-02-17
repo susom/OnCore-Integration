@@ -6,6 +6,7 @@ use ExternalModules\ExternalModules;
 use stdClass;
 
 /**
+ * Abstract class can be accessed only via Users class
  * Class Clients
  * @package Stanford\OnCoreIntegration
  * @property string $PREFIX
@@ -17,7 +18,7 @@ use stdClass;
  * @property int $globalTokenTime
  * @property \GuzzleHttp\Client $guzzleClient
  */
-class Clients
+abstract class Clients
 {
     private $PREFIX;
 
@@ -41,13 +42,11 @@ class Clients
 
     /**
      * @param $PREFIX
-     * @param $projectId
      */
-    public function __construct($PREFIX, $projectId)
+    public function __construct($PREFIX)
     {
         $this->setPREFIX($PREFIX);
 
-        $this->setProjectId($projectId);
 
         $this->setGuzzleClient(new \GuzzleHttp\Client());
 
@@ -87,7 +86,7 @@ class Clients
     public function generateToken(string $clientId, string $clientSecret)
     {
         try {
-            $response = $this->getGuzzleClient()->post(ltrim($this->getApiURL(), '/') . '/' . $this->getApiAuthURN(), [
+            $response = $this->getGuzzleClient()->post($this->getApiURL() . $this->getApiAuthURN(), [
                 'debug' => false,
                 'form_params' => [
                     'grant_type' => 'client_credentials',
@@ -238,7 +237,7 @@ class Clients
      */
     public function getApiURL()
     {
-        return $this->apiURL;
+        return ltrim($this->apiURL, '/') . '/';
     }
 
     /**
@@ -270,7 +269,7 @@ class Clients
      */
     public function getApiURN()
     {
-        return $this->apiURN;
+        return ltrim($this->apiURN, '/');
     }
 
     /**

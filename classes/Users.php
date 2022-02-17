@@ -23,14 +23,15 @@ class Users extends Clients
 
     /**
      * @param $prefix
-     * @param $projectId
      * @param $clientId
      * @param $clientSecret
      */
-    public function __construct($prefix, $projectId, $clientId = '', $clientSecret = '')
+    public function __construct($prefix, $clientId = '', $clientSecret = '')
     {
-        parent::__construct($prefix, $projectId);
+        parent::__construct($prefix);
+
         $this->setClientId($clientId);
+
         $this->setClientSecret($clientSecret);
 
         if ($this->getClientSecret() != '' && $this->getClientSecret() != '') {
