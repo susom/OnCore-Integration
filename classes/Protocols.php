@@ -63,7 +63,7 @@ class Protocols extends Entities
 
     public function updateProtocolEntityRecordTimestamp($entityId)
     {
-        db_query("UPDATE " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " set last_date_scanned = '" . time() . "' WHERE id = " . $entityId . "");
+        db_query("UPDATE " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " set last_date_scanned = '" . time() . "', updated = '" . time() . "' WHERE id = " . $entityId . "");
     }
 
     /**
