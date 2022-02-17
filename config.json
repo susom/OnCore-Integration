@@ -1,66 +1,85 @@
 {
-	"name": "OnCoreIntegration",
-
-	"namespace": "Stanford\\OnCoreIntegration",
-
-	"description": "An external module that manages syncing patient data between REDCap projects and their respective OnCore counterparts",
-
-	"documentation": "README.md",
-
-	"authors": [
-		{
-			"name": "Andrew Martin",
-			"email": "andy123@stanford.edu",
-			"institution": "Stanford University"
-		}
-	],
-
+    "name": "OnCoreIntegration",
+    "namespace": "Stanford\\OnCoreIntegration",
+    "description": "An external module that manages syncing patient data between REDCap projects and their respective OnCore counterparts",
+    "documentation": "README.md",
+    "authors": [
+        {
+            "name": "Andrew Martin",
+            "email": "andy123@stanford.edu",
+            "institution": "Stanford University"
+        }
+    ],
     "framework-version": 8,
-
-	"permissions": [
-		"redcap_module_system_enable",
-		"redcap_module_project_enable",
-		"redcap_module_save_configuration"
-	],
-
-	"enable-every-page-hooks-on-system-pages": false,
-
-	"links": {
-		"project": [
-
-		],
-		"control-center": [
-
-		]
-	},
-
-	"no-auth-pages": [
-
-	],
-
-	"project-settings": [
-		{
-			"key": "enable-project-debug-logging",
-			"name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
-			"required": false,
-			"type": "checkbox"
-		}
-	],
-
-
-	"system-settings": [
-		{
-			"key": "enable-system-debug-logging",
-			"name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
-			"required": false,
-			"type": "checkbox"
-		}
-	],
-
-	"compatibility": {
-		"php-version-min": "",
-		"php-version-max": "",
-		"redcap-version-min": "",
-		"redcap-version-max": ""
-	}
+    "permissions": [
+        "redcap_module_system_enable",
+        "redcap_module_project_enable",
+        "redcap_module_save_configuration"
+    ],
+    "enable-every-page-hooks-on-system-pages": false,
+    "links": {
+        "project": [
+        ],
+        "control-center": [
+        ]
+    },
+    "no-auth-pages": [
+    ],
+    "project-settings": [
+        {
+            "key": "enable-project-debug-logging",
+            "name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
+            "required": false,
+            "type": "checkbox"
+        }
+    ],
+    "system-settings": [
+        {
+            "key": "oncore-api-url",
+            "name": "<b>OnCore API URL</b>",
+            "type": "text"
+        },
+        {
+            "key": "oncore-api-auth-urn",
+            "name": "<b>OnCore API Auth URN</b>",
+            "type": "text"
+        },
+        {
+            "key": "oncore-api-urn",
+            "name": "<b>OnCore API URN</b>",
+            "type": "text"
+        },
+        {
+            "key": "global-client-id",
+            "name": "<b>Global OnCore Client ID</b>",
+            "type": "text"
+        },
+        {
+            "key": "global-client-secret",
+            "name": "<b>Global OnCore Client Secret</b>",
+            "type": "text"
+        },
+        {
+            "key": "global-access-token",
+            "name": "<b>Global OnCore Access Token</b>",
+            "type": "text"
+        },
+        {
+            "key": "global-token-timestamp",
+            "name": "<b>Expiration Unix timestamp for current access token</b>",
+            "type": "text"
+        },
+        {
+            "key": "enable-system-debug-logging",
+            "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
+            "required": false,
+            "type": "checkbox"
+        }
+    ],
+    "compatibility": {
+        "php-version-min": "",
+        "php-version-max": "",
+        "redcap-version-min": "",
+        "redcap-version-max": ""
+    }
 }
