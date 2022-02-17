@@ -10,8 +10,15 @@ namespace Stanford\OnCoreIntegration;
  */
 class Protocols extends Entities
 {
+    /**
+     * @var Users
+     */
     private $user;
 
+    /**
+     * @param $user
+     * @param $reset
+     */
     public function __construct($user, $reset = false)
     {
         parent::__construct($reset);
@@ -53,7 +60,8 @@ class Protocols extends Entities
     }
 
     /**
-     * @param mixed $user
+     * @param $user
+     * @return void
      */
     public function setUser($user): void
     {

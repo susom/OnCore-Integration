@@ -19,8 +19,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const ONCORE_PROTOCOLS = 'oncore_protocols';
 
+    /**
+     * @var Users
+     */
     private $users;
 
+    /**
+     * @var Protocols
+     */
     private $protocols;
 
     public function __construct()
@@ -89,17 +95,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     }
 
     /**
-     * @return mixed
+     * @return Users
      */
-    public function getUsers()
+    public function getUsers(): Users
     {
         return $this->users;
     }
 
     /**
-     * @param mixed $users
+     * @param Users $users
      */
-    public function setUsers($users): void
+    public function setUsers(Users $users): void
     {
         $this->users = $users;
     }
@@ -107,19 +113,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     /**
      * @return Protocols
      */
-    public function getProtocols()
+    public function getProtocols(): Protocols
     {
         return $this->protocols;
     }
 
     /**
-     * @param mixed $protocols
+     * @param Protocols $protocols
      */
-    public function setProtocols($protocols): void
+    public function setProtocols(Protocols $protocols): void
     {
         $this->protocols = $protocols;
     }
-
 
     public function onCoreProtocolsScanCron()
     {

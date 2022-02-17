@@ -13,12 +13,24 @@ require_once 'Clients.php';
  */
 class Users extends Clients
 {
+    /**
+     * @var string
+     */
     private $clientId;
 
+    /**
+     * @var string
+     */
     private $clientSecret;
 
+    /**
+     * @var string
+     */
     private $accessToken;
 
+    /**
+     * @var int
+     */
     private $tokenTime;
 
     /**

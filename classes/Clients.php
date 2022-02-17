@@ -20,24 +20,54 @@ use stdClass;
  */
 abstract class Clients
 {
+    /**
+     * @var string
+     */
     private $PREFIX;
 
+    /**
+     * @var int
+     */
     private $projectId;
 
+    /**
+     * @var string
+     */
     private $globalClientId;
 
+    /**
+     * @var string
+     */
     private $globalClientSecret;
 
+    /**
+     * @var \GuzzleHttp\Client
+     */
     private $guzzleClient;
 
+    /**
+     * @var string
+     */
     private $globalAccessToken;
 
+    /**
+     * @var int
+     */
     private $globalTokenTime;
 
+    /**
+     * @var string
+     */
     private $apiURL;
 
+    /**
+     * @var string
+     */
     private $apiAuthURN;
 
+    /**
+     * @var string
+     */
     private $apiURN;
 
     /**
@@ -176,7 +206,7 @@ abstract class Clients
     }
 
     /**
-     * @return mixed
+     * @return \GuzzleHttp\Client
      */
     public function getGuzzleClient()
     {
@@ -184,7 +214,8 @@ abstract class Clients
     }
 
     /**
-     * @param mixed $guzzleClient
+     * @param $guzzleClient
+     * @return void
      */
     public function setGuzzleClient($guzzleClient): void
     {
