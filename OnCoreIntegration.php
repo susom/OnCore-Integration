@@ -19,6 +19,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const ONCORE_PROTOCOLS = 'oncore_protocols';
     const REDCAP_ENTITY_ONCORE_PROTOCOLS = 'redcap_entity_oncore_protocols';
+    const ONCORE_REDCAP_API_ACTIONS_LOG = 'oncore_redcap_api_actions_log';
+    const REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG = 'redcap_entity_oncore_redcap_api_actions_log';
 
     /**
      * @var Users
@@ -85,6 +87,42 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 'label' => 'redcap_project_id', // "name" represents the entity label.
             ],
         ];
+
+        $types['oncore_redcap_api_actions_log'] = [
+            'label' => 'OnCore protocols',
+            'label_plural' => 'OnCore Protocols',
+            'icon' => 'home_pencil',
+            'properties' => [
+                'message' => [
+                    'name' => 'Action Body',
+                    'type' => 'long_text',
+                    'required' => false,
+                ],
+                'url' => [
+                    'name' => 'Called URL',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'response' => [
+                    'name' => 'OnCore API Response',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'type' => [
+                    'name' => 'Action Type',
+                    'type' => 'integer',
+                    'required' => true,
+                    'default' => 0,
+                    'choices' => [
+                        0 => 'OnCore API Call ',
+                        1 => 'REDCap API Call',
+                    ],
+                ],
+            ],
+            'special_keys' => [
+                'label' => 'message', // "name" represents the entity label.
+            ],
+        ];;
 
         // TODO redcap entity for redcap records not in OnCore
 
@@ -154,20 +192,24 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
 
                         if ($entity) {
-                            echo $entity->getId() . '<br>';
+                            Entities::createLog(date('m/d/Y H:i:s') . ' : OnCore Protocol record created for IRB: ' . $irb . '.');
                         } else {
                             throw new \Exception(implode(',', $this->getProtocols()->errors));
                         }
                     } else {
                         $this->getProtocols()->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
+                        Entities::createLog(date('m/d/Y H:i:s') . ' : OnCore Protocol record updated for IRB: ' . $irb . '.');
                     }
                 } else {
-                    $this->emLog(date('m/d/Y H:i:s') . ' : IRB' . $irb . ' has no OnCore Protocol.');
+                    $this->emLog(date('m/d/Y H:i:s') . ' : IRB ' . $irb . ' has no OnCore Protocol.');
+                    Entities::createLog(date('m/d/Y H:i:s') . ' : IRB ' . $irb . ' has no OnCore Protocol.');
                 }
             }
         } catch (\Exception $e) {
             $this->emError($e->getMessage());
             \REDCap::logEvent('CRON JOB ERROR: ' . $e->getMessage());
+            Entities::createLog('CRON JOB ERROR: ' . $e->getMessage());
+
         }
     }
 }
