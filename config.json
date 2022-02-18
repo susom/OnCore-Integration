@@ -8,13 +8,26 @@
             "name": "Andrew Martin",
             "email": "andy123@stanford.edu",
             "institution": "Stanford University"
+        },
+        {
+            "name": "Irvin Szeto",
+            "email": "irvins@stanford.edu",
+            "institution": "Stanford University"
+        },
+        {
+            "name": "Lee Ann Yasukawa",
+            "email": "yasukawa@stanford.edu",
+            "institution": "Stanford University"
+        },
+        {
+            "name": "Ihab Zeedia",
+            "email": "ihabz@stanford.edu",
+            "institution": "Stanford University"
         }
     ],
     "framework-version": 8,
     "permissions": [
-        "redcap_module_system_enable",
-        "redcap_module_project_enable",
-        "redcap_module_save_configuration"
+        "redcap_every_page_top"
     ],
     "enable-every-page-hooks-on-system-pages": false,
     "links": {

@@ -42,6 +42,19 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         // Other code to run when object is instantiated
     }
 
+    public function redcap_every_page_top()
+    {
+        try {
+            // in case we are loading record homepage load its the record children if existed
+            preg_match('/redcap_v[\d\.].*\/index\.php/m', $_SERVER['SCRIPT_NAME'], $matches, PREG_OFFSET_CAPTURE);
+            if (strpos($_SERVER['SCRIPT_NAME'], 'ProjectSetup') !== false || !empty($matches)) {
+                $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
+            }
+        } catch (\Exception $e) {
+            // TODO routine to handle exception for not finding OnCore protocol
+        }
+    }
+
     public function redcap_entity_types()
     {
         $types = [];
@@ -179,7 +192,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $protocol = $this->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
 
                 if (!empty($protocol)) {
-                    $entity_oncore_protocol = $this->getProtocols()->getProtocolEntityRecord($irb, $id);
+                    $entity_oncore_protocol = $this->getProtocols()->getProtocolEntityRecord($id, $irb);
                     if (empty($entity_oncore_protocol)) {
                         $data = array(
                             'redcap_project_id' => $id,
