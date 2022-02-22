@@ -18,7 +18,7 @@ use stdClass;
  * @property int $globalTokenTime
  * @property \GuzzleHttp\Client $guzzleClient
  */
-abstract class Clients
+abstract class Clients extends \REDCapEntity\EntityFactory
 {
     /**
      * @var string
