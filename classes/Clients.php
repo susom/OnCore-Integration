@@ -336,7 +336,7 @@ abstract class Clients extends \REDCapEntity\EntityFactory
     /**
      * @param string $mrnVerificationURL
      */
-    public function setMrnVerificationURL(string $mrnVerificationURL): void
+    public function setMrnVerificationURL($mrnVerificationURL): void
     {
         $this->mrnVerificationURL = $mrnVerificationURL;
     }
@@ -350,9 +350,9 @@ abstract class Clients extends \REDCapEntity\EntityFactory
     }
 
     /**
-     * @param string $redcapCSFRToken
+     * @param string|null $redcapCSFRToken
      */
-    public function setRedcapCSFRToken(string $redcapCSFRToken): void
+    public function setRedcapCSFRToken($redcapCSFRToken): void
     {
         $this->redcapCSFRToken = $redcapCSFRToken;
     }

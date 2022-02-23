@@ -53,12 +53,22 @@ class Protocols extends Entities
         if (!empty($protocol)) {
             $this->setEntityRecord($protocol);
             $this->setOnCoreProtocol($this->searchOnCoreProtocolsViaID($this->getEntityRecord()['oncore_protocol_id']));
+            /**
+             * if OnCore protocol found then prepare its subjects
+             */
+            $this->prepareProtocolSubjects();
+
         }
     }
 
     public function prepareProtocolSubjects()
     {
-
+        try {
+            $this->setSubjects(new Subjects($this->getUser()));
+            $this->getSubjects()->setOnCoreProtocolSubjects($this->getEntityRecord()['oncore_protocol_id']);
+        } catch (\Exception $e) {
+            // TODO exception handler
+        }
     }
 
     public function isContactPartOfOnCoreProtocol($contactId)
@@ -137,7 +147,7 @@ class Protocols extends Entities
                 if (empty($data)) {
                     return [];
                 } else {
-                    return $data[0];
+                    return $data;
                 }
             }
         } catch (\Exception $e) {
@@ -222,5 +232,22 @@ class Protocols extends Entities
     {
         $this->entityRecord = $entityRecord;
     }
+
+    /**
+     * @return Subjects
+     */
+    public function getSubjects(): Subjects
+    {
+        return $this->subjects;
+    }
+
+    /**
+     * @param Subjects $subjects
+     */
+    public function setSubjects(Subjects $subjects): void
+    {
+        $this->subjects = $subjects;
+    }
+
 
 }

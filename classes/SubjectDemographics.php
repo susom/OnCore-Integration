@@ -50,6 +50,19 @@ class SubjectDemographics extends Entities
         $this->$validateFields = $validateFields;
     }
 
+    public function getOnCoreSubjectDemographicsEntityRecord($subjectDemographicsId)
+    {
+        if ($subjectDemographicsId == '') {
+            throw new \Exception('REDCap subject demographics ID can not be null');
+        }
+        $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS . " where  subjectDemographicsId = '" . $subjectDemographicsId . "' ");
+        if ($record->num_rows == 0) {
+            return [];
+        } else {
+            return db_fetch_assoc($record);
+        }
+    }
+
     /**
      * @param $mrn
      * @param $subjectSource
@@ -59,21 +72,29 @@ class SubjectDemographics extends Entities
     public function getOnCoreSubjectDemographics($subjectDemographicsId)
     {
         try {
-            $jwt = $this->getUser()->getAccessToken();
-            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'subjectDemographics/' . $subjectDemographicsId, [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+            // check if entity table already has that subject otherwise go to API to get info
+            $demo = $this->getOnCoreSubjectDemographicsEntityRecord($subjectDemographicsId);
+            if (empty($demo)) {
+                $jwt = $this->getUser()->getAccessToken();
+                $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'subjectDemographics/' . $subjectDemographicsId, [
+                    'debug' => false,
+                    'headers' => [
+                        'Authorization' => "Bearer {$jwt}",
+                    ]
+                ]);
 
-            if ($response->getStatusCode() < 300) {
-                $data = json_decode($response->getBody(), true);
-                if (empty($data)) {
-                    return [];
-                } else {
-                    return $data;
+                if ($response->getStatusCode() < 300) {
+                    $data = json_decode($response->getBody(), true);
+                    if (empty($data)) {
+                        return [];
+                    } else {
+                        // create entity table record before return.
+                        $this->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
+                        return $data;
+                    }
                 }
+            } else {
+                return $demo;
             }
         } catch (\Exception $e) {
             Entities::createLog($e->getMessage());

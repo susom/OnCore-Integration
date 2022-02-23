@@ -184,6 +184,10 @@ class Subjects extends SubjectDemographics
     {
 //        $this->onCoreProtocolSubjects = $onCoreProtocolSubjects;
         try {
+            if (!$protocolId) {
+                throw new \Exception("No Protocol Provided");
+            }
+
             $jwt = $this->getUser()->getAccessToken();
             $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolSubjects?protocolId=' . $protocolId, [
                 'debug' => false,
@@ -201,7 +205,6 @@ class Subjects extends SubjectDemographics
                     foreach ($subjects as $key => $subject) {
                         try {
                             $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId']);
-
                         } catch (\Exception $e) {
                             Entities::createLog($e->getMessage());
                         }

@@ -1,10 +1,12 @@
 <?php
+
 namespace Stanford\OnCoreIntegration;
 
 require_once "emLoggerTrait.php";
 require_once 'classes/Users.php';
 require_once 'classes/Entities.php';
 require_once 'classes/Protocols.php';
+require_once 'classes/Subjects.php';
 
 /**
  * Class OnCoreIntegration
@@ -43,6 +45,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         if (isset($_GET['pid'])) {
             $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
 
+            /**
+             * if in redcap project context try to init protocol.
+             */
             $this->setProtocols(new Protocols($this->getUsers(), filter_var($_GET['pid'], FILTER_SANITIZE_NUMBER_INT)));
         }
         // Other code to run when object is instantiated
@@ -179,149 +184,154 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             'label_plural' => 'OnCore Subjects',
             'icon' => 'home_pencil',
             'properties' => [
-                'oncore_subject_demographics_id' => [
+                'subjectDemographicsId' => [
                     'name' => 'OnCore Subject Demographics Id',
-                    'type' => 'text',
+                    'type' => 'integer',
                     'required' => true,
                 ],
-                'oncore_subject_source' => [
+                'subjectSource' => [
                     'name' => 'Subject Source',
                     'type' => 'text',
                     'required' => true,
                 ],
-                'oncore_mrn' => [
+                'mrn' => [
                     'name' => 'OnCore MRN',
                     'type' => 'text',
                     'required' => true,
                 ],
-                'oncore_last_name' => [
+                'lastName' => [
                     'name' => 'OnCore Lastname',
                     'type' => 'text',
                     'required' => true,
                 ],
-                'oncore_first_name' => [
+                'firstName' => [
                     'name' => 'OnCore Firstname',
                     'type' => 'text',
                     'required' => true,
                 ],
-                'oncore_suffix' => [
+                'middleName' => [
+                    'name' => 'OnCore middle Name',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'suffix' => [
                     'name' => 'OnCore suffix',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_birth_date' => [
+                'birthDate' => [
                     'name' => 'OnCore Date of Birth',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_approximate_birth_date' => [
+                'approximateBirthDate' => [
                     'name' => 'OnCore Approximate Date of Birth',
                     'type' => 'boolean',
                     'required' => false,
                 ],
-                'oncore_birth_date_not_available' => [
+                'birthDateNotAvailable' => [
                     'name' => 'OnCore Date of Birth not available',
                     'type' => 'boolean',
                     'required' => false,
                 ],
-                'oncore_expired_date' => [
+                'expiredDate' => [
                     'name' => 'OnCore Expired Date',
                     'type' => 'date',
                     'required' => false,
                 ],
-                'oncore_approximate_expired_date' => [
+                'approximateExpiredDate' => [
                     'name' => 'OnCore Approximate Expired Date',
                     'type' => 'boolean',
                     'required' => false,
                 ],
-                'oncore_last_date_known_alive' => [
+                'lastDateKnownAlive' => [
                     'name' => 'OnCore Last date known alive',
                     'type' => 'date',
                     'required' => false,
                 ],
-                'oncore_ssn' => [
+                'ssn' => [
                     'name' => 'OnCore SSN',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_gender' => [
+                'gender' => [
                     'name' => 'OnCore Gender',
                     'type' => 'text',
                     'required' => true,
                 ],
-                'oncore_ethnicity' => [
+                'ethnicity' => [
                     'name' => 'OnCore Ethnicity',
                     'type' => 'text',
                     'required' => true,
                 ],
-                'oncore_race' => [
+                'race' => [
                     'name' => 'OnCore Race',
                     'type' => 'json',
                     'required' => true,
                 ],
-                'oncore_subject_comments' => [
+                'subjectComments' => [
                     'name' => 'OnCore SubjectComments',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_additional_subject_ids' => [
+                'additionalSubjectIds' => [
                     'name' => 'OnCore Additional Subject Ids',
                     'type' => 'json',
                     'required' => false,
                 ],
-                'oncore_street_address' => [
+                'streetAddress' => [
                     'name' => 'OnCore street Address',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_address_line2' => [
+                'addressLine2' => [
                     'name' => 'OnCore address Line2',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_city' => [
+                'city' => [
                     'name' => 'OnCore City',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_state' => [
+                'state' => [
                     'name' => 'OnCore State',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_zip' => [
+                'zip' => [
                     'name' => 'OnCore Zip Code',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_county' => [
+                'county' => [
                     'name' => 'OnCore County',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_country' => [
+                'country' => [
                     'name' => 'OnCore Country',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_phone_no' => [
+                'phoneNo' => [
                     'name' => 'OnCore Phone No',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_alternate_phone_no' => [
+                'alternatePhoneNo' => [
                     'name' => 'OnCore Alternate Phone No',
                     'type' => 'text',
                     'required' => false,
                 ],
-                'oncore_email' => [
+                'email' => [
                     'name' => 'OnCore Email',
                     'type' => 'text',
                     'required' => false,
                 ]
             ],
             'special_keys' => [
-                'label' => 'oncore_subject_demographics_id', // "name" represents the entity label.
+                'label' => 'subject_demographics_id', // "name" represents the entity label.
             ],
         ];;
 
@@ -377,25 +387,27 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $id = $project['project_id'];
                 $irb = $project['project_irb_number'];
 
-                $protocol = $this->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
+                $protocols = $this->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
 
-                if (!empty($protocol)) {
+                if (!empty($protocols)) {
                     $entity_oncore_protocol = $this->getProtocols()->getProtocolEntityRecord($id, $irb);
                     if (empty($entity_oncore_protocol)) {
-                        $data = array(
-                            'redcap_project_id' => $id,
-                            'irb_number' => $irb,
-                            'oncore_protocol_id' => $protocol['protocolId'],
-                            'status' => '0',
-                            'last_date_scanned' => time()
-                        );
+                        foreach ($protocols as $protocol) {
+                            $data = array(
+                                'redcap_project_id' => $id,
+                                'irb_number' => $irb,
+                                'oncore_protocol_id' => $protocol['protocolId'],
+                                'status' => '0',
+                                'last_date_scanned' => time()
+                            );
 
-                        $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
+                            $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
 
-                        if ($entity) {
-                            Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
-                        } else {
-                            throw new \Exception(implode(',', $this->getProtocols()->errors));
+                            if ($entity) {
+                                Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
+                            } else {
+                                throw new \Exception(implode(',', $this->getProtocols()->errors));
+                            }
                         }
                     } else {
                         $this->getProtocols()->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
