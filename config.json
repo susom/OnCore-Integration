@@ -27,8 +27,7 @@
     ],
     "framework-version": 8,
     "permissions": [
-        "redcap_every_page_top",
-        "redcap_save_record"
+        "redcap_every_page_top"
     ],
     "enable-every-page-hooks-on-system-pages": false,
     "links": {
