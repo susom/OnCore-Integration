@@ -27,7 +27,8 @@
     ],
     "framework-version": 8,
     "permissions": [
-        "redcap_every_page_top"
+        "redcap_every_page_top",
+        "redcap_save_record"
     ],
     "enable-every-page-hooks-on-system-pages": false,
     "links": {
@@ -43,6 +44,7 @@
         ]
     },
     "no-auth-pages": [
+        "pages/getEmrDemographics"
     ],
     "project-settings": [
         {
@@ -86,6 +88,11 @@
         {
             "key": "global-token-timestamp",
             "name": "<b>Expiration Unix timestamp for current access token</b>",
+            "type": "text"
+        },
+        {
+            "key": "mrn-verification-url",
+            "name": "<b>MRN Verification URL</b><i>(optional)</i>If MRN Verification and demographics retrieval is used from an EMR system, fill in the URL to the API endpoint.",
             "type": "text"
         },
         {
