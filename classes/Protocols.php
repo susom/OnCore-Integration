@@ -27,6 +27,11 @@ class Protocols extends Entities
     private $entityRecord;
 
     /**
+     * @var Subjects
+     */
+    private $subjects;
+
+    /**
      * @param $user
      * @param $reset
      */
@@ -51,11 +56,51 @@ class Protocols extends Entities
         }
     }
 
+    public function prepareProtocolSubjects()
+    {
+
+    }
+
+    public function isContactPartOfOnCoreProtocol($contactId)
+    {
+        try {
+            //TODO can redcap user who is a contact can other redcap users?
+            if (empty($this->getUser()->getOnCoreAdmin())) {
+
+                throw new \Exception("Can not find a OnCore Admin");
+            }
+            if (empty($this->getOnCoreProtocol())) {
+                throw new \Exception("No protocol found for current REDCap project.");
+            }
+            $jwt = $this->getUser()->getAccessToken();
+            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolStaff?protocolId=' . $this->getOnCoreProtocol()['protocolId'], [
+                'debug' => false,
+                'headers' => [
+                    'Authorization' => "Bearer {$jwt}",
+                ]
+            ]);
+
+            if ($response->getStatusCode() < 300) {
+                $staffs = json_decode($response->getBody(), true);
+                foreach ($staffs as $staff) {
+                    if ($contactId == $staff['contactId']) {
+                        return $staff;
+                    }
+                }
+                return false;
+            }
+            return false;
+        } catch (\Exception $e) {
+            Entities::createLog($e->getMessage());
+            throw new \Exception($e->getMessage());
+
+        }
+    }
+
     public function searchOnCoreProtocolsViaID($protocolID)
     {
         try {
-            //TODO attempt to get user token before using global one.
-            $jwt = $this->getUser()->getGlobalAccessToken();
+            $jwt = $this->getUser()->getAccessToken();
             $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocols/' . $protocolID, [
                 'debug' => false,
                 'headers' => [
@@ -71,14 +116,15 @@ class Protocols extends Entities
                 }
             }
         } catch (\Exception $e) {
-            return $e->getMessage();
+            Entities::createLog($e->getMessage());
+            throw new \Exception($e->getMessage());
         }
     }
 
     public function searchOnCoreProtocolsViaIRB($irbNum)
     {
         try {
-            $jwt = $this->getUser()->getGlobalAccessToken();
+            $jwt = $this->getUser()->getAccessToken();
             $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolManagementDetails?irbNo=' . $irbNum, [
                 'debug' => false,
                 'headers' => [
@@ -95,7 +141,8 @@ class Protocols extends Entities
                 }
             }
         } catch (\Exception $e) {
-            return $e->getMessage();
+            Entities::createLog($e->getMessage());
+            throw new \Exception($e->getMessage());
         }
     }
 

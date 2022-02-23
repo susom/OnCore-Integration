@@ -7,8 +7,25 @@ use \GuzzleHttp;
 require_once 'classes/Entities.php';
 require_once 'classes/SubjectDemographics.php';
 
-class Subjects extends Entities
+class Subjects extends SubjectDemographics
 {
+
+    use emLoggerTrait;
+
+    /**
+     * we defined prefix just to be able to emlog trait
+     * @var string
+     */
+    public $PRIFIX;
+
+    /**
+     * @var Users
+     */
+    private $user;
+
+
+    private $onCoreProtocolSubjects;
+
     /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
     /**
@@ -17,7 +34,17 @@ class Subjects extends Entities
      *
      * The bottom functions can be used to query OnCore to determine if an MRN is already entered
      * into the system.
+     * @param Users $user
+     * @param $reset
      */
+    public function __construct($user, $reset = false)
+    {
+        parent::__construct($reset);
+
+        $this->setUser($user);
+
+        $this->PRIFIX = $this->getUser()->getPREFIX();
+    }
 
     /**
      * Retrieves demographics data from the home institutions EMR system. If MRN validation is not implemented,
@@ -25,15 +52,17 @@ class Subjects extends Entities
      *
      * @param $mrns - list of MRNs to retrieve demographics data
      * @param $url - URL called to retrieve the demographics
-     * @param bool $getDemographics - if true, demographics will be retrieved.  If false, only true/false will be retrieved for each MRN for validation.
+     * @param bool $getDemographics - if true, demographics will be retrieved.  If false, only true/false will be
+     *     retrieved for each MRN for validation.
      * @return array
      */
-    public function getEMRDemographics($mrns, $module, $getDemographics=true) {
+    public function getEMRDemographics($mrns, $getDemographics = true)
+    {
 
         $demographics = array();
 
         // Retrieve the URL to the MRN Verification API.  If one is not entered, just set all MRNs as valid.
-        $url = $module->getSystemSetting('mrn-verification-url');
+        $url = $this->getUser()->getMrnVerificationURL();
         if (!empty($url)) {
 
             // Call API Endpoint
@@ -46,20 +75,22 @@ class Subjects extends Entities
 
                 // Make the API call
                 $client = new GuzzleHttp\Client;
-                $resp = $client->request('GET', $url, [
+                $resp = $this->getUser()->getGuzzleClient()->request('GET', $url, [
                     GuzzleHttp\RequestOptions::SYNCHRONOUS => true,
-                    GuzzleHttp\RequestOptions::FORM_PARAMS => array("redcap_csrf_token" => $module->getCSRFToken())
+                    GuzzleHttp\RequestOptions::FORM_PARAMS => array("redcap_csrf_token" => $this->getUser()->getRedcapCSFRToken())
                 ]);
             } catch (Exception $ex) {
 
                 // TODO: What to do about exceptions
-                $module->emError("Exception calling endpoint: " . $ex);
+                $this->emError("Exception calling endpoint: " . $ex);
+                Entities::createLog("Exception calling endpoint: " . $ex);
             }
 
             // Make the API call was successful.
             $returnStatus = $resp->getStatusCode();
             if ($returnStatus <> 200) {
-                $module->emError("API call to $url, HTTP Return Code is: $returnStatus");
+                $this->emError("API call to $url, HTTP Return Code is: $returnStatus");
+                Entities::createLog("API call to $url, HTTP Return Code is: $returnStatus");
             } else {
                 // Everything worked so retrieve the demographics data
                 $demographics = $resp->getBody()->getContents();
@@ -87,9 +118,10 @@ class Subjects extends Entities
      * @param $mrns
      * @return array
      */
-    public function emrMrnsValid($mrns, $module) {
+    public function emrMrnsValid($mrns)
+    {
 
-        return $this->getEMRDemographics($mrns, $module, false);
+        return $this->getEMRDemographics($mrns, false);
 
     }
 
@@ -117,5 +149,71 @@ class Subjects extends Entities
 
         return $subjectsDemo;
     }
+
+    /**
+     * @return Users
+     */
+    public function getUser(): Users
+    {
+        return $this->user;
+    }
+
+    /**
+     * @param Users $user
+     */
+    public function setUser(Users $user): void
+    {
+        $this->user = $user;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getOnCoreProtocolSubjects($protocolId)
+    {
+        if (!$this->onCoreProtocolSubjects) {
+            $this->setOnCoreProtocolSubjects($protocolId);
+        }
+        return $this->onCoreProtocolSubjects;
+    }
+
+    /**
+     * @param mixed $onCoreProtocolSubjects
+     */
+    public function setOnCoreProtocolSubjects($protocolId): void
+    {
+//        $this->onCoreProtocolSubjects = $onCoreProtocolSubjects;
+        try {
+            $jwt = $this->getUser()->getAccessToken();
+            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolSubjects?protocolId=' . $protocolId, [
+                'debug' => false,
+                'headers' => [
+                    'Authorization' => "Bearer {$jwt}",
+                ]
+            ]);
+
+            if ($response->getStatusCode() < 300) {
+                $subjects = json_decode($response->getBody(), true);
+                if (empty($subjects)) {
+                    $this->onCoreProtocolSubjects = [];
+                } else {
+
+                    foreach ($subjects as $key => $subject) {
+                        try {
+                            $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId']);
+
+                        } catch (\Exception $e) {
+                            Entities::createLog($e->getMessage());
+                        }
+                    }
+                    $this->onCoreProtocolSubjects = $subjects;
+                }
+            }
+        } catch (\Exception $e) {
+            Entities::createLog($e->getMessage());
+            throw new \Exception($e->getMessage());
+        }
+    }
+
 
 }

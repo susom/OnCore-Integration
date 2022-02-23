@@ -71,9 +71,19 @@ abstract class Clients extends \REDCapEntity\EntityFactory
     private $apiURN;
 
     /**
+     * @var string
+     */
+    private $mrnVerificationURL;
+
+    /**
+     * @var string
+     */
+    private $redcapCSFRToken;
+
+    /**
      * @param $PREFIX
      */
-    public function __construct($PREFIX)
+    public function __construct($PREFIX, $redcapCSFRToken)
     {
         $this->setPREFIX($PREFIX);
 
@@ -86,9 +96,13 @@ abstract class Clients extends \REDCapEntity\EntityFactory
 
         $this->setApiURN(ExternalModules::getSystemSetting($this->getPrefix(), 'oncore-api-urn'));
 
+        $this->setMrnVerificationURL(ExternalModules::getSystemSetting($this->getPrefix(), 'mrn-verification-url'));
+
         $this->setGlobalClientId(ExternalModules::getSystemSetting($this->getPrefix(), 'global-client-id'));
 
         $this->setGlobalClientSecret(ExternalModules::getSystemSetting($this->getPrefix(), 'global-client-secret'));
+
+        $this->setRedcapCSFRToken($redcapCSFRToken);
 
         if (ExternalModules::getSystemSetting($this->getPrefix(), 'global-token-timestamp') > time()) {
             $this->setGlobalAccessToken(ExternalModules::getSystemSetting($this->getPrefix(), 'global-access-token'));
@@ -225,7 +239,7 @@ abstract class Clients extends \REDCapEntity\EntityFactory
     /**
      * @return mixed
      */
-    public function getGlobalAccessToken()
+    public function getAccessToken()
     {
         if ($this->getGlobalTokenTime() > time() && $this->globalAccessToken) {
             return $this->globalAccessToken;
@@ -310,4 +324,38 @@ abstract class Clients extends \REDCapEntity\EntityFactory
     {
         $this->apiURN = $apiURN;
     }
+
+    /**
+     * @return string
+     */
+    public function getMrnVerificationURL(): string
+    {
+        return $this->mrnVerificationURL;
+    }
+
+    /**
+     * @param string $mrnVerificationURL
+     */
+    public function setMrnVerificationURL(string $mrnVerificationURL): void
+    {
+        $this->mrnVerificationURL = $mrnVerificationURL;
+    }
+
+    /**
+     * @return string
+     */
+    public function getRedcapCSFRToken(): string
+    {
+        return $this->redcapCSFRToken;
+    }
+
+    /**
+     * @param string $redcapCSFRToken
+     */
+    public function setRedcapCSFRToken(string $redcapCSFRToken): void
+    {
+        $this->redcapCSFRToken = $redcapCSFRToken;
+    }
+
+
 }

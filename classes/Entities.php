@@ -7,7 +7,7 @@ class Entities extends \REDCapEntity\EntityFactory
     public static function createLog($message, $url = '', $response = '', $type = 0)
     {
         $data = array(
-            'message' => $message,
+            'message' => date('m/d/Y H:i:s') . ' :' . $message,
             'url' => $url,
             'response' => $response,
             'type' => $type

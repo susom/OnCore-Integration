@@ -20,7 +20,6 @@ if (!$admin) {
 } else {
     echo '<pre>';
     print_r($admin);
-    //$module->getUsers()->updateOnCoreAdminEntityRecord($user->getUsername(), time(), time());
     echo '</pre>';
 }
 

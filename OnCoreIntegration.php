@@ -23,6 +23,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     const REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG = 'redcap_entity_oncore_redcap_api_actions_log';
     const ONCORE_ADMINS = 'oncore_admins';
     const REDCAP_ENTITY_ONCORE_ADMINS = 'redcap_entity_oncore_admins';
+    const ONCORE_SUBJECTS = 'oncore_subjects';
+    const REDCAP_ENTITY_ONCORE_SUBJECTS = 'redcap_entity_oncore_subjects';
 
     /**
      * @var Users
@@ -39,7 +41,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         parent::__construct();
 
         if (isset($_GET['pid'])) {
-            $this->setUsers(new Users($this->PREFIX));
+            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+
+            $this->setProtocols(new Protocols($this->getUsers(), filter_var($_GET['pid'], FILTER_SANITIZE_NUMBER_INT)));
         }
         // Other code to run when object is instantiated
     }
@@ -170,6 +174,157 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             ],
         ];;
 
+        $types['oncore_subjects'] = [
+            'label' => 'OnCore Subject',
+            'label_plural' => 'OnCore Subjects',
+            'icon' => 'home_pencil',
+            'properties' => [
+                'oncore_subject_demographics_id' => [
+                    'name' => 'OnCore Subject Demographics Id',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'oncore_subject_source' => [
+                    'name' => 'Subject Source',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'oncore_mrn' => [
+                    'name' => 'OnCore MRN',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'oncore_last_name' => [
+                    'name' => 'OnCore Lastname',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'oncore_first_name' => [
+                    'name' => 'OnCore Firstname',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'oncore_suffix' => [
+                    'name' => 'OnCore suffix',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_birth_date' => [
+                    'name' => 'OnCore Date of Birth',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_approximate_birth_date' => [
+                    'name' => 'OnCore Approximate Date of Birth',
+                    'type' => 'boolean',
+                    'required' => false,
+                ],
+                'oncore_birth_date_not_available' => [
+                    'name' => 'OnCore Date of Birth not available',
+                    'type' => 'boolean',
+                    'required' => false,
+                ],
+                'oncore_expired_date' => [
+                    'name' => 'OnCore Expired Date',
+                    'type' => 'date',
+                    'required' => false,
+                ],
+                'oncore_approximate_expired_date' => [
+                    'name' => 'OnCore Approximate Expired Date',
+                    'type' => 'boolean',
+                    'required' => false,
+                ],
+                'oncore_last_date_known_alive' => [
+                    'name' => 'OnCore Last date known alive',
+                    'type' => 'date',
+                    'required' => false,
+                ],
+                'oncore_ssn' => [
+                    'name' => 'OnCore SSN',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_gender' => [
+                    'name' => 'OnCore Gender',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'oncore_ethnicity' => [
+                    'name' => 'OnCore Ethnicity',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'oncore_race' => [
+                    'name' => 'OnCore Race',
+                    'type' => 'json',
+                    'required' => true,
+                ],
+                'oncore_subject_comments' => [
+                    'name' => 'OnCore SubjectComments',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_additional_subject_ids' => [
+                    'name' => 'OnCore Additional Subject Ids',
+                    'type' => 'json',
+                    'required' => false,
+                ],
+                'oncore_street_address' => [
+                    'name' => 'OnCore street Address',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_address_line2' => [
+                    'name' => 'OnCore address Line2',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_city' => [
+                    'name' => 'OnCore City',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_state' => [
+                    'name' => 'OnCore State',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_zip' => [
+                    'name' => 'OnCore Zip Code',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_county' => [
+                    'name' => 'OnCore County',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_country' => [
+                    'name' => 'OnCore Country',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_phone_no' => [
+                    'name' => 'OnCore Phone No',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_alternate_phone_no' => [
+                    'name' => 'OnCore Alternate Phone No',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_email' => [
+                    'name' => 'OnCore Email',
+                    'type' => 'text',
+                    'required' => false,
+                ]
+            ],
+            'special_keys' => [
+                'label' => 'oncore_subject_demographics_id', // "name" represents the entity label.
+            ],
+        ];;
+
         // TODO redcap entity for redcap records not in OnCore
 
         // TODO redcap entity for OnCore records not in REDCap
@@ -238,17 +393,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
 
                         if ($entity) {
-                            Entities::createLog(date('m/d/Y H:i:s') . ' : OnCore Protocol record created for IRB: ' . $irb . '.');
+                            Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
                         } else {
                             throw new \Exception(implode(',', $this->getProtocols()->errors));
                         }
                     } else {
                         $this->getProtocols()->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
-                        Entities::createLog(date('m/d/Y H:i:s') . ' : OnCore Protocol record updated for IRB: ' . $irb . '.');
+                        Entities::createLog('OnCore Protocol record updated for IRB: ' . $irb . '.');
                     }
                 } else {
-                    $this->emLog(date('m/d/Y H:i:s') . ' : IRB ' . $irb . ' has no OnCore Protocol.');
-                    Entities::createLog(date('m/d/Y H:i:s') . ' : IRB ' . $irb . ' has no OnCore Protocol.');
+                    $this->emLog('IRB ' . $irb . ' has no OnCore Protocol.');
+                    Entities::createLog('IRB ' . $irb . ' has no OnCore Protocol.');
                 }
             }
         } catch (\Exception $e) {
