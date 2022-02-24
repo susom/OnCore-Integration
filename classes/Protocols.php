@@ -106,6 +106,19 @@ class Protocols extends Entities
         }
     }
 
+    /**
+     * this function will gather records for linked redcap project.
+     * @return void
+     */
+    public function prepareProjectRecords()
+    {
+
+    }
+
+    /**
+     * gather and save subjects for linked OnCore Protocol
+     * @return void
+     */
     public function prepareProtocolSubjects()
     {
         try {
@@ -146,7 +159,7 @@ class Protocols extends Entities
             }
             return false;
         } catch (\Exception $e) {
-            Entities::createLog($e->getMessage());
+            Entities::createException($e->getMessage());
             throw new \Exception($e->getMessage());
 
         }
@@ -171,7 +184,7 @@ class Protocols extends Entities
                 }
             }
         } catch (\Exception $e) {
-            Entities::createLog($e->getMessage());
+            Entities::createException($e->getMessage());
             throw new \Exception($e->getMessage());
         }
     }
@@ -196,7 +209,7 @@ class Protocols extends Entities
                 }
             }
         } catch (\Exception $e) {
-            Entities::createLog($e->getMessage());
+            Entities::createException($e->getMessage());
             throw new \Exception($e->getMessage());
         }
     }

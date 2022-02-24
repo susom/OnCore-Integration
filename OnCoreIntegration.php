@@ -28,12 +28,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     const REDCAP_ENTITY_ONCORE_ADMINS = 'redcap_entity_oncore_admins';
     const ONCORE_SUBJECTS = 'oncore_subjects';
     const REDCAP_ENTITY_ONCORE_SUBJECTS = 'redcap_entity_oncore_subjects';
+    const ONCORE_REDCAP_RECORD_LINKAGE = 'oncore_redcap_records_linkage';
+    const REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE = 'redcap_entity_oncore_redcap_records_linkage';
 
     const RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE = 0;
 
     const RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE = 1;
 
-    const RECORD_ON_REDCAP_ON_ONCORE = 2;
+    const RECORD_ON_REDCAP_ON_ONCORE_FULL_MATCH = 2;
+
+    const RECORD_ON_REDCAP_ON_ONCORE_PARTIAL_MATCH = 3;
 
     const REDCAP_ONCORE_FIELDS_MAPPING_NAME = 'redcap-oncore-fields-mapping';
 
@@ -247,7 +251,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     'choices' => [
                         self::RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE => 'RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE',
                         self::RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE => 'RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE',
-                        self::RECORD_ON_REDCAP_ON_ONCORE => 'RECORD_ON_REDCAP_ON_ONCORE',
+                        self::RECORD_ON_REDCAP_ON_ONCORE_FULL_MATCH => 'RECORD_ON_REDCAP_ON_ONCORE_FULL_MATCH',
+                        self::RECORD_ON_REDCAP_ON_ONCORE_PARTIAL_MATCH => 'RECORD_ON_REDCAP_ON_ONCORE_PARTIAL_MATCH',
                     ],
                 ],
             ],
