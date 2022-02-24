@@ -24,8 +24,7 @@ class Subjects extends Entities
      * the URL in the EM system configuration file will not be set and this function will never get called.
      *
      * @param $mrns - list of MRNs to retrieve demographics data
-     * @param $url - URL called to retrieve the demographics
-     * @param bool $getDemographics - if true, demographics will be retrieved.  If false, only true/false will be retrieved for each MRN for validation.
+     * @param bool $getDemographics - defaulted to true, demographics will be retrieved.  If false, only true/false will be retrieved for each MRN for validation.
      * @return array
      */
     public function getEMRDemographics($mrns, $module, $getDemographics=true) {
@@ -76,6 +75,36 @@ class Subjects extends Entities
             }
             $demographics = json_encode($subject);
         }
+
+        /*
+         * {
+         * "12345678":{
+         *      "mrn":"12345678",
+         *      "lastName":"CADTEST",
+         *      "firstName":"SANITY",
+         *      "birthDate":"01/23/1986",
+         *      "gender":"Female",
+         *      "ethnicity":"Unknown",
+         *      "race":"Unknown",
+         *      "mrnValid":"true"
+         *      },
+         * "11111111":{
+         *      "mrn":"11111111",
+         *      "lastName":"PATIENT",
+         *      "firstName":"HOLD",
+         *      "birthDate":"01/01/1900",
+         *      "gender":"Unknown",
+         *      "ethnicity":"Non-Hispanic",
+         *      "race":"Unknown",
+         *      "mrnValid":"true"
+         *      },
+         *  "11111112":{
+         *      "mrn":"11111112",
+         *      "mrnValid":"false"
+         *      }
+         * }
+         */
+
 
         return $demographics;
     }
