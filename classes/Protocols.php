@@ -51,11 +51,24 @@ class Protocols extends Entities
         if ($redcapProjectId) {
             $this->prepareProtocol($redcapProjectId);
 
-            $this->saveFieldsMapping([]);
+            $this->setFieldsMap([]);
         }
     }
 
-    public function saveFieldsMapping($fields)
+
+    /**
+     * @return array
+     */
+    public function getFieldsMap(): array
+    {
+        return $this->fieldsMap;
+    }
+
+    /**
+     * @param array $fieldsMap
+     * @return void
+     */
+    public function setFieldsMap(array $fieldsMap): void
     {
         // TODO
 //        $test = array("subjectDemographicsId" => "subjectDemographicsId",
@@ -88,8 +101,8 @@ class Protocols extends Entities
 //            "alternatePhoneNo",
 //            "email");
 
-        ExternalModules::setProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, json_encode($fields));
-        return $fields;
+        ExternalModules::setProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, json_encode($fieldsMap));
+        $this->fieldsMap = $fieldsMap;
     }
 
     public function prepareProtocol($redcapProjectId)
@@ -103,9 +116,27 @@ class Protocols extends Entities
              */
             $this->prepareProtocolSubjects();
 
+            /**
+             * get REDCap records for linked protocol.
+             */
+            $this->prepareProjectRecords();
+
         }
     }
 
+    /**
+     * this function will gather records for linked redcap project.
+     * @return void
+     */
+    public function prepareProjectRecords()
+    {
+        $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['redcap_project_id']);
+    }
+
+    /**
+     * gather and save subjects for linked OnCore Protocol
+     * @return void
+     */
     public function prepareProtocolSubjects()
     {
         try {
@@ -146,7 +177,7 @@ class Protocols extends Entities
             }
             return false;
         } catch (\Exception $e) {
-            Entities::createLog($e->getMessage());
+            Entities::createException($e->getMessage());
             throw new \Exception($e->getMessage());
 
         }
@@ -171,7 +202,7 @@ class Protocols extends Entities
                 }
             }
         } catch (\Exception $e) {
-            Entities::createLog($e->getMessage());
+            Entities::createException($e->getMessage());
             throw new \Exception($e->getMessage());
         }
     }
@@ -196,7 +227,7 @@ class Protocols extends Entities
                 }
             }
         } catch (\Exception $e) {
-            Entities::createLog($e->getMessage());
+            Entities::createException($e->getMessage());
             throw new \Exception($e->getMessage());
         }
     }
@@ -292,22 +323,6 @@ class Protocols extends Entities
     public function setSubjects(Subjects $subjects): void
     {
         $this->subjects = $subjects;
-    }
-
-    /**
-     * @return array
-     */
-    public function getFieldsMap(): array
-    {
-        return $this->fieldsMap;
-    }
-
-    /**
-     * @param array $fieldsMap
-     */
-    public function setFieldsMap(array $fieldsMap): void
-    {
-        $this->fieldsMap = $fieldsMap;
     }
 
 

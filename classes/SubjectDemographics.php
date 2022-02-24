@@ -97,7 +97,7 @@ class SubjectDemographics extends Entities
                 return $demo;
             }
         } catch (\Exception $e) {
-            Entities::createLog($e->getMessage());
+            Entities::createException($e->getMessage());
             throw new \Exception($e->getMessage());
         }
     }
@@ -128,7 +128,7 @@ class SubjectDemographics extends Entities
                 }
             }
         } catch (\Exception $e) {
-            Entities::createLog($e->getMessage());
+            Entities::createException($e->getMessage());
             throw new \Exception($e->getMessage());
         }
     }

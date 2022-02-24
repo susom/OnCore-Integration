@@ -26,6 +26,11 @@ class Subjects extends SubjectDemographics
 
     private $onCoreProtocolSubjects;
 
+    /**
+     * @var
+     */
+    private $redcapProjectRecords;
+
     /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
     /**
@@ -83,14 +88,14 @@ class Subjects extends SubjectDemographics
 
                 // TODO: What to do about exceptions
                 $this->emError("Exception calling endpoint: " . $ex);
-                Entities::createLog("Exception calling endpoint: " . $ex);
+                Entities::createException("Exception calling endpoint: " . $ex);
             }
 
             // Make the API call was successful.
             $returnStatus = $resp->getStatusCode();
             if ($returnStatus <> 200) {
                 $this->emError("API call to $url, HTTP Return Code is: $returnStatus");
-                Entities::createLog("API call to $url, HTTP Return Code is: $returnStatus");
+                Entities::createException("API call to $url, HTTP Return Code is: $returnStatus");
             } else {
                 // Everything worked so retrieve the demographics data
                 $demographics = $resp->getBody()->getContents();
@@ -206,16 +211,40 @@ class Subjects extends SubjectDemographics
                         try {
                             $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId']);
                         } catch (\Exception $e) {
-                            Entities::createLog($e->getMessage());
+                            Entities::createException($e->getMessage());
                         }
                     }
                     $this->onCoreProtocolSubjects = $subjects;
                 }
             }
         } catch (\Exception $e) {
-            Entities::createLog($e->getMessage());
+            Entities::createException($e->getMessage());
             throw new \Exception($e->getMessage());
         }
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getRedcapProjectRecords($redcapProjectId, $redcapEventId)
+    {
+        if (!$this->redcapProjectRecords) {
+            $this->setRedcapProjectRecords($redcapProjectId, $redcapEventId);
+        }
+        return $this->redcapProjectRecords;
+    }
+
+    /**
+     * @param mixed $redcapProjectRecords
+     */
+    public function setRedcapProjectRecords($redcapProjectId, $redcapEventId): void
+    {
+        $param = array(
+            'project_id' => $redcapProjectId,
+            'return_format' => 'array',
+            'events' => $redcapEventId
+        );
+        $this->redcapProjectRecords = \REDCap::getData($param);
     }
 
 
