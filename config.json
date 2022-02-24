@@ -28,15 +28,22 @@
     "framework-version": 8,
     "permissions": [
         "redcap_every_page_top",
+        "redcap_module_link_check_display",
         "redcap_save_record"
     ],
     "enable-every-page-hooks-on-system-pages": false,
     "links": {
         "project": [
             {
-                "name": "Test Page",
-                "icon": "fas fa-columns",
-                "url": "pages/test.php",
+                "name": "OnCore/REDCap Field Mapping",
+                "icon": "fas fa-handshake",
+                "url": "pages/field_map.php",
+                "show-header-and-footer": true
+            },
+            {
+                "name": "Manual Sync With Oncore",
+                "icon": "fas fa-not-equal",
+                "url": "pages/sync_diff.php",
                 "show-header-and-footer": true
             }
         ],
