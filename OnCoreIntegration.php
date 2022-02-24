@@ -17,6 +17,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     use emLoggerTrait;
 
+    const FIELD_MAPPINGS = 'oncore_field_mappings';
     const ONCORE_PROTOCOLS = 'oncore_protocols';
     const REDCAP_ENTITY_ONCORE_PROTOCOLS = 'redcap_entity_oncore_protocols';
     const ONCORE_REDCAP_API_ACTIONS_LOG = 'oncore_redcap_api_actions_log';
@@ -37,7 +38,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         parent::__construct();
 
         if (isset($_GET['pid'])) {
-            $this->setUsers(new Users($this->PREFIX));
+            //TODO THIS BREAKS
+//            $this->setUsers(new Users($this->PREFIX));
         }
         // Other code to run when object is instantiated
     }
@@ -48,6 +50,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             // in case we are loading record homepage load its the record children if existed
             preg_match('/redcap_v[\d\.].*\/index\.php/m', $_SERVER['SCRIPT_NAME'], $matches, PREG_OFFSET_CAPTURE);
             if (strpos($_SERVER['SCRIPT_NAME'], 'ProjectSetup') !== false || !empty($matches)) {
+                $this->injectIntegrationUI();
                 $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
             }
         } catch (\Exception $e) {
@@ -146,6 +149,162 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $types;
     }
 
+    public function injectIntegrationUI()
+    {
+        ?>
+        <script>
+		//  this over document.ready because we need this last!
+		$(window).on('load', function () {
+			// need to check for the redcapRandomizeBtn, already done ones wont have it
+			if($("#setupChklist-modify_project").length){
+                var new_section     = $("#setupChklist-modules").clone();
+                new_section.find(".chklist_comp").remove();
+                new_section.find(".chklisthdr span").text("OnCore Integration");
+                new_section.find(".chklisttext").empty();
+
+                $("#setupChklist-modify_project").after(new_section);
+
+                var modify_button   = $("#setupChklist-modify_project").find("button:contains('Modify')");
+                var integration_ui  = $("<div>");
+                var iu_label        = $("<label>");
+
+                var iu_check        = $("<input>").attr("name", "");
+                var iu_text         = $("<span>").text();
+
+                iu_label.append(iu_check);
+                iu_label.append(iu_text);
+                integration_ui.append(iu_label);
+
+                new_section.find(".chklisttext").append(integration_ui);
+
+
+                return;
+
+				// ADD NEW BUTTON OR ENTIRELY NEW UI
+				var clone_or_show = $("#randomizationFieldHtml");
+				clone_or_show.addClass("custom_override")
+
+				// EXISTING UI ALREADY AVAILABLE, REVEAL AND AUGMENT
+				var custom_label 	= $("<h6>").addClass("custom_label").addClass("mt-2").text("Manually override and set randomization variable as:");
+				clone_or_show.prepend(custom_label);
+
+
+				var custom_hidden 	= $("<input>").attr("type","hidden").prop("name","randomizer_overide").val(true);
+				clone_or_show.prepend(custom_hidden);
+
+				var custom_reason 	= $("<input>").attr("type","text").attr("name","custom_override_reason").prop("placeholder" , "reason for using overide?").addClass("custom_reason");
+				clone_or_show.append(custom_reason);
+
+				// var custom_or 		= $("<small>").addClass("custom_or").text("*Manually override and set randomization variable as:");
+				// clone_or_show.prepend(custom_or);
+
+				var custom_note 	= $("<small>").addClass("custom_note").text("*Press save to continue");
+				clone_or_show.append(custom_note);
+
+
+
+				//ONLY ENABLE MANUAL IF STRATA ARE ALL FILLED
+				var source_fields  	= <?= json_encode($this->source_fields) ?>;
+				var show_overide 	= $("<button>").addClass("jqbuttonmed ui-button ui-corner-all ui-widget btn-danger custom_btn").text("Manual Selection").click(function(e){
+					e.preventDefault();
+
+					if(clone_or_show.is(":visible")){
+						$("#redcapRandomizeBtn").prop("disabled",false);
+					}else{
+						$("#redcapRandomizeBtn").prop("disabled",true);
+					}
+
+					clone_or_show.toggle();
+
+
+					checkStrataComplete(source_fields, clone_or_show);
+
+					// $(this).prop("disabled",true);
+				});
+
+				$("#redcapRandomizeBtn").after(clone_or_show);
+				$("#redcapRandomizeBtn").after(show_overide);
+			}
+		});
+		</script>
+		<style>
+
+		</style>
+		<?php
+    }
+
+    public function redcap_module_link_check_display($project_id, $link)
+    {
+        //field_map , sync_diff
+        //$link_url = $link["url"];
+
+        //TODO EM WILL BE GLOBAL, AND ONLY PROJECTS THAT CHOOSE TO INTEGRATE
+        //TODO WILL WE NEED CONDITIONAL DISPLAY OF EM LINKS
+        if($this->hasOnCoreIntegration()){
+            return $link;
+        }
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasOnCoreIntegration()
+    {
+        return true;
+    }
+
+    public function getProjectFieldMappings()
+    {
+        $results    = array();
+        $mappings   = $this->getProjectSetting(self::FIELD_MAPPINGS);
+        if(!empty($mappings)){
+            $results = json_decode($mappings, true);
+        }
+        return $results;
+    }
+
+    public function setProjectFieldMappings($mappings=array())
+    {
+        return $this->setProjectSetting(self::FIELD_MAPPINGS, json_encode($mappings));
+    }
+
+    /**
+     * @return field_list
+     */
+    public function getOnCoreFields()
+    {
+        $field_list = array("MRN","race", "birthdate", "sex", "fname", "lname");
+        return $field_list;
+    }
+
+    /**
+     * @return field_list
+     */
+    public function getProjectFields()
+    {
+        $field_list = array();
+        $dict       = \REDCap::getDataDictionary(PROJECT_ID, "array");
+        $field_list = array_keys($dict);
+
+        return $field_list;
+    }
+
+    /**
+     * @return sync_diff
+     */
+    public function getSyncDiff()
+    {
+        $sync_diff = array();
+
+        return $sync_diff;
+    }
+
+
+
+
+
+
+
     /**
      * @return Users
      */
@@ -225,4 +384,5 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         }
     }
+
 }
