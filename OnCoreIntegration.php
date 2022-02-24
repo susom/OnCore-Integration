@@ -534,10 +534,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $results;
     }
 
-    public function setProjectFieldMappings($mappings = array())
-    {
-        return $this->setProjectSetting(self::FIELD_MAPPINGS, json_encode($mappings));
-    }
 
     /**
      * @return field_list
