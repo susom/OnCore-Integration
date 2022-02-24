@@ -18,4 +18,9 @@ class Entities extends \REDCapEntity\EntityFactory
             \REDCap::logEvent('Could not create log');
         }
     }
+
+    public static function createException($message)
+    {
+        self::createLog('EXCEPTION: ' . $message);
+    }
 }

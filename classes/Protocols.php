@@ -58,38 +58,38 @@ class Protocols extends Entities
     public function saveFieldsMapping($fields)
     {
         // TODO
-        $test = array("subjectDemographicsId" => "subjectDemographicsId",
-            "subjectSource" => "subjectSource",
-            "mrn" => "mrn",
-            "lastName" => "lastName",
-            "firstName" => "firstName",
-            "middleName" => "middleName",
-            "suffix" => "suffix",
-            "birthDate" => "birthDate",
-            "approximateBirthDate" => "approximateBirthDate",
-            "birthDateNotAvailable" => "birthDateNotAvailable",
-            "expiredDate" => "expiredDate",
-            "approximateExpiredDate" => "approximateExpiredDate",
-            "lastDateKnownAlive" => "lastDateKnownAlive",
-            "ssn" => "ssn",
-            "gender" => "gender",
-            "ethnicity" => "ethnicity",
-            "race" => "race",
-            "subjectComments",
-            "additionalSubjectIds",
-            "streetAddress",
-            "addressLine2",
-            "city",
-            "state",
-            "zip",
-            "county",
-            "country",
-            "phoneNo",
-            "alternatePhoneNo",
-            "email");
+//        $test = array("subjectDemographicsId" => "subjectDemographicsId",
+//            "subjectSource" => "subjectSource",
+//            "mrn" => "mrn",
+//            "lastName" => "lastName",
+//            "firstName" => "firstName",
+//            "middleName" => "middleName",
+//            "suffix" => "suffix",
+//            "birthDate" => "birthDate",
+//            "approximateBirthDate" => "approximateBirthDate",
+//            "birthDateNotAvailable" => "birthDateNotAvailable",
+//            "expiredDate" => "expiredDate",
+//            "approximateExpiredDate" => "approximateExpiredDate",
+//            "lastDateKnownAlive" => "lastDateKnownAlive",
+//            "ssn" => "ssn",
+//            "gender" => "gender",
+//            "ethnicity" => "ethnicity",
+//            "race" => "race",
+//            "subjectComments",
+//            "additionalSubjectIds",
+//            "streetAddress",
+//            "addressLine2",
+//            "city",
+//            "state",
+//            "zip",
+//            "county",
+//            "country",
+//            "phoneNo",
+//            "alternatePhoneNo",
+//            "email");
 
-        ExternalModules::setProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, json_encode($test));
-        return $test;
+        ExternalModules::setProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, json_encode($fields));
+        return $fields;
     }
 
     public function prepareProtocol($redcapProjectId)
