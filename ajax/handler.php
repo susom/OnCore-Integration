@@ -14,6 +14,14 @@ if(isset($_POST["action"])){
             $field_mappings = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING): null;
             $result = $module->setProjectFieldMappings($field_mappings);
         break;
+
+        case "integrateOnCore":
+            $result = $module->integrateOnCoreProject();
+        break;
+
+        case "syncDiff":
+            $result = $module->getSyncDiff();
+        break;
     }
 
     echo json_encode($result);

@@ -149,110 +149,160 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $types;
     }
 
-    public function injectIntegrationUI()
-    {
-        ?>
-        <script>
-		//  this over document.ready because we need this last!
-		$(window).on('load', function () {
-			// need to check for the redcapRandomizeBtn, already done ones wont have it
-			if($("#setupChklist-modify_project").length){
-                var new_section     = $("#setupChklist-modules").clone();
-                new_section.find(".chklist_comp").remove();
-                new_section.find(".chklisthdr span").text("OnCore Integration");
-                new_section.find(".chklisttext").empty();
-
-                $("#setupChklist-modify_project").after(new_section);
-
-                var modify_button   = $("#setupChklist-modify_project").find("button:contains('Modify')");
-                var integration_ui  = $("<div>");
-                var iu_label        = $("<label>");
-
-                var iu_check        = $("<input>").attr("name", "");
-                var iu_text         = $("<span>").text();
-
-                iu_label.append(iu_check);
-                iu_label.append(iu_text);
-                integration_ui.append(iu_label);
-
-                new_section.find(".chklisttext").append(integration_ui);
-
-
-                return;
-
-				// ADD NEW BUTTON OR ENTIRELY NEW UI
-				var clone_or_show = $("#randomizationFieldHtml");
-				clone_or_show.addClass("custom_override")
-
-				// EXISTING UI ALREADY AVAILABLE, REVEAL AND AUGMENT
-				var custom_label 	= $("<h6>").addClass("custom_label").addClass("mt-2").text("Manually override and set randomization variable as:");
-				clone_or_show.prepend(custom_label);
-
-
-				var custom_hidden 	= $("<input>").attr("type","hidden").prop("name","randomizer_overide").val(true);
-				clone_or_show.prepend(custom_hidden);
-
-				var custom_reason 	= $("<input>").attr("type","text").attr("name","custom_override_reason").prop("placeholder" , "reason for using overide?").addClass("custom_reason");
-				clone_or_show.append(custom_reason);
-
-				// var custom_or 		= $("<small>").addClass("custom_or").text("*Manually override and set randomization variable as:");
-				// clone_or_show.prepend(custom_or);
-
-				var custom_note 	= $("<small>").addClass("custom_note").text("*Press save to continue");
-				clone_or_show.append(custom_note);
-
-
-
-				//ONLY ENABLE MANUAL IF STRATA ARE ALL FILLED
-				var source_fields  	= <?= json_encode($this->source_fields) ?>;
-				var show_overide 	= $("<button>").addClass("jqbuttonmed ui-button ui-corner-all ui-widget btn-danger custom_btn").text("Manual Selection").click(function(e){
-					e.preventDefault();
-
-					if(clone_or_show.is(":visible")){
-						$("#redcapRandomizeBtn").prop("disabled",false);
-					}else{
-						$("#redcapRandomizeBtn").prop("disabled",true);
-					}
-
-					clone_or_show.toggle();
-
-
-					checkStrataComplete(source_fields, clone_or_show);
-
-					// $(this).prop("disabled",true);
-				});
-
-				$("#redcapRandomizeBtn").after(clone_or_show);
-				$("#redcapRandomizeBtn").after(show_overide);
-			}
-		});
-		</script>
-		<style>
-
-		</style>
-		<?php
-    }
-
     public function redcap_module_link_check_display($project_id, $link)
     {
-        //field_map , sync_diff
-        //$link_url = $link["url"];
-
-        //TODO EM WILL BE GLOBAL, AND ONLY PROJECTS THAT CHOOSE TO INTEGRATE
-        //TODO WILL WE NEED CONDITIONAL DISPLAY OF EM LINKS
+        //TODO WILL WE NEED CONDITIONAL DISPLAY OF EM LINKS ONCE INTEGRATION HAS BEEN COMPLETE
         if($this->hasOnCoreIntegration()){
             return $link;
         }
     }
 
+    public function injectIntegrationUI()
+    {
+        $field_map_url = $this->getUrl("pages/field_map.php");
+        $ajax_endpoint = $this->getUrl("ajax/handler.php");
+        ?>
+        <script>
+        var has_oncore_project  = <?=json_encode($this->hasOnCoreProject()); ?>;
+        var oncore_integrated   = <?=json_encode($this->hasOnCoreIntegration()); ?>;
+        var ajax_endpoint       = "<?=$ajax_endpoint?>";
+        var field_map_url       = "<?=$field_map_url?>";
+		//  this over document.ready because we need this last!
+		$(window).on('load', function () {
+            //BORROW CONTAINER UI TO ADD A NEW SECTION TO PROJECT SETUP
+			if($("#setupChklist-modify_project").length){
+                var new_section = $("#setupChklist-modules").clone();
+                new_section.attr("id","integrateOnCore-modules");
+                new_section.find(".chklist_comp").remove();
+                new_section.find(".chklisthdr span").text("OnCore Project Integration");
+                new_section.find(".chklisttext").empty();
+
+                $("#setupChklist-modify_project").after(new_section);
+                var content_bdy = new_section.find(".chklisttext");
+                var lead = $("<span>");
+                content_bdy.append(lead);
+
+                //TODO FIGURE UX
+                var integration_ui  = $("<form>").attr("id", "integrate_oncore");
+                var iu_label        = $("<label>");
+                var iu_check        = $("<input>").attr("type", "checkbox").addClass("integrate").attr("name", "integrate").attr("value","1");
+                var iu_text         = $("<span>").text("Check this box to link the OnCore Project");
+
+                iu_label.append(iu_check);
+                iu_label.append(iu_text);
+                integration_ui.append(iu_label);
+                if(oncore_integrated){
+                    //TODO IF ENCORE HAS BEEN INTEGRATED THEN SHOW THAT IT HAS BEEN
+                    var lead_text = "This project has been integrated with OnCore Project #" + oncore_integrated;
+                    lead.addClass("integrated");
+                    iu_check.attr("disabled","disabled").attr("checked","checked");
+                    content_bdy.append(integration_ui);
+                }else{
+                    //TODO IF NOT, THEN CHECK IF THERE IS AN ONCORE PROJECT BASED ON IRB?
+                    var lead_text = "<i class='ml-1 fas fa-minus-circle' style='text-indent:0;'></i> No available OnCore projects were found with this project's IRB.";
+
+                    if(has_oncore_project){
+                        lead_text = "An OnCore project for IRB #" + has_oncore_project + " was found.";
+                        lead.addClass("notintegrated");
+                        content_bdy.append(integration_ui);
+                    }else{
+                        lead.addClass("noproject");
+                    }
+
+                }
+                lead.html(lead_text);
+			}
+
+            //INTEGRATE AJAX
+            $("#integrate_oncore .integrate").on("change",function(){
+                if($(this).is(':checked')){
+                    $("#integrate_oncore").submit();
+                }
+            });
+            $("#integrate_oncore").submit(function(){
+                //LINKAGE AJAX
+                $.ajax({
+                    url : ajax_endpoint,
+                    method: 'POST',
+                    data: {
+                        "action" : "integrateOnCore"
+                    },
+                    dataType: 'json'
+                }).done(function (oncore_integrated) {
+                    //TODO update lead text class AND DISABLE integration checkbox
+                    var lead_text = "This project has been integrated with OnCore Project #" + oncore_integrated;
+                    $("span.notintegrated").addClass("integrated").removeClass("notintegrated").text(lead_text);
+                    $("#integrate_oncore .integrate").attr("disabled","disabled");
+
+                    //TODO REDIRECT TO field map?
+                    setTimeout(function(){
+                        location.href=field_map_url;
+                    },500);
+                }).fail(function (e) {
+                    console.log("failed to integrate", e);
+                });
+                return false;
+            });
+        });
+		</script>
+		<style>
+            span.noproject{
+                color:#800000;
+            }
+            span.integrated{
+                color:#009b76;
+            }
+            span.notintegrated{
+                color:#0098db;
+            }
+            #integrate_oncore{
+                padding:5px 0 0;
+            }
+            #integrate_oncore span{
+                display:inline-block;
+                margin-left:5px;
+            }
+		</style>
+		<?php
+    }
+
     /**
-     * @return bool
+     * @return int ?
+     */
+    public function integrateOnCoreProject()
+    {
+        //TODO PROBABLY ALREADY EXISTS IN IHAB's CLASSES
+        $irb = $this->hasOnCoreProject();
+
+//        return false;
+        return 654321;
+    }
+
+    /**
+     * @return int
+     */
+    public function hasOnCoreProject()
+    {
+        //TODO use IRB to check if there is an OnCore Project?
+        //TODO return IRB # to signify existence?
+//        return null;
+        return 123456;
+    }
+
+    /**
+     * @return int
      */
     public function hasOnCoreIntegration()
     {
-        return true;
+        //TODO what represents an OnCore Integration? an Oncore project ID?
+        //TODO return THAT to signfy an integration?
+//        return null;
+        return 654321;
     }
 
+    /**
+     * @return array
+     */
     public function getProjectFieldMappings()
     {
         $results    = array();
@@ -263,6 +313,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $results;
     }
 
+    /**
+     * @return null
+     */
     public function setProjectFieldMappings($mappings=array())
     {
         return $this->setProjectSetting(self::FIELD_MAPPINGS, json_encode($mappings));
@@ -282,10 +335,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getProjectFields()
     {
-        $field_list = array();
         $dict       = \REDCap::getDataDictionary(PROJECT_ID, "array");
         $field_list = array_keys($dict);
-
         return $field_list;
     }
 
@@ -294,12 +345,26 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getSyncDiff()
     {
-        $sync_diff = array();
+        $sync_diff  = array();
+
+        //TODO FILL IN BINS FOR 3 Scenarios,
+        //TODO MRN MATCH BETWEEN ONCORE/REDCAP , Manually Opt out of ONcore -> REDCAp overwrite
+        //TODO ONCORE ONLY DATA , COPY INTO RC Entitys and UPDATE RC Data
+        //TODO REDCAP ONLY DATA , Not for Phase 1
+        $bin_match  = array();
+        $bin_oncore = array();
+        $bin_redcap = array();
+
+        if(!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap) || 1){
+            $sync_diff = array(
+                "match"     => $bin_match,
+                "oncore"    => $bin_oncor,
+                "redcap"    => $bin_redcap
+            );
+        }
 
         return $sync_diff;
     }
-
-
 
 
 

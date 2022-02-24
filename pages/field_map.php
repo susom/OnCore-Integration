@@ -34,7 +34,7 @@ foreach($oncore_fields as $field){
     $html .= "<tr class='$field'>\r\n";
     $html .= "<td>$field</td>";
     $html .= "<td>$map_select</td>";
-    $html .= "<td><i class='fa $icon_status fa-2x'></i></td>";
+    $html .= "<td><i class='fa $icon_status'></i></td>";
     $html .= "</tr>\r\n";
 }
 ?>
@@ -52,8 +52,8 @@ foreach($oncore_fields as $field){
         <thead>
         <tr>
             <th style="width: 35%">OnCore Field</th>
-            <th style="width: 55%">REDCap Field</th>
-            <th style="width: 10%">Icons</th>
+            <th style="width: 50%">REDCap Field</th>
+            <th style="width: 15%">Map Status</th>
         </tr>
         </thead>
         <tbody>
@@ -100,6 +100,7 @@ $(document).ready(function(){
             var update_keys = Object.keys(field_maps);
             var make_x      = $(mrn_fields).not(update_keys).get();
 
+            //UPDATE UI STATUS
             for(var i in make_x){
                 var key = make_x[i];
                 if($("#oncore_mapping tr."+key+" i").hasClass("fa-check-circle")){
