@@ -134,6 +134,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     'type' => 'date',
                     'required' => true,
                 ],
+                'redcap_event_id' => [
+                    'name' => 'REDCap Event Id',
+                    'type' => 'integer',
+                    'required' => true,
+                ],
                 'status' => [
                     'name' => 'Linkage Status',
                     'type' => 'text',
@@ -625,6 +630,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                                 'redcap_project_id' => $id,
                                 'irb_number' => $irb,
                                 'oncore_protocol_id' => $protocol['protocolId'],
+                                // cron will save the first event. and when connect is approved the redcap user has to confirm the event id.
+                                'redcap_event_id' => $this->getFirstEventId(),
                                 'status' => '0',
                                 'last_date_scanned' => time()
                             );

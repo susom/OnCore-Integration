@@ -223,5 +223,29 @@ class Subjects extends SubjectDemographics
         }
     }
 
+    /**
+     * @return mixed
+     */
+    public function getRedcapProjectRecords($redcapProjectId, $redcapEventId)
+    {
+        if (!$this->redcapProjectRecords) {
+            $this->setRedcapProjectRecords($redcapProjectId, $redcapEventId);
+        }
+        return $this->redcapProjectRecords;
+    }
+
+    /**
+     * @param mixed $redcapProjectRecords
+     */
+    public function setRedcapProjectRecords($redcapProjectId, $redcapEventId): void
+    {
+        $param = array(
+            'project_id' => $redcapProjectId,
+            'return_format' => 'array',
+            'events' => $redcapEventId
+        );
+        $this->redcapProjectRecords = \REDCap::getData($param);
+    }
+
 
 }

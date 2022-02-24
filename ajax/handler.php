@@ -17,7 +17,8 @@ try {
                 //expected format = array("oncore_field1" => "redcap_field1", "oncore_field2" => "redcap_field2");
                 $field_mappings = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
                 //$result = $module->setProjectFieldMappings($field_mappings);
-                $result = $module->getProtocols()->saveFieldsMapping($field_mappings);
+                $module->getProtocols()->setFieldsMap($field_mappings);
+                $result = $field_mappings;
                 break;
         }
 
