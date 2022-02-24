@@ -2,6 +2,7 @@
 
 namespace Stanford\OnCoreIntegration;
 
+use ExternalModules\ExternalModules;
 
 /**
  * Class Protocols
@@ -32,6 +33,11 @@ class Protocols extends Entities
     private $subjects;
 
     /**
+     * @var array
+     */
+    private $fieldsMap;
+
+    /**
      * @param $user
      * @param $reset
      */
@@ -44,7 +50,46 @@ class Protocols extends Entities
         // if protocol is initiated for specific REDCap project. then check if this ONCORE_PROTOCOL entity record exists and pull OnCore Protocol via  API
         if ($redcapProjectId) {
             $this->prepareProtocol($redcapProjectId);
+
+            $this->saveFieldsMapping([]);
         }
+    }
+
+    public function saveFieldsMapping($fields)
+    {
+        // TODO
+        $test = array("subjectDemographicsId" => "subjectDemographicsId",
+            "subjectSource" => "subjectSource",
+            "mrn" => "mrn",
+            "lastName" => "lastName",
+            "firstName" => "firstName",
+            "middleName" => "middleName",
+            "suffix" => "suffix",
+            "birthDate" => "birthDate",
+            "approximateBirthDate" => "approximateBirthDate",
+            "birthDateNotAvailable" => "birthDateNotAvailable",
+            "expiredDate" => "expiredDate",
+            "approximateExpiredDate" => "approximateExpiredDate",
+            "lastDateKnownAlive" => "lastDateKnownAlive",
+            "ssn" => "ssn",
+            "gender" => "gender",
+            "ethnicity" => "ethnicity",
+            "race" => "race",
+            "subjectComments",
+            "additionalSubjectIds",
+            "streetAddress",
+            "addressLine2",
+            "city",
+            "state",
+            "zip",
+            "county",
+            "country",
+            "phoneNo",
+            "alternatePhoneNo",
+            "email");
+
+        ExternalModules::setProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, json_encode($test));
+        return $test;
     }
 
     public function prepareProtocol($redcapProjectId)
@@ -247,6 +292,22 @@ class Protocols extends Entities
     public function setSubjects(Subjects $subjects): void
     {
         $this->subjects = $subjects;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFieldsMap(): array
+    {
+        return $this->fieldsMap;
+    }
+
+    /**
+     * @param array $fieldsMap
+     */
+    public function setFieldsMap(array $fieldsMap): void
+    {
+        $this->fieldsMap = $fieldsMap;
     }
 
 

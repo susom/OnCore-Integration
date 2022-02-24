@@ -48,6 +48,12 @@
     ],
     "project-settings": [
         {
+            "key": "redcap-oncore-fields-mapping",
+            "name": "Json Object represent the fields mapping between REDCap and OnCore <h6><span class='text-lg badge badge-lg badge-danger'>DO NOT MODIFY</span></h6>",
+            "required": false,
+            "type": "textarea"
+        },
+        {
             "key": "enable-project-debug-logging",
             "name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
             "required": false,

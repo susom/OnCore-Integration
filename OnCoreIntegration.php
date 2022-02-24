@@ -28,6 +28,43 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     const ONCORE_SUBJECTS = 'oncore_subjects';
     const REDCAP_ENTITY_ONCORE_SUBJECTS = 'redcap_entity_oncore_subjects';
 
+    const RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE = 0;
+
+    const RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE = 1;
+
+    const RECORD_ON_REDCAP_ON_ONCORE = 2;
+
+    const REDCAP_ONCORE_FIELDS_MAPPING_NAME = 'redcap-oncore-fields-mapping';
+
+    public static $ONCORE_DEMOGRAPHICS_FIELDS = array("subjectDemographicsId",
+        "subjectSource",
+        "mrn",
+        "lastName",
+        "firstName",
+        "middleName",
+        "suffix",
+        "birthDate",
+        "approximateBirthDate",
+        "birthDateNotAvailable",
+        "expiredDate",
+        "approximateExpiredDate",
+        "lastDateKnownAlive",
+        "ssn",
+        "gender",
+        "ethnicity",
+        "race",
+        "subjectComments",
+        "additionalSubjectIds",
+        "streetAddress",
+        "addressLine2",
+        "city",
+        "state",
+        "zip",
+        "county",
+        "country",
+        "phoneNo",
+        "alternatePhoneNo",
+        "email");
     /**
      * @var Users
      */
@@ -176,6 +213,48 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             ],
             'special_keys' => [
                 'label' => 'redcap_username', // "name" represents the entity label.
+            ],
+        ];;
+
+        $types['oncore_redcap_records_linkage'] = [
+            'label' => 'OnCore REDCap records Linkage',
+            'label_plural' => 'OnCore REDCap records Linkage',
+            'icon' => 'home_pencil',
+            'properties' => [
+                'redcap_project_id' => [
+                    'name' => 'REDCap project Id',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_protocol_id' => [
+                    'name' => 'OnCore Protocol Id',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'redcap_record_id' => [
+                    'name' => 'REDCap record Id',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_protocol_subject_id' => [
+                    'name' => 'OnCore Protocol Subject Id(NOT Demographics)',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'status' => [
+                    'name' => 'Linkage Status',
+                    'type' => 'integer',
+                    'required' => true,
+                    'default' => 0,
+                    'choices' => [
+                        self::RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE => 'RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE',
+                        self::RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE => 'RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE',
+                        self::RECORD_ON_REDCAP_ON_ONCORE => 'RECORD_ON_REDCAP_ON_ONCORE',
+                    ],
+                ],
+            ],
+            'special_keys' => [
+                'label' => 'redcap_project_id', // "name" represents the entity label.
             ],
         ];;
 
