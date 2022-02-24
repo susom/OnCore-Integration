@@ -1,10 +1,12 @@
 <?php
+
 namespace Stanford\OnCoreIntegration;
 
 require_once "emLoggerTrait.php";
 require_once 'classes/Users.php';
 require_once 'classes/Entities.php';
 require_once 'classes/Protocols.php';
+require_once 'classes/Subjects.php';
 
 /**
  * Class OnCoreIntegration
@@ -24,7 +26,46 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     const REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG = 'redcap_entity_oncore_redcap_api_actions_log';
     const ONCORE_ADMINS = 'oncore_admins';
     const REDCAP_ENTITY_ONCORE_ADMINS = 'redcap_entity_oncore_admins';
+    const ONCORE_SUBJECTS = 'oncore_subjects';
+    const REDCAP_ENTITY_ONCORE_SUBJECTS = 'redcap_entity_oncore_subjects';
 
+    const RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE = 0;
+
+    const RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE = 1;
+
+    const RECORD_ON_REDCAP_ON_ONCORE = 2;
+
+    const REDCAP_ONCORE_FIELDS_MAPPING_NAME = 'redcap-oncore-fields-mapping';
+
+    public static $ONCORE_DEMOGRAPHICS_FIELDS = array("subjectDemographicsId",
+        "subjectSource",
+        "mrn",
+        "lastName",
+        "firstName",
+        "middleName",
+        "suffix",
+        "birthDate",
+        "approximateBirthDate",
+        "birthDateNotAvailable",
+        "expiredDate",
+        "approximateExpiredDate",
+        "lastDateKnownAlive",
+        "ssn",
+        "gender",
+        "ethnicity",
+        "race",
+        "subjectComments",
+        "additionalSubjectIds",
+        "streetAddress",
+        "addressLine2",
+        "city",
+        "state",
+        "zip",
+        "county",
+        "country",
+        "phoneNo",
+        "alternatePhoneNo",
+        "email");
     /**
      * @var Users
      */
@@ -173,6 +214,204 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             ],
         ];;
 
+        $types['oncore_redcap_records_linkage'] = [
+            'label' => 'OnCore REDCap records Linkage',
+            'label_plural' => 'OnCore REDCap records Linkage',
+            'icon' => 'home_pencil',
+            'properties' => [
+                'redcap_project_id' => [
+                    'name' => 'REDCap project Id',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_protocol_id' => [
+                    'name' => 'OnCore Protocol Id',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'redcap_record_id' => [
+                    'name' => 'REDCap record Id',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_protocol_subject_id' => [
+                    'name' => 'OnCore Protocol Subject Id(NOT Demographics)',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'status' => [
+                    'name' => 'Linkage Status',
+                    'type' => 'integer',
+                    'required' => true,
+                    'default' => 0,
+                    'choices' => [
+                        self::RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE => 'RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE',
+                        self::RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE => 'RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE',
+                        self::RECORD_ON_REDCAP_ON_ONCORE => 'RECORD_ON_REDCAP_ON_ONCORE',
+                    ],
+                ],
+            ],
+            'special_keys' => [
+                'label' => 'redcap_project_id', // "name" represents the entity label.
+            ],
+        ];;
+
+        $types['oncore_subjects'] = [
+            'label' => 'OnCore Subject',
+            'label_plural' => 'OnCore Subjects',
+            'icon' => 'home_pencil',
+            'properties' => [
+                'subjectDemographicsId' => [
+                    'name' => 'OnCore Subject Demographics Id',
+                    'type' => 'integer',
+                    'required' => true,
+                ],
+                'subjectSource' => [
+                    'name' => 'Subject Source',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'mrn' => [
+                    'name' => 'OnCore MRN',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'lastName' => [
+                    'name' => 'OnCore Lastname',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'firstName' => [
+                    'name' => 'OnCore Firstname',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'middleName' => [
+                    'name' => 'OnCore middle Name',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'suffix' => [
+                    'name' => 'OnCore suffix',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'birthDate' => [
+                    'name' => 'OnCore Date of Birth',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'approximateBirthDate' => [
+                    'name' => 'OnCore Approximate Date of Birth',
+                    'type' => 'boolean',
+                    'required' => false,
+                ],
+                'birthDateNotAvailable' => [
+                    'name' => 'OnCore Date of Birth not available',
+                    'type' => 'boolean',
+                    'required' => false,
+                ],
+                'expiredDate' => [
+                    'name' => 'OnCore Expired Date',
+                    'type' => 'date',
+                    'required' => false,
+                ],
+                'approximateExpiredDate' => [
+                    'name' => 'OnCore Approximate Expired Date',
+                    'type' => 'boolean',
+                    'required' => false,
+                ],
+                'lastDateKnownAlive' => [
+                    'name' => 'OnCore Last date known alive',
+                    'type' => 'date',
+                    'required' => false,
+                ],
+                'ssn' => [
+                    'name' => 'OnCore SSN',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'gender' => [
+                    'name' => 'OnCore Gender',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'ethnicity' => [
+                    'name' => 'OnCore Ethnicity',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'race' => [
+                    'name' => 'OnCore Race',
+                    'type' => 'json',
+                    'required' => true,
+                ],
+                'subjectComments' => [
+                    'name' => 'OnCore SubjectComments',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'additionalSubjectIds' => [
+                    'name' => 'OnCore Additional Subject Ids',
+                    'type' => 'json',
+                    'required' => false,
+                ],
+                'streetAddress' => [
+                    'name' => 'OnCore street Address',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'addressLine2' => [
+                    'name' => 'OnCore address Line2',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'city' => [
+                    'name' => 'OnCore City',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'state' => [
+                    'name' => 'OnCore State',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'zip' => [
+                    'name' => 'OnCore Zip Code',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'county' => [
+                    'name' => 'OnCore County',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'country' => [
+                    'name' => 'OnCore Country',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'phoneNo' => [
+                    'name' => 'OnCore Phone No',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'alternatePhoneNo' => [
+                    'name' => 'OnCore Alternate Phone No',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'email' => [
+                    'name' => 'OnCore Email',
+                    'type' => 'text',
+                    'required' => false,
+                ]
+            ],
+            'special_keys' => [
+                'label' => 'subject_demographics_id', // "name" represents the entity label.
+            ],
+        ];;
+
         // TODO redcap entity for redcap records not in OnCore
 
         // TODO redcap entity for OnCore records not in REDCap
@@ -186,84 +425,83 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         ?>
         <script>
-		//  this over document.ready because we need this last!
-		$(window).on('load', function () {
-			// need to check for the redcapRandomizeBtn, already done ones wont have it
-			if($("#setupChklist-modify_project").length){
-                var new_section     = $("#setupChklist-modules").clone();
-                new_section.find(".chklist_comp").remove();
-                new_section.find(".chklisthdr span").text("OnCore Integration");
-                new_section.find(".chklisttext").empty();
+            //  this over document.ready because we need this last!
+            $(window).on('load', function () {
+                // need to check for the redcapRandomizeBtn, already done ones wont have it
+                if ($("#setupChklist-modify_project").length) {
+                    var new_section = $("#setupChklist-modules").clone();
+                    new_section.find(".chklist_comp").remove();
+                    new_section.find(".chklisthdr span").text("OnCore Integration");
+                    new_section.find(".chklisttext").empty();
 
-                $("#setupChklist-modify_project").after(new_section);
+                    $("#setupChklist-modify_project").after(new_section);
 
-                var modify_button   = $("#setupChklist-modify_project").find("button:contains('Modify')");
-                var integration_ui  = $("<div>");
-                var iu_label        = $("<label>");
+                    var modify_button = $("#setupChklist-modify_project").find("button:contains('Modify')");
+                    var integration_ui = $("<div>");
+                    var iu_label = $("<label>");
 
-                var iu_check        = $("<input>").attr("name", "");
-                var iu_text         = $("<span>").text();
+                    var iu_check = $("<input>").attr("name", "");
+                    var iu_text = $("<span>").text();
 
-                iu_label.append(iu_check);
-                iu_label.append(iu_text);
-                integration_ui.append(iu_label);
+                    iu_label.append(iu_check);
+                    iu_label.append(iu_text);
+                    integration_ui.append(iu_label);
 
-                new_section.find(".chklisttext").append(integration_ui);
-
-
-                return;
-
-				// ADD NEW BUTTON OR ENTIRELY NEW UI
-				var clone_or_show = $("#randomizationFieldHtml");
-				clone_or_show.addClass("custom_override")
-
-				// EXISTING UI ALREADY AVAILABLE, REVEAL AND AUGMENT
-				var custom_label 	= $("<h6>").addClass("custom_label").addClass("mt-2").text("Manually override and set randomization variable as:");
-				clone_or_show.prepend(custom_label);
+                    new_section.find(".chklisttext").append(integration_ui);
 
 
-				var custom_hidden 	= $("<input>").attr("type","hidden").prop("name","randomizer_overide").val(true);
-				clone_or_show.prepend(custom_hidden);
+                    return;
 
-				var custom_reason 	= $("<input>").attr("type","text").attr("name","custom_override_reason").prop("placeholder" , "reason for using overide?").addClass("custom_reason");
-				clone_or_show.append(custom_reason);
+                    // ADD NEW BUTTON OR ENTIRELY NEW UI
+                    var clone_or_show = $("#randomizationFieldHtml");
+                    clone_or_show.addClass("custom_override")
 
-				// var custom_or 		= $("<small>").addClass("custom_or").text("*Manually override and set randomization variable as:");
-				// clone_or_show.prepend(custom_or);
-
-				var custom_note 	= $("<small>").addClass("custom_note").text("*Press save to continue");
-				clone_or_show.append(custom_note);
+                    // EXISTING UI ALREADY AVAILABLE, REVEAL AND AUGMENT
+                    var custom_label = $("<h6>").addClass("custom_label").addClass("mt-2").text("Manually override and set randomization variable as:");
+                    clone_or_show.prepend(custom_label);
 
 
+                    var custom_hidden = $("<input>").attr("type", "hidden").prop("name", "randomizer_overide").val(true);
+                    clone_or_show.prepend(custom_hidden);
 
-				//ONLY ENABLE MANUAL IF STRATA ARE ALL FILLED
-				var source_fields  	= <?= json_encode($this->source_fields) ?>;
-				var show_overide 	= $("<button>").addClass("jqbuttonmed ui-button ui-corner-all ui-widget btn-danger custom_btn").text("Manual Selection").click(function(e){
-					e.preventDefault();
+                    var custom_reason = $("<input>").attr("type", "text").attr("name", "custom_override_reason").prop("placeholder", "reason for using overide?").addClass("custom_reason");
+                    clone_or_show.append(custom_reason);
 
-					if(clone_or_show.is(":visible")){
-						$("#redcapRandomizeBtn").prop("disabled",false);
-					}else{
-						$("#redcapRandomizeBtn").prop("disabled",true);
-					}
+                    // var custom_or 		= $("<small>").addClass("custom_or").text("*Manually override and set randomization variable as:");
+                    // clone_or_show.prepend(custom_or);
 
-					clone_or_show.toggle();
+                    var custom_note = $("<small>").addClass("custom_note").text("*Press save to continue");
+                    clone_or_show.append(custom_note);
 
 
-					checkStrataComplete(source_fields, clone_or_show);
+                    //ONLY ENABLE MANUAL IF STRATA ARE ALL FILLED
+                    var source_fields = <?= json_encode($this->source_fields) ?>;
+                    var show_overide = $("<button>").addClass("jqbuttonmed ui-button ui-corner-all ui-widget btn-danger custom_btn").text("Manual Selection").click(function (e) {
+                        e.preventDefault();
 
-					// $(this).prop("disabled",true);
-				});
+                        if (clone_or_show.is(":visible")) {
+                            $("#redcapRandomizeBtn").prop("disabled", false);
+                        } else {
+                            $("#redcapRandomizeBtn").prop("disabled", true);
+                        }
 
-				$("#redcapRandomizeBtn").after(clone_or_show);
-				$("#redcapRandomizeBtn").after(show_overide);
-			}
-		});
-		</script>
-		<style>
+                        clone_or_show.toggle();
 
-		</style>
-		<?php
+
+                        checkStrataComplete(source_fields, clone_or_show);
+
+                        // $(this).prop("disabled",true);
+                    });
+
+                    $("#redcapRandomizeBtn").after(clone_or_show);
+                    $("#redcapRandomizeBtn").after(show_overide);
+                }
+            });
+        </script>
+        <style>
+
+        </style>
+        <?php
     }
 
     public function redcap_module_link_check_display($project_id, $link)
@@ -273,7 +511,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         //TODO EM WILL BE GLOBAL, AND ONLY PROJECTS THAT CHOOSE TO INTEGRATE
         //TODO WILL WE NEED CONDITIONAL DISPLAY OF EM LINKS
-        if($this->hasOnCoreIntegration()){
+        if ($this->hasOnCoreIntegration()) {
             return $link;
         }
     }
@@ -288,15 +526,15 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function getProjectFieldMappings()
     {
-        $results    = array();
-        $mappings   = $this->getProjectSetting(self::FIELD_MAPPINGS);
-        if(!empty($mappings)){
+        $results = array();
+        $mappings = $this->getProjectSetting(self::FIELD_MAPPINGS);
+        if (!empty($mappings)) {
             $results = json_decode($mappings, true);
         }
         return $results;
     }
 
-    public function setProjectFieldMappings($mappings=array())
+    public function setProjectFieldMappings($mappings = array())
     {
         return $this->setProjectSetting(self::FIELD_MAPPINGS, json_encode($mappings));
     }
@@ -306,7 +544,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getOnCoreFields()
     {
-        $field_list = array("MRN","race", "birthdate", "sex", "fname", "lname");
+        $field_list = array("MRN", "race", "birthdate", "sex", "fname", "lname");
         return $field_list;
     }
 
@@ -316,7 +554,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function getProjectFields()
     {
         $field_list = array();
-        $dict       = \REDCap::getDataDictionary(PROJECT_ID, "array");
+        $dict = \REDCap::getDataDictionary(PROJECT_ID, "array");
         $field_list = array_keys($dict);
 
         return $field_list;
@@ -331,11 +569,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         return $sync_diff;
     }
-
-
-
-
-
 
 
     /**
@@ -381,33 +614,35 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $id = $project['project_id'];
                 $irb = $project['project_irb_number'];
 
-                $protocol = $this->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
+                $protocols = $this->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
 
-                if (!empty($protocol)) {
+                if (!empty($protocols)) {
                     $entity_oncore_protocol = $this->getProtocols()->getProtocolEntityRecord($id, $irb);
                     if (empty($entity_oncore_protocol)) {
-                        $data = array(
-                            'redcap_project_id' => $id,
-                            'irb_number' => $irb,
-                            'oncore_protocol_id' => $protocol['protocolId'],
-                            'status' => '0',
-                            'last_date_scanned' => time()
-                        );
+                        foreach ($protocols as $protocol) {
+                            $data = array(
+                                'redcap_project_id' => $id,
+                                'irb_number' => $irb,
+                                'oncore_protocol_id' => $protocol['protocolId'],
+                                'status' => '0',
+                                'last_date_scanned' => time()
+                            );
 
-                        $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
+                            $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
 
-                        if ($entity) {
-                            Entities::createLog(date('m/d/Y H:i:s') . ' : OnCore Protocol record created for IRB: ' . $irb . '.');
-                        } else {
-                            throw new \Exception(implode(',', $this->getProtocols()->errors));
+                            if ($entity) {
+                                Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
+                            } else {
+                                throw new \Exception(implode(',', $this->getProtocols()->errors));
+                            }
                         }
                     } else {
                         $this->getProtocols()->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
-                        Entities::createLog(date('m/d/Y H:i:s') . ' : OnCore Protocol record updated for IRB: ' . $irb . '.');
+                        Entities::createLog('OnCore Protocol record updated for IRB: ' . $irb . '.');
                     }
                 } else {
-                    $this->emLog(date('m/d/Y H:i:s') . ' : IRB ' . $irb . ' has no OnCore Protocol.');
-                    Entities::createLog(date('m/d/Y H:i:s') . ' : IRB ' . $irb . ' has no OnCore Protocol.');
+                    $this->emLog('IRB ' . $irb . ' has no OnCore Protocol.');
+                    Entities::createLog('IRB ' . $irb . ' has no OnCore Protocol.');
                 }
             }
         } catch (\Exception $e) {

@@ -1,52 +1,42 @@
 <?php
 
 namespace Stanford\OnCoreIntegration;
+use ExternalModules\User;
+
 require_once 'Clients.php';
 
 /**
  * Class Users
  * @package Stanford\OnCoreIntegration
- * @property string $clientId
- * @property string $clientSecret
- * @property string $accessToken
- * @property int $tokenTime
+ * @property array $onCoreAdmin
+ * @property array $onCoreContact
+ * @property User $redcapUser
  */
 class Users extends Clients
 {
-    /**
-     * @var string
-     */
-    private $clientId;
-
-    /**
-     * @var string
-     */
-    private $clientSecret;
-
-    /**
-     * @var string
-     */
-    private $accessToken;
-
-    /**
-     * @var int
-     */
-    private $tokenTime;
-
     /**
      * @var array
      */
     private $onCoreAdmin;
 
+    /**
+     * @var array
+     */
+    private $onCoreContact;
+
+    /**
+     * @var User
+     */
+    private $redcapUser;
 
     /**
      * @param $prefix
-     * @param $clientId
-     * @param $clientSecret
      */
-    public function __construct($prefix)
+    public function __construct($prefix, $user, $redcapCSFRToken)
     {
-        parent::__construct($prefix);
+        parent::__construct($prefix, $redcapCSFRToken);
+
+        $this->setRedcapUser($user);
 //
 //        $this->setClientId($clientId);
 //
@@ -59,16 +49,18 @@ class Users extends Clients
 //        }
     }
 
-    public function getOnCoreAdminEntityRecord($username)
+    /**
+     * @return void
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function prepareUser()
     {
-        if ($username == '') {
-            throw new \Exception('REDCap username ID can not be null');
-        }
-        $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_ADMINS . " where  redcap_username = " . $username . " ");
-        if ($record->num_rows == 0) {
-            return [];
-        } else {
-            return db_fetch_assoc($record);
+
+        $admin = $this->getOnCoreAdmin($this->getRedcapUser()->getUsername());
+        $this->setOnCoreContact($this->searchOnCoreContactsViaEmail($this->getRedcapUser()->getEmail()));
+        if (!$admin) {
+            $this->createOnCoreAdminEntityRecord($this->getOnCoreContact()['contactId'], $this->getRedcapUser()->getUsername());
+            $this->setOnCoreAdmin($this->getRedcapUser()->getUsername());
         }
     }
 
@@ -90,7 +82,7 @@ class Users extends Clients
             );
             $entity = $this->create(OnCoreIntegration::ONCORE_ADMINS, $data);
             if ($entity) {
-                Entities::createLog(date('m/d/Y H:i:s') . ' : OnCore Admin Entity record created for redcap username: ' . $redcapUsername . '.');
+                Entities::createLog(' : OnCore Admin Entity record created for redcap username: ' . $redcapUsername . '.');
                 return $entity->getData();
             }
         } catch (\Exception $e) {
@@ -98,23 +90,6 @@ class Users extends Clients
         }
     }
 
-    /**
-     * set client id and secret for entity record.
-     * @param $username
-     * @param $clientId
-     * @param $clientSecret
-     * @return void
-     * @throws \Exception
-     */
-    public function updateOnCoreAdminEntityRecord($username, $clientId, $clientSecret)
-    {
-        if (!$username) {
-            throw new \Exception("REDCap username is not provided.");
-        }
-        if ($clientSecret && $clientId) {
-            $record = db_query("UPDATE " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_ADMINS . " set  oncore_client_id = '" . $clientId . "',  oncore_client_secret = '" . $clientSecret . "' WHERE redcap_username = '" . $username . "' ");
-        }
-    }
 
     /**
      * search oncore API for a contact using email address.
@@ -125,7 +100,7 @@ class Users extends Clients
     public function searchOnCoreContactsViaEmail($email)
     {
         try {
-            $jwt = $this->getGlobalAccessToken();
+            $jwt = $this->getAccessToken();
             $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . 'contacts?email=' . $email, [
                 'debug' => false,
                 'headers' => [
@@ -147,83 +122,12 @@ class Users extends Clients
     }
 
     /**
-     * @return mixed
-     */
-    public function getClientId()
-    {
-        return $this->clientId;
-    }
-
-    /**
-     * @param mixed $clientId
-     */
-    public function setClientId($clientId): void
-    {
-        $this->clientId = $clientId;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getClientSecret()
-    {
-        return $this->clientSecret;
-    }
-
-    /**
-     * @param mixed $clientSecret
-     */
-    public function setClientSecret($clientSecret): void
-    {
-        $this->clientSecret = $clientSecret;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getAccessToken()
-    {
-        if ($this->getTokenTime() > time() && $this->accessToken) {
-            return $this->accessToken;
-        } else {
-            $result = $this->generateToken($this->getClientId(), $this->getClientSecret());
-            $this->setAccessToken($result->access_token);
-            $this->setTokenTime($result->expires_in + time());
-        }
-        return $this->accessToken;
-    }
-
-    /**
-     * @param mixed $accessToken
-     */
-    public function setAccessToken($accessToken): void
-    {
-        $this->accessToken = $accessToken;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTokenTime()
-    {
-        return $this->tokenTime;
-    }
-
-    /**
-     * @param mixed $tokenTime
-     */
-    public function setTokenTime($tokenTime): void
-    {
-        $this->tokenTime = $tokenTime;
-    }
-
-    /**
      * @param string $onCoreAdmin
      * @return array
      */
-    public function getOnCoreAdmin(string $username): array
+    public function getOnCoreAdmin(string $username = ''): array
     {
-        if (!$this->onCoreAdmin) {
+        if (!$this->onCoreAdmin && $username) {
             $this->setOnCoreAdmin($username);
         }
         return $this->onCoreAdmin;
@@ -244,5 +148,38 @@ class Users extends Clients
             $this->onCoreAdmin = db_fetch_assoc($record);
         }
     }
+
+    /**
+     * @return array
+     */
+    public function getOnCoreContact(): array
+    {
+        return $this->onCoreContact;
+    }
+
+    /**
+     * @param array $onCoreContact
+     */
+    public function setOnCoreContact(array $onCoreContact): void
+    {
+        $this->onCoreContact = $onCoreContact;
+    }
+
+    /**
+     * @return User
+     */
+    public function getRedcapUser()
+    {
+        return $this->redcapUser;
+    }
+
+    /**
+     * @param $redcapUser
+     */
+    public function setRedcapUser($redcapUser): void
+    {
+        $this->redcapUser = $redcapUser;
+    }
+
 
 }

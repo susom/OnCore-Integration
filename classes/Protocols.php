@@ -2,6 +2,7 @@
 
 namespace Stanford\OnCoreIntegration;
 
+use ExternalModules\ExternalModules;
 
 /**
  * Class Protocols
@@ -27,6 +28,16 @@ class Protocols extends Entities
     private $entityRecord;
 
     /**
+     * @var Subjects
+     */
+    private $subjects;
+
+    /**
+     * @var array
+     */
+    private $fieldsMap;
+
+    /**
      * @param $user
      * @param $reset
      */
@@ -39,7 +50,46 @@ class Protocols extends Entities
         // if protocol is initiated for specific REDCap project. then check if this ONCORE_PROTOCOL entity record exists and pull OnCore Protocol via  API
         if ($redcapProjectId) {
             $this->prepareProtocol($redcapProjectId);
+
+            $this->saveFieldsMapping([]);
         }
+    }
+
+    public function saveFieldsMapping($fields)
+    {
+        // TODO
+        $test = array("subjectDemographicsId" => "subjectDemographicsId",
+            "subjectSource" => "subjectSource",
+            "mrn" => "mrn",
+            "lastName" => "lastName",
+            "firstName" => "firstName",
+            "middleName" => "middleName",
+            "suffix" => "suffix",
+            "birthDate" => "birthDate",
+            "approximateBirthDate" => "approximateBirthDate",
+            "birthDateNotAvailable" => "birthDateNotAvailable",
+            "expiredDate" => "expiredDate",
+            "approximateExpiredDate" => "approximateExpiredDate",
+            "lastDateKnownAlive" => "lastDateKnownAlive",
+            "ssn" => "ssn",
+            "gender" => "gender",
+            "ethnicity" => "ethnicity",
+            "race" => "race",
+            "subjectComments",
+            "additionalSubjectIds",
+            "streetAddress",
+            "addressLine2",
+            "city",
+            "state",
+            "zip",
+            "county",
+            "country",
+            "phoneNo",
+            "alternatePhoneNo",
+            "email");
+
+        ExternalModules::setProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, json_encode($test));
+        return $test;
     }
 
     public function prepareProtocol($redcapProjectId)
@@ -48,14 +98,64 @@ class Protocols extends Entities
         if (!empty($protocol)) {
             $this->setEntityRecord($protocol);
             $this->setOnCoreProtocol($this->searchOnCoreProtocolsViaID($this->getEntityRecord()['oncore_protocol_id']));
+            /**
+             * if OnCore protocol found then prepare its subjects
+             */
+            $this->prepareProtocolSubjects();
+
+        }
+    }
+
+    public function prepareProtocolSubjects()
+    {
+        try {
+            $this->setSubjects(new Subjects($this->getUser()));
+            $this->getSubjects()->setOnCoreProtocolSubjects($this->getEntityRecord()['oncore_protocol_id']);
+        } catch (\Exception $e) {
+            // TODO exception handler
+        }
+    }
+
+    public function isContactPartOfOnCoreProtocol($contactId)
+    {
+        try {
+            //TODO can redcap user who is a contact can other redcap users?
+            if (empty($this->getUser()->getOnCoreAdmin())) {
+
+                throw new \Exception("Can not find a OnCore Admin");
+            }
+            if (empty($this->getOnCoreProtocol())) {
+                throw new \Exception("No protocol found for current REDCap project.");
+            }
+            $jwt = $this->getUser()->getAccessToken();
+            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolStaff?protocolId=' . $this->getOnCoreProtocol()['protocolId'], [
+                'debug' => false,
+                'headers' => [
+                    'Authorization' => "Bearer {$jwt}",
+                ]
+            ]);
+
+            if ($response->getStatusCode() < 300) {
+                $staffs = json_decode($response->getBody(), true);
+                foreach ($staffs as $staff) {
+                    if ($contactId == $staff['contactId']) {
+                        return $staff;
+                    }
+                }
+                return false;
+            }
+            return false;
+        } catch (\Exception $e) {
+            Entities::createLog($e->getMessage());
+            throw new \Exception($e->getMessage());
+
         }
     }
 
     public function searchOnCoreProtocolsViaID($protocolID)
     {
         try {
-            //TODO attempt to get user token before using global one.
-            $jwt = $this->getUser()->getGlobalAccessToken();
+            $jwt = $this->getUser()->getAccessToken();
             $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocols/' . $protocolID, [
                 'debug' => false,
                 'headers' => [
@@ -71,14 +171,15 @@ class Protocols extends Entities
                 }
             }
         } catch (\Exception $e) {
-            return $e->getMessage();
+            Entities::createLog($e->getMessage());
+            throw new \Exception($e->getMessage());
         }
     }
 
     public function searchOnCoreProtocolsViaIRB($irbNum)
     {
         try {
-            $jwt = $this->getUser()->getGlobalAccessToken();
+            $jwt = $this->getUser()->getAccessToken();
             $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolManagementDetails?irbNo=' . $irbNum, [
                 'debug' => false,
                 'headers' => [
@@ -91,11 +192,12 @@ class Protocols extends Entities
                 if (empty($data)) {
                     return [];
                 } else {
-                    return $data[0];
+                    return $data;
                 }
             }
         } catch (\Exception $e) {
-            return $e->getMessage();
+            Entities::createLog($e->getMessage());
+            throw new \Exception($e->getMessage());
         }
     }
 
@@ -175,5 +277,38 @@ class Protocols extends Entities
     {
         $this->entityRecord = $entityRecord;
     }
+
+    /**
+     * @return Subjects
+     */
+    public function getSubjects(): Subjects
+    {
+        return $this->subjects;
+    }
+
+    /**
+     * @param Subjects $subjects
+     */
+    public function setSubjects(Subjects $subjects): void
+    {
+        $this->subjects = $subjects;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFieldsMap(): array
+    {
+        return $this->fieldsMap;
+    }
+
+    /**
+     * @param array $fieldsMap
+     */
+    public function setFieldsMap(array $fieldsMap): void
+    {
+        $this->fieldsMap = $fieldsMap;
+    }
+
 
 }
