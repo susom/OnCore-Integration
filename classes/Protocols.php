@@ -61,10 +61,11 @@ class Protocols extends Entities
      */
     public function getFieldsMap(): array
     {
-        return $this->fieldsMap;
+        return ExternalModules::getProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME);
     }
 
     /**
+     * this method will save fields map array into EM project settings.
      * @param array $fieldsMap
      * @return void
      */
