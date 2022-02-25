@@ -36,7 +36,7 @@ $sync_diff = $module->getSyncDiff();
 </div>
 
 <script>
-    $(document).ready(function(){
+    $(document).ready(function () {
 
     });
 </script>

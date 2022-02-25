@@ -2,13 +2,15 @@
 
 namespace Stanford\OnCoreIntegration;
 
+require_once 'Subjects.php';
+
 /**
  * This class can be used as a helper class when trying to verify if the SubjectDemographics values
  * are valid to send to OnCore.  This class performs checking for each field based on the format
  * information that OnCore will accept.
  *
  */
-class SubjectDemographics
+class SubjectDemographics extends Entities
 {
 
     private $subjectDemographicsid;
@@ -43,63 +45,162 @@ class SubjectDemographics
     private $mrnValid;
     private $validateFields = true;
 
-    public function __construct($validateFields) {
+    public function __construct($validateFields)
+    {
         $this->$validateFields = $validateFields;
+    }
+
+    public function getOnCoreSubjectDemographicsEntityRecord($subjectDemographicsId)
+    {
+        if ($subjectDemographicsId == '') {
+            throw new \Exception('REDCap subject demographics ID can not be null');
+        }
+        $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS . " where  subjectDemographicsId = '" . $subjectDemographicsId . "' ");
+        if ($record->num_rows == 0) {
+            return [];
+        } else {
+            return db_fetch_assoc($record);
+        }
+    }
+
+    /**
+     * @param $mrn
+     * @param $subjectSource
+     * @return array|mixed|void
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function getOnCoreSubjectDemographics($subjectDemographicsId)
+    {
+        try {
+            // check if entity table already has that subject otherwise go to API to get info
+            $demo = $this->getOnCoreSubjectDemographicsEntityRecord($subjectDemographicsId);
+            if (empty($demo)) {
+                $jwt = $this->getUser()->getAccessToken();
+                $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'subjectDemographics/' . $subjectDemographicsId, [
+                    'debug' => false,
+                    'headers' => [
+                        'Authorization' => "Bearer {$jwt}",
+                    ]
+                ]);
+
+                if ($response->getStatusCode() < 300) {
+                    $data = json_decode($response->getBody(), true);
+                    if (empty($data)) {
+                        return [];
+                    } else {
+                        // create entity table record before return.
+                        $this->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
+                        return $data;
+                    }
+                }
+            } else {
+                return $demo;
+            }
+        } catch (\Exception $e) {
+            Entities::createException($e->getMessage());
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * @param $mrn
+     * @param $subjectSource
+     * @return array|mixed|void
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function searchOnCoreSubjectViaMRN($mrn, $subjectSource = 'OnCore')
+    {
+        try {
+            $jwt = $this->getUser()->getAccessToken();
+            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'subjectDemographics?mrn=' . $mrn . '&subjectSource=' . $subjectSource, [
+                'debug' => false,
+                'headers' => [
+                    'Authorization' => "Bearer {$jwt}",
+                ]
+            ]);
+
+            if ($response->getStatusCode() < 300) {
+                $data = json_decode($response->getBody(), true);
+                if (empty($data)) {
+                    return [];
+                } else {
+                    return $data[0];
+                }
+            }
+        } catch (\Exception $e) {
+            Entities::createException($e->getMessage());
+            throw new \Exception($e->getMessage());
+        }
     }
 
     /*
      * Setter functions
      */
-    function setSubjectDemographicsid($subjectDemographicsid) {
+    function setSubjectDemographicsid($subjectDemographicsid)
+    {
         if ($this->validateFields) {
             $this->subjectDemographicsid = (is_integer($subjectDemographicsid) ? $subjectDemographicsid : null);
         } else {
             $this->subjectDemographicsid = $subjectDemographicsid;
         }
     }
-    function setSubjectSource($subjectSource) {
+
+    function setSubjectSource($subjectSource)
+    {
         if ($this->validateFields) {
             $this->subjectSource = ((($subjectSource == "OnCore") or ($subjectSource == "Onstage")) ? $subjectSource : null);
         } else {
             $this->subjectSource = $subjectSource;
         }
     }
-    public function setMrn($mrn) {
+
+    public function setMrn($mrn)
+    {
         if ($this->validateFields) {
             $this->mrn = (strlen($mrn) <= 40 ? $mrn : null);
         } else {
             $this->mrn = $mrn;
         }
     }
-    function setLastName($lastName) {
+
+    function setLastName($lastName)
+    {
         if ($this->validateFields) {
             $this->lastName = (strlen($lastName) <= 80 ? $lastName : null);
         } else {
             $this->lastName = $lastName;
         }
     }
-    function setFirstName($firstName) {
+
+    function setFirstName($firstName)
+    {
         if ($this->validateFields) {
             $this->firstName = (strlen($firstName) <= 55 ? $firstName : null);
         } else {
             $this->firstName = $firstName;
         }
     }
-    function setMiddleName($middleName) {
+
+    function setMiddleName($middleName)
+    {
         if ($this->validateFields) {
             $this->middleName = (strlen($middleName) <= 65 ? $middleName : null);
         } else {
             $this->middleName = $middleName;
         }
     }
-    function setSuffix($suffix) {
+
+    function setSuffix($suffix)
+    {
         if ($this->validateFields) {
             $this->suffix = (strlen($suffix) <= 20 ? $suffix : null);
         } else {
             $this->suffix = $suffix;
         }
     }
-    function setBirthDate($birthDate) {
+
+    function setBirthDate($birthDate)
+    {
         if ($this->validateFields) {
             $date = date('Y-m-d', strtotime($birthDate));
             $this->birthDate = ($date <> false ? $date : null);
@@ -107,21 +208,27 @@ class SubjectDemographics
             $this->birthDate = $birthDate;
         }
     }
-    function setApproximateBirthDate($approximateBirthDate) {
+
+    function setApproximateBirthDate($approximateBirthDate)
+    {
         if ($this->validateFields) {
             $this->approximateBirthDate = (is_bool($approximateBirthDate) ? $approximateBirthDate : null);
         } else {
             $this->approximateBirthDate = $approximateBirthDate;
         }
     }
-    function setBirthDateNotAvailable($birthDateNotAvailable) {
+
+    function setBirthDateNotAvailable($birthDateNotAvailable)
+    {
         if ($this->validateFields) {
             $this->birthDateNotAvailable = (is_bool($birthDateNotAvailable) ? $birthDateNotAvailable : null);
         } else {
             $this->birthDateNotAvailable = $birthDateNotAvailable;
         }
     }
-    function setExpiredDate($expiredDate) {
+
+    function setExpiredDate($expiredDate)
+    {
         if ($this->validateFields) {
             $date = date('Y-m-d', strtotime($expiredDate));
             $this->expiredDate = ($date <> false ? $date : null);
@@ -129,14 +236,18 @@ class SubjectDemographics
             $this->expiredDate = $expiredDate;
         }
     }
-    function setApproximateExpiredDate($approximateExpiredDate) {
+
+    function setApproximateExpiredDate($approximateExpiredDate)
+    {
         if ($this->validateFields) {
             $this->approximateExpiredDate = (is_bool($approximateExpiredDate) ? $approximateExpiredDate : null);
         } else {
             $this->approximateExpiredDate = $approximateExpiredDate;
         }
     }
-    function setLastDateKnownAlive($lastDateKnownAlive) {
+
+    function setLastDateKnownAlive($lastDateKnownAlive)
+    {
         if ($this->validateFields) {
             $date = date('Y-m-d', strtotime($lastDateKnownAlive));
             $this->lastDateKnownAlive = ($date <> false ? $date : null);
@@ -144,6 +255,7 @@ class SubjectDemographics
             $this->lastDateKnownAlive = $lastDateKnownAlive;
         }
     }
+
     function setSsn($ssn)
     {
         if ($this->validateFields) {
@@ -153,7 +265,9 @@ class SubjectDemographics
             $this->ssn = $ssn;
         }
     }
-    function setGender($gender) {
+
+    function setGender($gender)
+    {
         if ($this->validateFields) {
             $allowed_genders = array('Male', 'Female', 'Unknown');
             $valid = in_array($gender, $allowed_genders);
@@ -162,7 +276,9 @@ class SubjectDemographics
             $this->gender = $gender;
         }
     }
-    function setEthnicity($ethnicity) {
+
+    function setEthnicity($ethnicity)
+    {
         if ($this->validateFields) {
             // TODO: Need Ethnicity List
             $allowed_ethnicity = array('Unknown', 'Non-Hispanic', 'Hispanic');
@@ -172,7 +288,9 @@ class SubjectDemographics
             $this->ethnicity = $ethnicity;
         }
     }
-    function setRace($race) {
+
+    function setRace($race)
+    {
         if ($this->validateFields) {
             // TODO: Need Race List
             $allowed_race = array('Unknown');
@@ -182,14 +300,18 @@ class SubjectDemographics
             $this->race = $race;
         }
     }
-    function setSubjectComments($subjectComments) {
+
+    function setSubjectComments($subjectComments)
+    {
         if ($this->validateFields) {
             $this->subjectComments = (strlen($subjectComments) <= 4000 ? $subjectComments : null);
         } else {
             $this->subjectComments = $subjectComments;
         }
     }
-    function setAdditionalSubjectids($additionalSubjectids) {
+
+    function setAdditionalSubjectids($additionalSubjectids)
+    {
         if ($this->validateFields) {
             foreach ($additionalSubjectids as $subjectIds) {
                 $this->$additionalSubjectids[] = (is_integer($subjectIds) ? $subjectIds : null);
@@ -198,28 +320,36 @@ class SubjectDemographics
             $this->$additionalSubjectids = $additionalSubjectids;
         }
     }
-    function setStreetAddress($streetAddress) {
+
+    function setStreetAddress($streetAddress)
+    {
         if ($this->validateFields) {
             $this->streetAddress = (strlen($streetAddress) <= 100 ? $streetAddress : null);
         } else {
             $this->streetAddress = $streetAddress;
         }
     }
-    function setAddressLine2($addressLine2) {
+
+    function setAddressLine2($addressLine2)
+    {
         if ($this->validateFields) {
             $this->addressLine2 = (strlen($addressLine2) <= 100 ? $addressLine2 : null);
         } else {
             $this->addressLine2 = $addressLine2;
         }
     }
-    function setCity($city) {
+
+    function setCity($city)
+    {
         if ($this->validateFields) {
             $this->city = (strlen($city) <= 20 ? $city : null);
         } else {
             $this->city = $city;
         }
     }
-    function setState($state) {
+
+    function setState($state)
+    {
         if ($this->validateFields) {
             // TODO: Need allowed states
             $allowed_states = array();
@@ -228,14 +358,18 @@ class SubjectDemographics
             $this->state = $state;
         }
     }
-    function setZip($zip) {
+
+    function setZip($zip)
+    {
         if ($this->validateFields) {
             $this->zip = (strlen($zip) <= 10 ? $zip : null);
         } else {
             $this->zip = $zip;
         }
     }
-    function setCounty($county) {
+
+    function setCounty($county)
+    {
         if ($this->validateFields) {
             // TODO: Need allowed counties
             $allowed_county = array();
@@ -244,7 +378,9 @@ class SubjectDemographics
             $this->county = $county;
         }
     }
-    function setCountry($country) {
+
+    function setCountry($country)
+    {
         if ($this->validateFields) {
             // TODO: Need allowed countries
             $allowed_country = array();
@@ -253,21 +389,27 @@ class SubjectDemographics
             $this->country = $country;
         }
     }
-    function setPhoneNo($phoneNo) {
+
+    function setPhoneNo($phoneNo)
+    {
         if ($this->validateFields) {
             $this->phoneNo = (strlen($phoneNo) <= 20 ? $phoneNo : null);
         } else {
             $this->phoneNo = $phoneNo;
         }
     }
-    function setAlternatePhoneNo($alternatePhoneNo) {
+
+    function setAlternatePhoneNo($alternatePhoneNo)
+    {
         if ($this->validateFields) {
             $this->alternatePhoneNo = (strlen($alternatePhoneNo) <= 20 ? $alternatePhoneNo : null);
         } else {
             $this->alternatePhoneNo = $alternatePhoneNo;
         }
     }
-    function setEmail($email) {
+
+    function setEmail($email)
+    {
         if ($this->validateFields) {
             // Make sure it is in the correct email format
             if (strlen($email) <= 55) {
@@ -277,108 +419,170 @@ class SubjectDemographics
             $this->email = $email;
         }
     }
-    public function setMRNValid($valid) {
+
+    public function setMRNValid($valid)
+    {
         $this->mrnValid = ($valid ? 'true' : 'false');
     }
 
     /*
     * Getter functions
     */
-    function getSubjectDemographicsid() {
+    function getSubjectDemographicsid()
+    {
         return $this->subjectDemographicsid;
     }
-    function getSubjectSource() {
+
+    function getSubjectSource()
+    {
         return $this->subjectSource;
     }
-    public function getMrn() {
+
+    public function getMrn()
+    {
         return $this->mrn;
     }
-    function getLastName() {
+
+    function getLastName()
+    {
         return $this->lastName;
     }
-    function getFirstName() {
+
+    function getFirstName()
+    {
         return $this->firstName;
     }
-    function getMiddleName() {
+
+    function getMiddleName()
+    {
         return $this->middleName;
     }
-    function getSuffix($suffix) {
+
+    function getSuffix($suffix)
+    {
         return $this->suffix;
     }
-    function getBirthDate() {
+
+    function getBirthDate()
+    {
         return $this->birthDate;
     }
-    function getApproximateBirthDate() {
+
+    function getApproximateBirthDate()
+    {
         return $this->approximateBirthDate;
     }
-    function getBirthDateNotAvailable() {
+
+    function getBirthDateNotAvailable()
+    {
         return $this->birthDateNotAvailable;
     }
-    function getExpiredDate() {
+
+    function getExpiredDate()
+    {
         return $this->expiredDate;
     }
-    function getApproximateExpiredDate() {
+
+    function getApproximateExpiredDate()
+    {
         return $this->approximateExpiredDate;
     }
-    function getLastDateKnownAlive() {
+
+    function getLastDateKnownAlive()
+    {
         return $this->lastDateKnownAlive;
     }
-    function getSsn() {
+
+    function getSsn()
+    {
         return $this->ssn;
     }
-    function getGender() {
+
+    function getGender()
+    {
         return $this->gender;
     }
-    function getEthnicity() {
+
+    function getEthnicity()
+    {
         return $this->ethnicity;
     }
-    function getRace() {
+
+    function getRace()
+    {
         return $this->race;
     }
-    function getSubjectComments() {
+
+    function getSubjectComments()
+    {
         return $this->subjectComments;
     }
-    function getAdditionalSubjectids() {
+
+    function getAdditionalSubjectids()
+    {
         return $this->additionalSubjectids;
     }
-    function getStreetAddress() {
+
+    function getStreetAddress()
+    {
         return $this->streetAddress;
     }
-    function getAddressLine2() {
+
+    function getAddressLine2()
+    {
         return $this->addressLine2;
     }
-    function getCity() {
+
+    function getCity()
+    {
         return $this->city;
     }
-    function getState() {
+
+    function getState()
+    {
         return $this->state;
     }
-    function getZip() {
+
+    function getZip()
+    {
         return $this->zip;
     }
-    function getCounty() {
+
+    function getCounty()
+    {
         return $this->county;
     }
-    function getCountry() {
+
+    function getCountry()
+    {
         return $this->country;
     }
-    public function getPhoneNo() {
+
+    public function getPhoneNo()
+    {
         return $this->phoneNo;
     }
-    function getAlternatePhoneNo() {
+
+    function getAlternatePhoneNo()
+    {
         return $this->alternatePhoneNo;
     }
-    function getEmail() {
+
+    function getEmail()
+    {
         return $this->email;
     }
-    public function isMrnValid() {
+
+    public function isMrnValid()
+    {
         return $this->mrnValid;
     }
 
     /*
      * Generic functions to pull out stored data.
      */
-    public function isValidForOnCore() {
+    public function isValidForOnCore()
+    {
 
         // All these fields are required
         if ($this->mrnValid and !empty($this->mrn) and !empty($this->lastName) and !empty($this->firstName) and
@@ -406,25 +610,34 @@ class SubjectDemographics
         }
     }
 
-    private function getResults() {
+    private function getResults()
+    {
         $demographics = get_object_vars($this);
         unset($demographics["validateFields"]);
         unset($demographics["1"]);
         return $demographics;
     }
-    public function getJson() {
+
+    public function getJson()
+    {
         $demographics = $this->getResults();
         return json_encode($demographics);
     }
-    public function getFilteredJson() {
+
+    public function getFilteredJson()
+    {
         $demographics = $this->getResults();
         return json_encode(array_filter($demographics));
     }
-    public function getArray() {
+
+    public function getArray()
+    {
         $demographics = $this->getResults();
         return $demographics;
     }
-    public function getFilteredArray() {
+
+    public function getFilteredArray()
+    {
         $demographics = $this->getResults();
         return array_filter($demographics);
     }

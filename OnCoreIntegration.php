@@ -1,10 +1,12 @@
 <?php
+
 namespace Stanford\OnCoreIntegration;
 
 require_once "emLoggerTrait.php";
 require_once 'classes/Users.php';
 require_once 'classes/Entities.php';
 require_once 'classes/Protocols.php';
+require_once 'classes/Subjects.php';
 
 /**
  * Class OnCoreIntegration
@@ -24,7 +26,50 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     const REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG = 'redcap_entity_oncore_redcap_api_actions_log';
     const ONCORE_ADMINS = 'oncore_admins';
     const REDCAP_ENTITY_ONCORE_ADMINS = 'redcap_entity_oncore_admins';
+    const ONCORE_SUBJECTS = 'oncore_subjects';
+    const REDCAP_ENTITY_ONCORE_SUBJECTS = 'redcap_entity_oncore_subjects';
+    const ONCORE_REDCAP_RECORD_LINKAGE = 'oncore_redcap_records_linkage';
+    const REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE = 'redcap_entity_oncore_redcap_records_linkage';
 
+    const RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE = 0;
+
+    const RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE = 1;
+
+    const RECORD_ON_REDCAP_ON_ONCORE_FULL_MATCH = 2;
+
+    const RECORD_ON_REDCAP_ON_ONCORE_PARTIAL_MATCH = 3;
+
+    const REDCAP_ONCORE_FIELDS_MAPPING_NAME = 'redcap-oncore-fields-mapping';
+
+    public static $ONCORE_DEMOGRAPHICS_FIELDS = array("subjectDemographicsId",
+        "subjectSource",
+        "mrn",
+        "lastName",
+        "firstName",
+        "middleName",
+        "suffix",
+        "birthDate",
+        "approximateBirthDate",
+        "birthDateNotAvailable",
+        "expiredDate",
+        "approximateExpiredDate",
+        "lastDateKnownAlive",
+        "ssn",
+        "gender",
+        "ethnicity",
+        "race",
+        "subjectComments",
+        "additionalSubjectIds",
+        "streetAddress",
+        "addressLine2",
+        "city",
+        "state",
+        "zip",
+        "county",
+        "country",
+        "phoneNo",
+        "alternatePhoneNo",
+        "email");
     /**
      * @var Users
      */
@@ -87,6 +132,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 'last_date_scanned' => [
                     'name' => 'Timestamp of last scan',
                     'type' => 'date',
+                    'required' => true,
+                ],
+                'redcap_event_id' => [
+                    'name' => 'REDCap Event Id',
+                    'type' => 'integer',
                     'required' => true,
                 ],
                 'status' => [
@@ -173,6 +223,205 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             ],
         ];;
 
+        $types['oncore_redcap_records_linkage'] = [
+            'label' => 'OnCore REDCap records Linkage',
+            'label_plural' => 'OnCore REDCap records Linkage',
+            'icon' => 'home_pencil',
+            'properties' => [
+                'redcap_project_id' => [
+                    'name' => 'REDCap project Id',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_protocol_id' => [
+                    'name' => 'OnCore Protocol Id',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'redcap_record_id' => [
+                    'name' => 'REDCap record Id',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_protocol_subject_id' => [
+                    'name' => 'OnCore Protocol Subject Id(NOT Demographics)',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'status' => [
+                    'name' => 'Linkage Status',
+                    'type' => 'integer',
+                    'required' => true,
+                    'default' => 0,
+                    'choices' => [
+                        self::RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE => 'RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE',
+                        self::RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE => 'RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE',
+                        self::RECORD_ON_REDCAP_ON_ONCORE_FULL_MATCH => 'RECORD_ON_REDCAP_ON_ONCORE_FULL_MATCH',
+                        self::RECORD_ON_REDCAP_ON_ONCORE_PARTIAL_MATCH => 'RECORD_ON_REDCAP_ON_ONCORE_PARTIAL_MATCH',
+                    ],
+                ],
+            ],
+            'special_keys' => [
+                'label' => 'redcap_project_id', // "name" represents the entity label.
+            ],
+        ];;
+
+        $types['oncore_subjects'] = [
+            'label' => 'OnCore Subject',
+            'label_plural' => 'OnCore Subjects',
+            'icon' => 'home_pencil',
+            'properties' => [
+                'subjectDemographicsId' => [
+                    'name' => 'OnCore Subject Demographics Id',
+                    'type' => 'integer',
+                    'required' => true,
+                ],
+                'subjectSource' => [
+                    'name' => 'Subject Source',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'mrn' => [
+                    'name' => 'OnCore MRN',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'lastName' => [
+                    'name' => 'OnCore Lastname',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'firstName' => [
+                    'name' => 'OnCore Firstname',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'middleName' => [
+                    'name' => 'OnCore middle Name',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'suffix' => [
+                    'name' => 'OnCore suffix',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'birthDate' => [
+                    'name' => 'OnCore Date of Birth',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'approximateBirthDate' => [
+                    'name' => 'OnCore Approximate Date of Birth',
+                    'type' => 'boolean',
+                    'required' => false,
+                ],
+                'birthDateNotAvailable' => [
+                    'name' => 'OnCore Date of Birth not available',
+                    'type' => 'boolean',
+                    'required' => false,
+                ],
+                'expiredDate' => [
+                    'name' => 'OnCore Expired Date',
+                    'type' => 'date',
+                    'required' => false,
+                ],
+                'approximateExpiredDate' => [
+                    'name' => 'OnCore Approximate Expired Date',
+                    'type' => 'boolean',
+                    'required' => false,
+                ],
+                'lastDateKnownAlive' => [
+                    'name' => 'OnCore Last date known alive',
+                    'type' => 'date',
+                    'required' => false,
+                ],
+                'ssn' => [
+                    'name' => 'OnCore SSN',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'gender' => [
+                    'name' => 'OnCore Gender',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'ethnicity' => [
+                    'name' => 'OnCore Ethnicity',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'race' => [
+                    'name' => 'OnCore Race',
+                    'type' => 'json',
+                    'required' => true,
+                ],
+                'subjectComments' => [
+                    'name' => 'OnCore SubjectComments',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'additionalSubjectIds' => [
+                    'name' => 'OnCore Additional Subject Ids',
+                    'type' => 'json',
+                    'required' => false,
+                ],
+                'streetAddress' => [
+                    'name' => 'OnCore street Address',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'addressLine2' => [
+                    'name' => 'OnCore address Line2',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'city' => [
+                    'name' => 'OnCore City',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'state' => [
+                    'name' => 'OnCore State',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'zip' => [
+                    'name' => 'OnCore Zip Code',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'county' => [
+                    'name' => 'OnCore County',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'country' => [
+                    'name' => 'OnCore Country',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'phoneNo' => [
+                    'name' => 'OnCore Phone No',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'alternatePhoneNo' => [
+                    'name' => 'OnCore Alternate Phone No',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'email' => [
+                    'name' => 'OnCore Email',
+                    'type' => 'text',
+                    'required' => false,
+                ]
+            ],
+            'special_keys' => [
+                'label' => 'subject_demographics_id', // "name" represents the entity label.
+            ],
+        ];;
+
         // TODO redcap entity for redcap records not in OnCore
 
         // TODO redcap entity for OnCore records not in REDCap
@@ -198,12 +447,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         <script>
         var has_oncore_project  = <?=json_encode($this->hasOnCoreProject()); ?>;
         var oncore_integrated   = <?=json_encode($this->hasOnCoreIntegration()); ?>;
+        var has_field_mappings  = <?=json_encode(!empty($this->getProjectFieldMappings())); ?>;
+        var last_adjudication   = <?=json_encode($this->getSyncDiff()); ?>;
         var ajax_endpoint       = "<?=$ajax_endpoint?>";
         var field_map_url       = "<?=$field_map_url?>";
-		//  this over document.ready because we need this last!
-		$(window).on('load', function () {
-            //BORROW CONTAINER UI TO ADD A NEW SECTION TO PROJECT SETUP
-			if($("#setupChklist-modify_project").length){
+
+        var make_oncore_module  = function(){
+            if($("#setupChklist-modify_project").length){
+                //BORROW HTML FROM EXISTING UI ON SET UP PAGE
                 var new_section = $("#setupChklist-modules").clone();
                 new_section.attr("id","integrateOnCore-modules");
                 new_section.find(".chklist_comp").remove();
@@ -212,47 +463,62 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
                 $("#setupChklist-modify_project").after(new_section);
                 var content_bdy = new_section.find(".chklisttext");
-                var lead = $("<span>");
+                var lead        = $("<span>");
                 content_bdy.append(lead);
 
-                //TODO FIGURE UX
-                var integration_ui  = $("<form>").attr("id", "integrate_oncore");
-                var iu_label        = $("<label>");
-                var iu_check        = $("<input>").attr("type", "checkbox").addClass("integrate").attr("name", "integrate").attr("value","1");
-                var iu_text         = $("<span>").text("Check this box to link the OnCore Project");
-
-                iu_label.append(iu_check);
-                iu_label.append(iu_text);
-                integration_ui.append(iu_label);
-                if(oncore_integrated){
-                    //TODO IF ENCORE HAS BEEN INTEGRATED THEN SHOW THAT IT HAS BEEN
-                    var lead_text = "This project has been integrated with OnCore Project #" + oncore_integrated;
-                    lead.addClass("integrated");
-                    iu_check.attr("disabled","disabled").attr("checked","checked");
-                    content_bdy.append(integration_ui);
+                //IF ONCORE HAS BEEN INTEGATED WITH THIS PROJECT, THEN DISPLAY SUMMARY OF LAST ADJUDICATION
+                if(has_field_mappings){
+                    var lead_class  = "oncore_results";
+                    var lead_text   = "Results summary from last adjudication : ";
+                    lead_text += "<ul class='summary_oncore_adjudication'>";
+                    lead_text += "<li>Full Match : "+last_adjudication["match"].length +" records</li>";
+                    lead_text += "<li>Partial Oncore : "+last_adjudication["oncore"].length +" records</li>";
+                    lead_text += "<li>Partial REDCap : "+last_adjudication["redcap"].length +" records</li>";
+                    lead_text += "</ul>";
                 }else{
-                    //TODO IF NOT, THEN CHECK IF THERE IS AN ONCORE PROJECT BASED ON IRB?
-                    var lead_text = "<i class='ml-1 fas fa-minus-circle' style='text-indent:0;'></i> No available OnCore projects were found with this project's IRB.";
-
-                    if(has_oncore_project){
-                        lead_text = "An OnCore project for IRB #" + has_oncore_project + " was found.";
-                        lead.addClass("notintegrated");
-                        content_bdy.append(integration_ui);
-                    }else{
-                        lead.addClass("noproject");
-                    }
-
+                    var lead_class = "oncore_mapping";
+                    var lead_text = "Please <a href='"+field_map_url+"'>Click Here</a> to map OnCore fields to this project.";
                 }
+
+                lead.addClass(lead_class);
                 lead.html(lead_text);
-			}
+            }
+        };
+
+        //  this over document.ready because we need this last!
+		$(window).on('load', function () {
+            var integrate_text      = $("<span>").addClass("enable_oncore").text("Integrate with OnCore Project #" + has_oncore_project);
+            var enable_text         = "Enable&nbsp;";
+            var integrated_class    = "not_integrated";
+
+			if(oncore_integrated){
+                enable_text         = "Enabled";
+                integrated_class    = "integrated";
+
+                //BORROW UI FROM OTHER ELEMENT TO ADD A NEW MODULE TO PROJECT SETUP
+                make_oncore_module();
+            }
+
+            if(has_oncore_project){
+                if($("#setupChklist-modify_project button:contains('Modify project title, purpose, etc.')").length){
+                    //ADD LINE TO MAIN PROJECT SEETTINGS IF THERE IS POSSIBLE ONCORE INTEGRATION
+
+                    var new_line    = $("<div>").addClass(integrated_class).attr("style","text-indent:-75px;margin-left:75px;padding:2px 0;font-size:13px;");
+                    var button      = $("<button>").attr("id","integrate_oncore").addClass("btn btn-defaultrc btn-xs fs11").html(enable_text);
+                    new_line.append(button);
+                    button.after(integrate_text);
+
+                    if(integrated_class == "integrated"){
+                        button.attr("disabled","disabled");
+                    }
+                    $("#setupChklist-modify_project button:contains('Modify project title, purpose, etc.')").before(new_line);
+                }
+            }
 
             //INTEGRATE AJAX
-            $("#integrate_oncore .integrate").on("change",function(){
-                if($(this).is(':checked')){
-                    $("#integrate_oncore").submit();
-                }
-            });
-            $("#integrate_oncore").submit(function(){
+            $("#integrate_oncore").on("click",function(e){
+                e.preventDefault();
+
                 //LINKAGE AJAX
                 $.ajax({
                     url : ajax_endpoint,
@@ -262,42 +528,53 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     },
                     dataType: 'json'
                 }).done(function (oncore_integrated) {
-                    //TODO update lead text class AND DISABLE integration checkbox
-                    var lead_text = "This project has been integrated with OnCore Project #" + oncore_integrated;
-                    $("span.notintegrated").addClass("integrated").removeClass("notintegrated").text(lead_text);
-                    $("#integrate_oncore .integrate").attr("disabled","disabled");
+                    // //UPDATE UI TO SHOW INTEGRATION SUCCESS
+                    // $("span.enable_oncore").addClass("integrated");
+                    // $("#integrate_oncore").attr("disabled","disabled").text("Enabled");
+                    //
+                    // //SHOW ONCORE MODULE
+                    // make_oncore_module();
 
-                    //TODO REDIRECT TO field map?
-                    setTimeout(function(){
-                        location.href=field_map_url;
-                    },500);
+                    document.location.reload();
                 }).fail(function (e) {
                     console.log("failed to integrate", e);
                 });
-                return false;
             });
         });
 		</script>
-		<style>
-            span.noproject{
+        <style>
+            .not_integrated{
                 color:#800000;
             }
-            span.integrated{
-                color:#009b76;
+            .integrated{
+                color:green;
             }
-            span.notintegrated{
-                color:#0098db;
-            }
-            #integrate_oncore{
-                padding:5px 0 0;
-            }
-            #integrate_oncore span{
-                display:inline-block;
+            .enable_oncore {
                 margin-left:5px;
             }
-		</style>
+            .oncore_mapping{
+                color:#9b5111
+            }
+            .oncore_results{
+                color:#0098db
+            }
+            .summary_oncore_adjudication{
+                list-style:none;
+                margin:0; padding:0;
+            }
+            .summary_oncore_adjudication li { display:inline-block; }
+            .summary_oncore_adjudication li:after{
+                content:"|";
+                margin:0 5px;
+            }
+            .summary_oncore_adjudication li:last-child:after{
+                content:"";
+                margin:initial;
+            }
+        </style>
 		<?php
     }
+
 
     /**
      * @return int ?
@@ -305,10 +582,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function integrateOnCoreProject()
     {
         //TODO PROBABLY ALREADY EXISTS IN IHAB's CLASSES
-        $irb = $this->hasOnCoreProject();
-
-//        return false;
-        return 654321;
+        $oncore_project_id = $this->hasOnCoreProject();
+        return $oncore_project_id;
     }
 
     /**
@@ -319,7 +594,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         //TODO use IRB to check if there is an OnCore Project?
         //TODO return IRB # to signify existence?
 //        return null;
-        return 123456;
+        return 654321;
     }
 
     /**
@@ -338,11 +613,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getProjectFieldMappings()
     {
-        $results    = array();
-        $mappings   = $this->getProjectSetting(self::FIELD_MAPPINGS);
-        if(!empty($mappings)){
+        $results = array();
+        $mappings = $this->getProjectSetting(self::FIELD_MAPPINGS);
+        if (!empty($mappings)) {
             $results = json_decode($mappings, true);
         }
+//        $results = $this->getProtocols()->setFieldsMap($field_mappings);
         return $results;
     }
 
@@ -351,6 +627,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function setProjectFieldMappings($mappings=array())
     {
+//        return $this->getProtocols()->setFieldsMap($mappings);
         return $this->setProjectSetting(self::FIELD_MAPPINGS, json_encode($mappings));
     }
 
@@ -359,7 +636,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getOnCoreFields()
     {
-        $field_list = array("MRN","race", "birthdate", "sex", "fname", "lname");
+        $field_list = self::$ONCORE_DEMOGRAPHICS_FIELDS;
         return $field_list;
     }
 
@@ -391,17 +668,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         if(!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap) || 1){
             $sync_diff = array(
                 "match"     => $bin_match,
-                "oncore"    => $bin_oncor,
+                "oncore"    => $bin_oncore,
                 "redcap"    => $bin_redcap
             );
         }
 
         return $sync_diff;
     }
-
-
-
-
 
     /**
      * @return Users
@@ -446,33 +719,37 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $id = $project['project_id'];
                 $irb = $project['project_irb_number'];
 
-                $protocol = $this->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
+                $protocols = $this->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
 
-                if (!empty($protocol)) {
+                if (!empty($protocols)) {
                     $entity_oncore_protocol = $this->getProtocols()->getProtocolEntityRecord($id, $irb);
                     if (empty($entity_oncore_protocol)) {
-                        $data = array(
-                            'redcap_project_id' => $id,
-                            'irb_number' => $irb,
-                            'oncore_protocol_id' => $protocol['protocolId'],
-                            'status' => '0',
-                            'last_date_scanned' => time()
-                        );
+                        foreach ($protocols as $protocol) {
+                            $data = array(
+                                'redcap_project_id' => $id,
+                                'irb_number' => $irb,
+                                'oncore_protocol_id' => $protocol['protocolId'],
+                                // cron will save the first event. and when connect is approved the redcap user has to confirm the event id.
+                                'redcap_event_id' => $this->getFirstEventId(),
+                                'status' => '0',
+                                'last_date_scanned' => time()
+                            );
 
-                        $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
+                            $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
 
-                        if ($entity) {
-                            Entities::createLog(date('m/d/Y H:i:s') . ' : OnCore Protocol record created for IRB: ' . $irb . '.');
-                        } else {
-                            throw new \Exception(implode(',', $this->getProtocols()->errors));
+                            if ($entity) {
+                                Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
+                            } else {
+                                throw new \Exception(implode(',', $this->getProtocols()->errors));
+                            }
                         }
                     } else {
                         $this->getProtocols()->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
-                        Entities::createLog(date('m/d/Y H:i:s') . ' : OnCore Protocol record updated for IRB: ' . $irb . '.');
+                        Entities::createLog('OnCore Protocol record updated for IRB: ' . $irb . '.');
                     }
                 } else {
-                    $this->emLog(date('m/d/Y H:i:s') . ' : IRB ' . $irb . ' has no OnCore Protocol.');
-                    Entities::createLog(date('m/d/Y H:i:s') . ' : IRB ' . $irb . ' has no OnCore Protocol.');
+                    $this->emLog('IRB ' . $irb . ' has no OnCore Protocol.');
+                    Entities::createLog('IRB ' . $irb . ' has no OnCore Protocol.');
                 }
             }
         } catch (\Exception $e) {
