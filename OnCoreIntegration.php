@@ -22,6 +22,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     const REDCAP_ENTITY_ONCORE_PROTOCOLS = 'redcap_entity_oncore_protocols';
     const ONCORE_REDCAP_API_ACTIONS_LOG = 'oncore_redcap_api_actions_log';
     const REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG = 'redcap_entity_oncore_redcap_api_actions_log';
+    const ONCORE_ADMINS = 'oncore_admins';
+    const REDCAP_ENTITY_ONCORE_ADMINS = 'redcap_entity_oncore_admins';
 
     /**
      * @var Users
@@ -137,6 +139,37 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             ],
             'special_keys' => [
                 'label' => 'message', // "name" represents the entity label.
+            ],
+        ];;
+
+        $types['oncore_admins'] = [
+            'label' => 'OnCore Admin',
+            'label_plural' => 'OnCore Admins',
+            'icon' => 'home_pencil',
+            'properties' => [
+                'oncore_contact_id' => [
+                    'name' => 'OnCore Contact Id',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'redcap_username' => [
+                    'name' => 'REDCap username',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'oncore_client_id' => [
+                    'name' => 'OnCore API Client id',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'oncore_client_secret' => [
+                    'name' => 'OnCore API Client Secret',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+            ],
+            'special_keys' => [
+                'label' => 'redcap_username', // "name" represents the entity label.
             ],
         ];;
 
