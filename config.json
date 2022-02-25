@@ -35,8 +35,8 @@
     "links": {
         "project": [
             {
-                "name": "OnCore/REDCap Field Mapping",
-                "icon": "fas fa-handshake",
+                "name": "OnCore Field Mapping",
+                "icon": "fas fa-check-circle",
                 "url": "pages/field_map.php",
                 "show-header-and-footer": true
             },
