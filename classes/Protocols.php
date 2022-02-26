@@ -50,18 +50,108 @@ class Protocols extends Entities
         // if protocol is initiated for specific REDCap project. then check if this ONCORE_PROTOCOL entity record exists and pull OnCore Protocol via  API
         if ($redcapProjectId) {
             $this->prepareProtocol($redcapProjectId);
-
-            $this->setFieldsMap([]);
         }
     }
 
+
+    public function processSyncedRecords()
+    {
+        if (!$this->getEntityRecord()) {
+            throw new \Exception('No REDCap Project linked to OnCore Protocol found.');
+        }
+
+        $redcapRecords = $this->getSubjects()->getRedcapProjectRecords();
+//        if(!$redcapRecords){
+//            throw new \Exception('Cant find recap records');
+//        }
+
+        $oncoreProtocolSubjects = $this->getSubjects()->getOnCoreProtocolSubjects($this->getEntityRecord()['oncore_protocol_id']);
+//        if(!$oncoreProtocolSubjects){
+//            throw new \Exception('Cant find oncore subjects');
+//        }
+
+        $fields = $this->getFieldsMap();
+
+        if (!$fields) {
+            throw new \Exception('Fields map is not defined.');
+        }
+
+        foreach ($oncoreProtocolSubjects as $subject) {
+            $onCoreMrn = $subject['demographics']['mrn'];
+            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $this->getEntityRecord()['redcap_event_id'], $fields['mrn']);
+            if ($redcapRecord) {
+                $data = array(
+                    'redcap_project_id' => $this->getEntityRecord()['redcap_project_id'],
+                    'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
+                    'redcap_record_id' => $redcapRecord['id'],
+                    'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
+                    'status' => $this->getSubjects()->determineSyncedRecordMatch($subject, $redcapRecord['record'], $fields)
+                );
+                // select oncore subject without redcap record
+                $record = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], '', $subject['protocolSubjectId']);
+                if ($record) {
+                    $this->getSubjects()->updateLinkageRecord($record['id'], $data);
+                } else {
+                    //select redcap record without oncore subject
+                    $record = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $redcapRecord['id'], '');
+                    if ($record) {
+                        $this->getSubjects()->updateLinkageRecord($record['id'], $data);
+                    } else {
+                        $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                        if (!$entity) {
+                            throw new \Exception(implode(',', $entity->errors));
+                        }
+                    }
+                }
+                // now remove redcap record from array
+                unset($redcapRecords[$redcapRecord['id']]);
+            } else {
+                $record = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], '', $subject['protocolSubjectId']);
+                // only insert if no record found
+                if (!$record) {
+                    // here OnCore subject does not exists on redcap
+                    $data = array(
+                        'redcap_project_id' => $this->getEntityRecord()['redcap_project_id'],
+                        'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
+                        'redcap_record_id' => '',
+                        'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
+                        'status' => OnCoreIntegration::RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE
+                    );
+                    //TODO check if redcap record deleted.
+                    $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                    if (!$entity) {
+                        throw new \Exception(implode(',', $entity->errors));
+                    }
+                }
+            }
+        }
+
+        // left redcap records on redcap but not on oncore
+        foreach ($redcapRecords as $id => $redcapRecord) {
+            $record = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $id, '');
+
+            if (!$record) {
+                $data = array(
+                    'redcap_project_id' => $this->getEntityRecord()['redcap_project_id'],
+                    'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
+                    'redcap_record_id' => $id,
+                    'oncore_protocol_subject_id' => '',
+                    'status' => OnCoreIntegration::RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE
+                );
+                $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                if (!$entity) {
+                    throw new \Exception(implode(',', $entity->errors));
+                }
+            }
+        }
+    }
 
     /**
      * @return array
      */
     public function getFieldsMap(): array
     {
-        return ExternalModules::getProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME);
+        return json_decode(ExternalModules::getProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
     }
 
     /**

@@ -86,7 +86,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         if (isset($_GET['pid'])) {
             //TODO THIS BREAKS
-//            $this->setUsers(new Users($this->PREFIX));
+            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
         }
         // Other code to run when object is instantiated
     }
@@ -240,12 +240,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 ],
                 'redcap_record_id' => [
                     'name' => 'REDCap record Id',
-                    'type' => 'text',
+                    'type' => 'integer',
                     'required' => false,
                 ],
                 'oncore_protocol_subject_id' => [
                     'name' => 'OnCore Protocol Subject Id(NOT Demographics)',
-                    'type' => 'text',
+                    'type' => 'integer',
                     'required' => false,
                 ],
                 'status' => [
@@ -582,8 +582,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function integrateOnCoreProject()
     {
         //TODO PROBABLY ALREADY EXISTS IN IHAB's CLASSES
-        $oncore_project_id = $this->hasOnCoreProject();
-        return $oncore_project_id;
+        $entity = $this->getProtocols()->getEntityRecord();
+//        $this->getProtocolEntityRecord($redcapProjectId);
+//        $oncore_project_id = $this->hasOnCoreProject();
+        return $entity['oncore_protocol_id'];
     }
 
     /**
