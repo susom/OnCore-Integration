@@ -53,7 +53,11 @@ class Protocols extends Entities
         }
     }
 
-
+    /**
+     * This method will match redcap records to oncore protocol subjects. and save the result in entity table
+     * @return void
+     * @throws \Exception
+     */
     public function processSyncedRecords()
     {
         if (!$this->getEntityRecord()) {
@@ -117,7 +121,7 @@ class Protocols extends Entities
                         'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
                         'status' => OnCoreIntegration::RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE
                     );
-                    //TODO check if redcap record deleted.
+
                     $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                     if (!$entity) {
                         throw new \Exception(implode(',', $entity->errors));
@@ -144,6 +148,7 @@ class Protocols extends Entities
                 }
             }
         }
+        //TODO update entity table when redcap record or Oncore protocol subject is deleted.
     }
 
     /**
@@ -196,6 +201,12 @@ class Protocols extends Entities
         $this->fieldsMap = $fieldsMap;
     }
 
+    /**
+     * gather protocol related object objects and data. Entity record, onCore subjects, redcap records.
+     * @param $redcapProjectId
+     * @return void
+     * @throws \Exception
+     */
     public function prepareProtocol($redcapProjectId)
     {
         $protocol = $this->getProtocolEntityRecord($redcapProjectId);
@@ -238,6 +249,12 @@ class Protocols extends Entities
         }
     }
 
+    /**
+     * confirm contact is part of integrated protocol.
+     * @param $contactId
+     * @return false|mixed
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function isContactPartOfOnCoreProtocol($contactId)
     {
         try {
@@ -274,6 +291,12 @@ class Protocols extends Entities
         }
     }
 
+    /**
+     * search OnCore API for a protocol via ID
+     * @param $protocolID
+     * @return mixed|void
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function searchOnCoreProtocolsViaID($protocolID)
     {
         try {
@@ -298,6 +321,12 @@ class Protocols extends Entities
         }
     }
 
+    /**
+     * search OnCore API for a protocol via IRB
+     * @param $irbNum
+     * @return array|mixed|void
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     public function searchOnCoreProtocolsViaIRB($irbNum)
     {
         try {
@@ -324,6 +353,7 @@ class Protocols extends Entities
     }
 
     /**
+     * pull redcap entity record.
      * @param $redcapProjectId
      * @param $irbNum
      * @return array|false|mixed|string[]|null
