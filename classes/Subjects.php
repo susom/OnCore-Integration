@@ -138,6 +138,7 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     * this method will determine if oncore and redcap fully or partially matched.
      * @param $onCoreSubject
      * @param $redcapRecord
      * @param $fields
@@ -154,6 +155,11 @@ class Subjects extends SubjectDemographics
     }
 
 
+    /**
+     * get record for current project
+     * @param $recordId
+     * @return array|mixed
+     */
     public function getREDCapRecord($recordId)
     {
         if ($this->getRedcapProjectRecords()) {
@@ -167,6 +173,7 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     * search for redcap record via MRN based on mapped fields between OnCore and REDCap
      * @param $mrn
      * @param $redcapEventId
      * @param $redcapMRNField
@@ -184,6 +191,12 @@ class Subjects extends SubjectDemographics
         return false;
     }
 
+    /**
+     * search protocol subject record.
+     * @param $onCoreProtocolId
+     * @param $protocolSubjectId
+     * @return array|mixed
+     */
     public function getOnCoreProtocolSubject($onCoreProtocolId, $protocolSubjectId)
     {
         if ($this->getOnCoreProtocolSubjects($onCoreProtocolId)) {
@@ -250,6 +263,7 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     * set each protocol subject along its demographics.
      * @param mixed $onCoreProtocolSubjects
      */
     public function setOnCoreProtocolSubjects($protocolId): void
@@ -299,6 +313,7 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     * set all redcap records
      * @param mixed $redcapProjectRecords
      */
     public function setRedcapProjectRecords($redcapProjectId, $redcapEventId): void
@@ -319,7 +334,15 @@ class Subjects extends SubjectDemographics
         return $this->syncedRecords;
     }
 
-
+    /**
+     * get linkage records for pid and protocol id
+     * @param $redcapProjectId
+     * @param $onCoreProtocolId
+     * @param $redcapRecordId
+     * @param $onCoreProtocolSubjectId
+     * @return array|false|mixed|string[]|null
+     * @throws Exception
+     */
     public function getLinkageRecord($redcapProjectId, $onCoreProtocolId, $redcapRecordId = '', $onCoreProtocolSubjectId = '')
     {
         if (!$redcapProjectId) {
@@ -344,6 +367,13 @@ class Subjects extends SubjectDemographics
 
     }
 
+    /**
+     * update entity record with redcap or OnCore ids
+     * @param $id
+     * @param $data
+     * @return void
+     * @throws Exception
+     */
     public function updateLinkageRecord($id, $data)
     {
         $entity = $this->getInstance(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $id);
@@ -354,6 +384,13 @@ class Subjects extends SubjectDemographics
         }
     }
 
+    /**
+     * build array of outer join between redcap records and OnCore protocols subjects
+     * @param $redcapProjectId
+     * @param $onCoreProtocolId
+     * @return void
+     * @throws Exception
+     */
     public function setSyncedRecords($redcapProjectId = '', $onCoreProtocolId = '')
     {
         // matched records on both redcap and oncore
