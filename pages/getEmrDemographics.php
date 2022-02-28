@@ -88,7 +88,7 @@ print json_encode($subjects);
 /**
  * This function retrieves a Vertx token which is required to use the Identifier API Endpoint.
  *
- * @return string|null
+ * @return array - return token as first parameter and url endpoint as second parameter
  */
 function getMRNVerificationToken() {
 
@@ -100,24 +100,13 @@ function getMRNVerificationToken() {
     try {
         $VTM = \ExternalModules\ExternalModules::getModuleInstance('vertx_token_manager');
         $token = $VTM->findValidToken(ID_TOKEN);
+        $url = $VTM->getAPIEndpoint(ID_TOKEN);
     } catch (Exception $ex) {
         // TODO: How should we handle errors?
         $module->Error("Could not retrieve Vertx Token: " . $ex);
     }
 
-    return $token;
-}
-
-/**
- * This function retrieves the Identifier Endpoint URL.
- *
- * @return string|null
- */
-function getMRNVerificationURL() {
-
-    // TODO: Should this be kept in this EM or I can retrieve it from the MRN Lookup EM
-    return "https://starr.med.stanford.edu/identifiers/api/v1/mrn/test";
-
+    return [$token, $url];
 }
 
 
@@ -134,11 +123,8 @@ function getSubjectInformation($mrnList) {
 
     $demographics = array();
 
-    // Retrieve vertx token
-    $token = getMRNVerificationToken();
-
-    // Get URL API Endpoint to retrieve demographic data
-    $url = getMRNVerificationURL();
+    // Retrieve vertx token and API Endpoint URL
+    [$token, $url] = getMRNVerificationToken();
     if (!empty($token) and !empty($url)) {
 
         // Setup the request body and header
