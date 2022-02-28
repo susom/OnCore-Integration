@@ -433,7 +433,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function redcap_module_link_check_display($project_id, $link)
     {
-        //TODO WILL WE NEED CONDITIONAL DISPLAY OF EM LINKS ONCE INTEGRATION HAS BEEN COMPLETE
+        //if($this->hasOnCoreIntegration()){
         if($this->hasOnCoreIntegration()){
             return $link;
         }
@@ -589,25 +589,25 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     }
 
     /**
-     * @return int
+     * @return array
      */
-    public function hasOnCoreProject()
+    public function hasOnCoreProject(): array
     {
-        //TODO use IRB to check if there is an OnCore Project?
-        //TODO return IRB # to signify existence?
-//        return null;
-        return 654321;
+        if ($this->getProtocols()->getOnCoreProtocol()) {
+            return $this->getProtocols()->getOnCoreProtocol();
+        } else {
+            return [];
+        }
+
     }
 
     /**
-     * @return int
+     * @return array
      */
     public function hasOnCoreIntegration()
     {
-        //TODO what represents an OnCore Integration? an Oncore project ID?
-        //TODO return THAT to signfy an integration?
 //        return null;
-        return 654321;
+        return $this->getProtocols()->getEntityRecord();
     }
 
     /**
