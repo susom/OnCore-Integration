@@ -9,6 +9,34 @@ require_once 'classes/SubjectDemographics.php';
 
 class Subjects extends Entities
 {
+
+    use emLoggerTrait;
+
+    /**
+     * we defined prefix just to be able to emlog trait
+     * @var string
+     */
+    public $PRIFIX;
+
+    /**
+     * @var Users
+     */
+    private $user;
+
+
+    private $onCoreProtocolSubjects;
+
+    /**
+     * @var
+     */
+    private $redcapProjectRecords;
+
+
+    /**
+     * @var array
+     */
+    private $syncedRecords;
+
     /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
     /**
@@ -19,46 +47,52 @@ class Subjects extends Entities
      * into the system.
      */
 
+    public function __construct($user, $reset = false)
+    {
+        parent::__construct($reset);
+
+        $this->setUser($user);
+
+        $this->PRIFIX = $this->getUser()->getPREFIX();
+    }
+
     /**
      * Retrieves demographics data from the home institutions EMR system. If MRN validation is not implemented,
      * the URL in the EM system configuration file will not be set and this function will never get called.
      *
      * @param $mrns - list of MRNs to retrieve demographics data
-     * @param bool $getDemographics - defaulted to true, demographics will be retrieved.  If false, only true/false will be retrieved for each MRN for validation.
      * @return array
      */
-    public function getEMRDemographics($mrns, $module, $getDemographics=true) {
+    public function getEMRDemographics($mrns) {
 
         $demographics = array();
 
         // Retrieve the URL to the MRN Verification API.  If one is not entered, just set all MRNs as valid.
-        $url = $module->getSystemSetting('mrn-verification-url');
+        $url = $this->getUser()->getMrnVerificationURL();
         if (!empty($url)) {
 
             // Call API Endpoint
             try {
 
                 // Put togther the URL with the info needed to process the rrequest
-                $action = ($getDemographics ? 'demographics' : 'validate');
-                $url .= "&mrns=" . implode(',', $mrns) . "&action=" . $action;
+                $url .= "&mrns=" . implode(',', $mrns);
 
 
                 // Make the API call
                 $client = new GuzzleHttp\Client;
                 $resp = $client->request('GET', $url, [
-                    GuzzleHttp\RequestOptions::SYNCHRONOUS => true,
-                    GuzzleHttp\RequestOptions::FORM_PARAMS => array("redcap_csrf_token" => $module->getCSRFToken())
+                    GuzzleHttp\RequestOptions::SYNCHRONOUS => true
                 ]);
             } catch (Exception $ex) {
 
                 // TODO: What to do about exceptions
-                $module->emError("Exception calling endpoint: " . $ex);
+                $this->emError("Exception calling endpoint: " . $ex);
             }
 
             // Make the API call was successful.
             $returnStatus = $resp->getStatusCode();
             if ($returnStatus <> 200) {
-                $module->emError("API call to $url, HTTP Return Code is: $returnStatus");
+                $this->emError("API call to $url, HTTP Return Code is: $returnStatus");
             } else {
                 // Everything worked so retrieve the demographics data
                 $demographics = $resp->getBody()->getContents();
@@ -107,44 +141,6 @@ class Subjects extends Entities
 
 
         return $demographics;
-    }
-
-    /**
-     * Retrieves MRN data from the home institutions EMR system.  If not implemented, the
-     * default returned value is that the MRN is valid.
-     *
-     * @param $mrns
-     * @return array
-     */
-    public function emrMrnsValid($mrns, $module) {
-
-        return $this->getEMRDemographics($mrns, $module, false);
-
-    }
-
-
-    /**
-     * Function to retrieve all OnCore subjects demographics for the entered MRN List.
-     *
-     * @param $mrn
-     * @return array
-     */
-    public function getOnCoreDemographics($mrns) {
-
-        $subjectsDemo = array();
-        if (!empty($mrns)) {
-            try {
-                $demo = new onCoreDemographics();
-                $subjectsDemo = $demo->getOnCoreDemographics($mrns);
-                if (empty($subjectsDemo)) {
-                    $this->errorMsg .= "<br>Errors while retrieving OnCore subject demographics: " . $demo->getErrorMessages();
-                }
-            } catch (Exception $ex) {
-                $this->errorMsg = "<br>Could not retrieve OnCore demographics - exception occurred: " . $ex->getMessage();
-            }
-        }
-
-        return $subjectsDemo;
     }
 
 }

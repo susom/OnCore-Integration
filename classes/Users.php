@@ -245,4 +245,18 @@ class Users extends Clients
         }
     }
 
+    /**
+     * If this is an onCoreAdmin, allow them to perform MRN Verification.
+     *
+     * @param string $username
+     * @return string
+     */
+    public function getMrnValidationUrl(string $username): string {
+        if ($this->onCoreAdmin) {
+            return $this->getSystemSetting('mrn-verification-url');
+        } else {
+            return '';
+        }
+    }
+
 }

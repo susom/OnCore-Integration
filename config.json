@@ -28,6 +28,7 @@
     "framework-version": 8,
     "permissions": [
         "redcap_every_page_top",
+        "redcap_module_link_check_display",
         "redcap_module_system_enable"
     ],
     "enable-every-page-hooks-on-system-pages": false,
