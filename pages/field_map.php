@@ -69,55 +69,54 @@ foreach ($oncore_fields as $field) {
         </tr>
         </tfoot>
     </table>
-    </div>
+</form>
+<script>
+    $(document).ready(function () {
+        var ajax_endpoint = "<?=$ajax_endpoint?>";
+        var mrn_fields = <?=json_encode($oncore_fields)?>;
 
-    <script>
-        $(document).ready(function () {
-            var ajax_endpoint = "<?=$ajax_endpoint?>";
-            var mrn_fields = <?=json_encode($oncore_fields)?>;
+        $("#oncore_mapping").submit(function (e) {
+            e.preventDefault();
 
-            $("#oncore_mapping").submit(function (e) {
-                e.preventDefault();
+            var field_maps = {};
+            var all_fields = $(this).find("select.mrn_field");
 
-                var field_maps = {};
-                var all_fields = $(this).find("select.mrn_field");
+            all_fields.each(function (idx) {
+                var el = $(this);
+                var name = el.attr("name");
+                var val = el.val();
 
-                all_fields.each(function (idx) {
-                    var el = $(this);
-                    var name = el.attr("name");
-                    var val = el.val();
+                if (val != "-99") {
+                    field_maps[name] = val;
+                }
+            });
 
-                    if (val != "-99") {
-                        field_maps[name] = val;
+            $.ajax({
+                url: ajax_endpoint,
+                method: 'POST',
+                data: {
+                    "action": "saveMapping",
+                    "field_mappings": field_maps,
+                },
+                dataType: 'json'
+            }).done(function (result) {
+                var update_keys = Object.keys(field_maps);
+                var make_x = $(mrn_fields).not(update_keys).get();
+
+                //UPDATE UI STATUS
+                for (var i in make_x) {
+                    var key = make_x[i];
+                    if ($("#oncore_mapping tr." + key + " i").hasClass("fa-check-circle")) {
+                        $("#oncore_mapping tr." + key + " i").removeClass("fa-check-circle").addClass("fa-times-circle");
                     }
-                });
-
-                $.ajax({
-                    url: ajax_endpoint,
-                    method: 'POST',
-                    data: {
-                        "action": "saveMapping",
-                        "field_mappings": field_maps,
-                    },
-                    dataType: 'json'
-                }).done(function (result) {
-                    var update_keys = Object.keys(field_maps);
-                    var make_x = $(mrn_fields).not(update_keys).get();
-
-                    //UPDATE UI STATUS
-                    for (var i in make_x) {
-                        var key = make_x[i];
-                        if ($("#oncore_mapping tr." + key + " i").hasClass("fa-check-circle")) {
-                            $("#oncore_mapping tr." + key + " i").removeClass("fa-check-circle").addClass("fa-times-circle");
-                        }
-                    }
-                    for (var i in update_keys) {
-                        var key = update_keys[i];
-                        $("#oncore_mapping tr." + key + " i").removeClass("fa-times-circle").addClass("fa-check-circle");
-                    }
-                }).fail(function (e) {
-                    console.log("failed to save", e);
-                });
+                }
+                for (var i in update_keys) {
+                    var key = update_keys[i];
+                    $("#oncore_mapping tr." + key + " i").removeClass("fa-times-circle").addClass("fa-check-circle");
+                }
+            }).fail(function (e) {
+                console.log("failed to save", e);
             });
         });
-    </script>
+    });
+</script>
