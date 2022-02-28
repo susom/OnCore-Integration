@@ -41,6 +41,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const REDCAP_ONCORE_FIELDS_MAPPING_NAME = 'redcap-oncore-fields-mapping';
 
+    const ONCORE_PROTOCOL_STATUS_NO = 0;
+
+    const ONCORE_PROTOCOL_STATUS_PENDING = 1;
+
+    const ONCORE_PROTOCOL_STATUS_YES = 2;
+
+
     public static $ONCORE_DEMOGRAPHICS_FIELDS = array("subjectDemographicsId",
         "subjectSource",
         "mrn",
@@ -141,13 +148,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 ],
                 'status' => [
                     'name' => 'Linkage Status',
-                    'type' => 'text',
+                    'type' => 'integer',
                     'required' => true,
-                    'default' => '0',
+                    'default' => 0,
                     'choices' => [
-                        '0' => 'No',
-                        '1' => 'Pending',
-                        '2' => 'Yes',
+                        self::ONCORE_PROTOCOL_STATUS_NO => 'No',
+                        self::ONCORE_PROTOCOL_STATUS_PENDING => 'Pending',
+                        self::ONCORE_PROTOCOL_STATUS_YES => 'Yes',
                     ],
                 ],
             ],
