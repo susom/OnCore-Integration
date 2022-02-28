@@ -83,10 +83,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function __construct()
     {
         parent::__construct();
-
         if (isset($_GET['pid'])) {
             //TODO THIS BREAKS
-            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
+//            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
         }
         // Other code to run when object is instantiated
     }
@@ -97,6 +96,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             // in case we are loading record homepage load its the record children if existed
             preg_match('/redcap_v[\d\.].*\/index\.php/m', $_SERVER['SCRIPT_NAME'], $matches, PREG_OFFSET_CAPTURE);
             if (strpos($_SERVER['SCRIPT_NAME'], 'ProjectSetup') !== false || !empty($matches)) {
+
                 $this->injectIntegrationUI();
                 $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
             }
@@ -441,7 +441,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function injectIntegrationUI()
     {
-        $field_map_url = $this->getUrl("pages/field_map.php");
+//        $field_map_url = $this->getUrl("pages/field_map.php");
         $ajax_endpoint = $this->getUrl("ajax/handler.php");
         ?>
         <script>
@@ -528,13 +528,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     },
                     dataType: 'json'
                 }).done(function (oncore_integrated) {
-                    // //UPDATE UI TO SHOW INTEGRATION SUCCESS
-                    // $("span.enable_oncore").addClass("integrated");
-                    // $("#integrate_oncore").attr("disabled","disabled").text("Enabled");
-                    //
-                    // //SHOW ONCORE MODULE
-                    // make_oncore_module();
-
                     document.location.reload();
                 }).fail(function (e) {
                     console.log("failed to integrate", e);
@@ -659,13 +652,194 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         $sync_diff  = array();
 
+        $mapped_fields = $this->getProjectFieldMappings();
         //TODO FILL IN BINS FOR 3 Scenarios,
         //TODO MRN MATCH BETWEEN ONCORE/REDCAP , Manually Opt out of ONcore -> REDCAp overwrite
         //TODO ONCORE ONLY DATA , COPY INTO RC Entitys and UPDATE RC Data
         //TODO REDCAP ONLY DATA , Not for Phase 1
-        $bin_match  = array();
-        $bin_oncore = array();
-        $bin_redcap = array();
+
+
+
+        $bin_match  = array(
+            "123" => array(
+                array(
+                     "oc_id"         => 111
+                    ,"entity_id"     => 1
+                    ,"oc_pr_id"      => 777
+                    ,"oc_data"       => "abcd"
+                    ,"rc_data"       => "dcba"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 222
+                    ,"entity_id"     => 2
+                    ,"oc_pr_id"      => 888
+                    ,"oc_data"       => "wxyz"
+                    ,"rc_data"       => "wxyz"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 333
+                    ,"entity_id"     => 3
+                    ,"oc_pr_id"      => 999
+                    ,"oc_data"       => "4323"
+                    ,"rc_data"       => "2343"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                )
+            ),
+            "231" => array(
+                array(
+                    "oc_id"         => 111
+                    ,"entity_id"     => 4
+                    ,"oc_pr_id"      => 777
+                    ,"oc_data"       => "qwer"
+                    ,"rc_data"       => "rewq"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 222
+                    ,"entity_id"     => 5
+                    ,"oc_pr_id"      => 888
+                    ,"oc_data"       => "lmnop"
+                    ,"rc_data"       => "lmnop"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 333
+                    ,"entity_id"     => 6
+                    ,"oc_pr_id"      => 999
+                    ,"oc_data"       => "4111"
+                    ,"rc_data"       => "4111"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                )
+            )
+        );
+        $bin_oncore = array(
+            array(
+                array(
+                    "oc_id"         => 111
+                    ,"entity_id"     => 13
+                    ,"oc_pr_id"      => 777
+                    ,"oc_data"       => "abcd"
+                    ,"rc_data"       => ""
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 222
+                    ,"entity_id"     => 14
+                    ,"oc_pr_id"      => 888
+                    ,"oc_data"       => "wxyz"
+                    ,"rc_data"       => ""
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 333
+                    ,"entity_id"     => 15
+                    ,"oc_pr_id"      => 999
+                    ,"oc_data"       => "4323"
+                    ,"rc_data"       => ""
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                )
+            ),
+            array(
+                array(
+                    "oc_id"         => 111
+                    ,"entity_id"     => 16
+                    ,"oc_pr_id"      => 777
+                    ,"oc_data"       => "qwer"
+                    ,"rc_data"       => ""
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 222
+                    ,"entity_id"     => 17
+                    ,"oc_pr_id"      => 888
+                    ,"oc_data"       => "lmnop"
+                    ,"rc_data"       => ""
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 333
+                    ,"entity_id"     => 18
+                    ,"oc_pr_id"      => 999
+                    ,"oc_data"       => "4111"
+                    ,"rc_data"       => ""
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                )
+            )
+        );
+        $bin_redcap = array(
+            "234" => array(
+                array(
+                     "oc_id"         => 111
+                    ,"entity_id"     => 7
+                    ,"oc_pr_id"      => 777
+                    ,"oc_data"       => ""
+                    ,"rc_data"       => "dcba"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 222
+                    ,"entity_id"     => 8
+                    ,"oc_pr_id"      => 888
+                    ,"oc_data"       => ""
+                    ,"rc_data"       => "wxyz"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 333
+                    ,"entity_id"     => 9
+                    ,"oc_pr_id"      => 999
+                    ,"oc_data"       => ""
+                    ,"rc_data"       => "2343"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                )
+            ),
+            "432" => array(
+                array(
+                    "oc_id"         => 111
+                    ,"entity_id"     => 10
+                    ,"oc_pr_id"      => 777
+                    ,"oc_data"       => ""
+                    ,"rc_data"       => "rewq"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 222
+                    ,"entity_id"     => 11
+                    ,"oc_pr_id"      => 888
+                    ,"oc_data"       => ""
+                    ,"rc_data"       => "lmnop"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                ),
+                array(
+                    "oc_id"         => 333
+                    ,"entity_id"     => 12
+                    ,"oc_pr_id"      => 999
+                    ,"oc_data"       => ""
+                    ,"rc_data"       => "4111"
+                    ,"link_status"   =>  0
+                    ,"ts_last_scan"  => "01/01/22 12:00"
+                )
+            )
+        );
 
         if(!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap) || 1){
             $sync_diff = array(
