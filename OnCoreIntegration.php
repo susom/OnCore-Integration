@@ -657,10 +657,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         $sync_diff  = array();
 
+        $mapped_fields = $this->getProjectFieldMappings();
         //TODO FILL IN BINS FOR 3 Scenarios,
         //TODO MRN MATCH BETWEEN ONCORE/REDCAP , Manually Opt out of ONcore -> REDCAp overwrite
         //TODO ONCORE ONLY DATA , COPY INTO RC Entitys and UPDATE RC Data
         //TODO REDCAP ONLY DATA , Not for Phase 1
+
+
+
         $bin_match  = array();
         $bin_oncore = array();
         $bin_redcap = array();
