@@ -376,9 +376,28 @@ class Protocols extends Entities
         }
     }
 
-    public function updateProtocolEntityRecordTimestamp($entityId)
+    /**
+     * @param $entityId
+     * @return void
+     */
+    public function updateProtocolEntityRecordTimestamp($entityId): void
     {
         db_query("UPDATE " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " set last_date_scanned = '" . time() . "', updated = '" . time() . "' WHERE id = " . $entityId . "");
+    }
+
+
+    /**
+     * @param $entityId
+     * @param $status
+     * @return void
+     * @throws \Exception
+     */
+    public function updateProtocolEntityRecordStatus($entityId, $status): void
+    {
+        if (!in_array((int)$status, array(OnCoreIntegration::ONCORE_PROTOCOL_STATUS_NO, OnCoreIntegration::ONCORE_PROTOCOL_STATUS_PENDING, OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES))) {
+            throw new \Exception("Status not found");
+        }
+        db_query("UPDATE " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " set status = '" . $status . "', updated = '" . time() . "' WHERE id = " . $entityId . "");
     }
 
     /**
