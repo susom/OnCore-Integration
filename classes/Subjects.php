@@ -1,4 +1,5 @@
 <?php
+
 namespace Stanford\OnCoreIntegration;
 
 use \Exception;
@@ -30,6 +31,12 @@ class Subjects extends SubjectDemographics
      * @var
      */
     private $redcapProjectRecords;
+
+
+    /**
+     * @var array
+     */
+    private $syncedRecords;
 
     /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
@@ -104,10 +111,10 @@ class Subjects extends SubjectDemographics
 
             // A URL was not entered so we will not verify the MRNs and retrieve demographic data.
             // Set all the MRNs as valid since we can't verify.
-            foreach($mrns as $mrn) {
+            foreach ($mrns as $mrn) {
                 $subject[$mrn] = array("mrn" => $mrn,
-                                 "mrnValid"  => "true"
-                                );
+                    "mrnValid" => "true"
+                );
 
             }
             $demographics = json_encode($subject);
@@ -130,6 +137,78 @@ class Subjects extends SubjectDemographics
 
     }
 
+    /**
+     * this method will determine if oncore and redcap fully or partially matched.
+     * @param $onCoreSubject
+     * @param $redcapRecord
+     * @param $fields
+     * @return int
+     */
+    public function determineSyncedRecordMatch($onCoreSubject, $redcapRecord, $fields)
+    {
+        foreach ($fields as $field) {
+            if ($onCoreSubject[$field] != $redcapRecord[$field]) {
+                return OnCoreIntegration::RECORD_ON_REDCAP_ON_ONCORE_PARTIAL_MATCH;
+            }
+        }
+        return OnCoreIntegration::RECORD_ON_REDCAP_ON_ONCORE_FULL_MATCH;
+    }
+
+
+    /**
+     * get record for current project
+     * @param $recordId
+     * @return array|mixed
+     */
+    public function getREDCapRecord($recordId)
+    {
+        if ($this->getRedcapProjectRecords()) {
+            foreach ($this->getRedcapProjectRecords() as $id => $record) {
+                if ($id == $recordId) {
+                    return $record;
+                }
+            }
+        }
+        return [];
+    }
+
+    /**
+     * search for redcap record via MRN based on mapped fields between OnCore and REDCap
+     * @param $mrn
+     * @param $redcapEventId
+     * @param $redcapMRNField
+     * @return array|false
+     */
+    public function getREDCapRecordIdViaMRN($mrn, $redcapEventId, $redcapMRNField)
+    {
+        if ($this->getRedcapProjectRecords()) {
+            foreach ($this->getRedcapProjectRecords() as $id => $record) {
+                if ($record[$redcapEventId][$redcapMRNField] == $mrn) {
+                    return array('id' => $id, 'record' => $record[$redcapEventId]);
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * search protocol subject record.
+     * @param $onCoreProtocolId
+     * @param $protocolSubjectId
+     * @return array|mixed
+     */
+    public function getOnCoreProtocolSubject($onCoreProtocolId, $protocolSubjectId)
+    {
+        if ($this->getOnCoreProtocolSubjects($onCoreProtocolId)) {
+            foreach ($this->getOnCoreProtocolSubjects($onCoreProtocolId) as $subject) {
+                if ($subject['protocolSubjectId'] == $protocolSubjectId) {
+                    return $subject;
+                }
+            }
+        }
+        return [];
+    }
+
 
     /**
      * Function to retrieve all OnCore subjects demographics for the entered MRN List.
@@ -137,7 +216,8 @@ class Subjects extends SubjectDemographics
      * @param $mrn
      * @return array
      */
-    public function getOnCoreDemographics($mrns) {
+    public function getOnCoreDemographics($mrns)
+    {
 
         $subjectsDemo = array();
         if (!empty($mrns)) {
@@ -183,6 +263,7 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     * set each protocol subject along its demographics.
      * @param mixed $onCoreProtocolSubjects
      */
     public function setOnCoreProtocolSubjects($protocolId): void
@@ -226,15 +307,13 @@ class Subjects extends SubjectDemographics
     /**
      * @return mixed
      */
-    public function getRedcapProjectRecords($redcapProjectId, $redcapEventId)
+    public function getRedcapProjectRecords()
     {
-        if (!$this->redcapProjectRecords) {
-            $this->setRedcapProjectRecords($redcapProjectId, $redcapEventId);
-        }
         return $this->redcapProjectRecords;
     }
 
     /**
+     * set all redcap records
      * @param mixed $redcapProjectRecords
      */
     public function setRedcapProjectRecords($redcapProjectId, $redcapEventId): void
@@ -247,5 +326,94 @@ class Subjects extends SubjectDemographics
         $this->redcapProjectRecords = \REDCap::getData($param);
     }
 
+    /**
+     * @return array
+     */
+    public function getSyncedRecords(): array
+    {
+        return $this->syncedRecords;
+    }
 
+    /**
+     * get linkage records for pid and protocol id
+     * @param $redcapProjectId
+     * @param $onCoreProtocolId
+     * @param $redcapRecordId
+     * @param $onCoreProtocolSubjectId
+     * @return array|false|mixed|string[]|null
+     * @throws Exception
+     */
+    public function getLinkageRecord($redcapProjectId, $onCoreProtocolId, $redcapRecordId = '', $onCoreProtocolSubjectId = '')
+    {
+        if (!$redcapProjectId) {
+            throw new \Exception("No REDCap project provided");
+        }
+        if (!$onCoreProtocolId) {
+            throw new \Exception("No OnCore protocol provided");
+        }
+
+        if ($redcapRecordId && $onCoreProtocolSubjectId) {
+            $sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE redcap_record_id = $redcapRecordId and oncore_protocol_subject_id = $onCoreProtocolSubjectId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+        } elseif ($redcapRecordId) {
+            $sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE redcap_record_id = $redcapRecordId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+        } elseif ($onCoreProtocolSubjectId) {
+            $sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE oncore_protocol_subject_id = $onCoreProtocolSubjectId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+        } else {
+            throw new \Exception("REDCap record id or OnCore Protocol Subject Id is missing");
+        }
+        $record = db_query($sql);
+
+        return db_fetch_assoc($record);
+
+    }
+
+    /**
+     * update entity record with redcap or OnCore ids
+     * @param $id
+     * @param $data
+     * @return void
+     * @throws Exception
+     */
+    public function updateLinkageRecord($id, $data)
+    {
+        $entity = $this->getInstance(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $id);
+        if ($entity->setData($data)) {
+            $entity->save();
+        } else {
+            throw new \Exception(implode(',', $this->errors));
+        }
+    }
+
+    /**
+     * build array of outer join between redcap records and OnCore protocols subjects
+     * @param $redcapProjectId
+     * @param $onCoreProtocolId
+     * @return void
+     * @throws Exception
+     */
+    public function setSyncedRecords($redcapProjectId = '', $onCoreProtocolId = '')
+    {
+        // matched records on both redcap and oncore
+        if ($redcapProjectId && $onCoreProtocolId) {
+            $sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+        } else {
+            throw new \Exception("No REDCap pid and OnCore Protocol Id provided");
+        }
+        $result = array();
+        $q = db_query($sql);
+        if (db_num_rows($q) > 0) {
+            while ($row = db_fetch_assoc($q)) {
+                $record = array();
+                if ($row['redcap_record_id']) {
+                    $record['redcap'] = $this->getREDCapRecord($row['redcap_record_id']);
+                }
+                if ($row['oncore_protocol_subject_id']) {
+                    $record['oncore'] = $this->getOnCoreProtocolSubject($onCoreProtocolId, $row['oncore_protocol_subject_id']);
+                }
+                $record['status'] = $row['status'];
+                $result[] = $record;
+            }
+        }
+        $this->syncedRecords = $result;
+    }
 }
