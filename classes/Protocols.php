@@ -212,7 +212,7 @@ class Protocols extends Entities
         $protocol = $this->getProtocolEntityRecord($redcapProjectId);
         if (!empty($protocol)) {
             $this->setEntityRecord($protocol);
-            $this->setOnCoreProtocol($this->searchOnCoreProtocolsViaID($this->getEntityRecord()['oncore_protocol_id']));
+            $this->setOnCoreProtocol($this->getOnCoreProtocolsViaID($this->getEntityRecord()['oncore_protocol_id']));
             /**
              * if OnCore protocol found then prepare its subjects
              */
@@ -297,7 +297,7 @@ class Protocols extends Entities
      * @return mixed|void
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function searchOnCoreProtocolsViaID($protocolID)
+    public function getOnCoreProtocolsViaID($protocolID)
     {
         try {
             $jwt = $this->getUser()->getAccessToken();

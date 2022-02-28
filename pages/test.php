@@ -4,8 +4,6 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-// test cron
-#$module->onCoreProtocolsScanCron();
 
 // test contact functionality.
 //$user = $module->framework->getUser();
