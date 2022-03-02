@@ -119,7 +119,7 @@ class Protocols extends Entities
                         'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
                         'redcap_record_id' => '',
                         'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
-                        'status' => OnCoreIntegration::RECORD_NOT_ON_REDCAP_BUT_ON_ONCORE
+                        'status' => OnCoreIntegration::ONCORE_ONLY
                     );
 
                     $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
@@ -140,7 +140,7 @@ class Protocols extends Entities
                     'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
                     'redcap_record_id' => $id,
                     'oncore_protocol_subject_id' => '',
-                    'status' => OnCoreIntegration::RECORD_ON_REDCAP_BUT_NOT_ON_ONCORE
+                    'status' => OnCoreIntegration::REDCAP_ONLY
                 );
                 $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                 if (!$entity) {
