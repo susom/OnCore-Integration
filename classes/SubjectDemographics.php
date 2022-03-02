@@ -50,14 +50,14 @@ class SubjectDemographics
     /*
      * Setter functions
      */
-    function setSubjectDemographicsid($subjectDemographicsid) {
+    public function setSubjectDemographicsid($subjectDemographicsid) {
         if ($this->validateFields) {
             $this->subjectDemographicsid = (is_integer($subjectDemographicsid) ? $subjectDemographicsid : null);
         } else {
             $this->subjectDemographicsid = $subjectDemographicsid;
         }
     }
-    function setSubjectSource($subjectSource) {
+    public function setSubjectSource($subjectSource) {
         if ($this->validateFields) {
             $this->subjectSource = ((($subjectSource == "OnCore") or ($subjectSource == "Onstage")) ? $subjectSource : null);
         } else {
@@ -71,80 +71,80 @@ class SubjectDemographics
             $this->mrn = $mrn;
         }
     }
-    function setLastName($lastName) {
+    public function setLastName($lastName) {
         if ($this->validateFields) {
             $this->lastName = (strlen($lastName) <= 80 ? $lastName : null);
         } else {
             $this->lastName = $lastName;
         }
     }
-    function setFirstName($firstName) {
+    public function setFirstName($firstName) {
         if ($this->validateFields) {
             $this->firstName = (strlen($firstName) <= 55 ? $firstName : null);
         } else {
             $this->firstName = $firstName;
         }
     }
-    function setMiddleName($middleName) {
+    public function setMiddleName($middleName) {
         if ($this->validateFields) {
             $this->middleName = (strlen($middleName) <= 65 ? $middleName : null);
         } else {
             $this->middleName = $middleName;
         }
     }
-    function setSuffix($suffix) {
+    public function setSuffix($suffix) {
         if ($this->validateFields) {
             $this->suffix = (strlen($suffix) <= 20 ? $suffix : null);
         } else {
             $this->suffix = $suffix;
         }
     }
-    function setBirthDate($birthDate) {
+    public function setBirthDate($birthDate) {
         if ($this->validateFields) {
-            $date = date('Y-m-d', strtotime($birthDate));
+            $date = date('m/d/Y', strtotime($birthDate));
             $this->birthDate = ($date <> false ? $date : null);
         } else {
             $this->birthDate = $birthDate;
         }
     }
-    function setApproximateBirthDate($approximateBirthDate) {
+    public function setApproximateBirthDate($approximateBirthDate) {
         if ($this->validateFields) {
             $this->approximateBirthDate = (is_bool($approximateBirthDate) ? $approximateBirthDate : null);
         } else {
             $this->approximateBirthDate = $approximateBirthDate;
         }
     }
-    function setBirthDateNotAvailable($birthDateNotAvailable) {
+    public function setBirthDateNotAvailable($birthDateNotAvailable) {
         if ($this->validateFields) {
             $this->birthDateNotAvailable = (is_bool($birthDateNotAvailable) ? $birthDateNotAvailable : null);
         } else {
             $this->birthDateNotAvailable = $birthDateNotAvailable;
         }
     }
-    function setExpiredDate($expiredDate) {
+    public function setExpiredDate($expiredDate) {
         if ($this->validateFields) {
-            $date = date('Y-m-d', strtotime($expiredDate));
+            $date = date('m/d/Y', strtotime($expiredDate));
             $this->expiredDate = ($date <> false ? $date : null);
         } else {
             $this->expiredDate = $expiredDate;
         }
     }
-    function setApproximateExpiredDate($approximateExpiredDate) {
+    public function setApproximateExpiredDate($approximateExpiredDate) {
         if ($this->validateFields) {
             $this->approximateExpiredDate = (is_bool($approximateExpiredDate) ? $approximateExpiredDate : null);
         } else {
             $this->approximateExpiredDate = $approximateExpiredDate;
         }
     }
-    function setLastDateKnownAlive($lastDateKnownAlive) {
+    public function setLastDateKnownAlive($lastDateKnownAlive) {
         if ($this->validateFields) {
-            $date = date('Y-m-d', strtotime($lastDateKnownAlive));
+            $date = date('m/d/Y', strtotime($lastDateKnownAlive));
             $this->lastDateKnownAlive = ($date <> false ? $date : null);
         } else {
             $this->lastDateKnownAlive = $lastDateKnownAlive;
         }
     }
-    function setSsn($ssn)
+    public function setSsn($ssn)
     {
         if ($this->validateFields) {
             // regex to make sure it is either in xxx-xx-xxxx or xxxxxxxxx format
@@ -153,7 +153,7 @@ class SubjectDemographics
             $this->ssn = $ssn;
         }
     }
-    function setGender($gender) {
+    public function setGender($gender) {
         if ($this->validateFields) {
             $allowed_genders = array('Male', 'Female', 'Unknown');
             $valid = in_array($gender, $allowed_genders);
@@ -162,34 +162,36 @@ class SubjectDemographics
             $this->gender = $gender;
         }
     }
-    function setEthnicity($ethnicity) {
+    public function setEthnicity($ethnicity) {
         if ($this->validateFields) {
             // TODO: Need Ethnicity List
-            $allowed_ethnicity = array('Unknown', 'Non-Hispanic', 'Hispanic');
+            $allowed_ethnicity = array('Unknown', 'Non-Hispanic', 'Hispanic or Latino');
             $valid = in_array($ethnicity, $allowed_ethnicity);
             $this->ethnicity = ($valid ? $ethnicity : null);
         } else {
             $this->ethnicity = $ethnicity;
         }
     }
-    function setRace($race) {
+    public function setRace($race) {
         if ($this->validateFields) {
             // TODO: Need Race List
-            $allowed_race = array('Unknown');
+            $allowed_race = array('White', 'Black or African American', 'Native Hawaiian or Other Pacific Islander',
+                                   'Asian', 'American Indian or Alaska Native', 'Not Reported', 'Unknown');
             $valid = in_array($race, $allowed_race);
             $this->race = ($valid ? $race : null);
         } else {
             $this->race = $race;
         }
     }
-    function setSubjectComments($subjectComments) {
+    public function setSubjectComments($subjectComments) {
         if ($this->validateFields) {
             $this->subjectComments = (strlen($subjectComments) <= 4000 ? $subjectComments : null);
         } else {
             $this->subjectComments = $subjectComments;
         }
     }
-    function setAdditionalSubjectids($additionalSubjectids) {
+    public function setAdditionalSubjectids($additionalSubjectids) {
+        // TODO: Is the Identifier Type, Identifier and Identifier Owner?
         if ($this->validateFields) {
             foreach ($additionalSubjectids as $subjectIds) {
                 $this->$additionalSubjectids[] = (is_integer($subjectIds) ? $subjectIds : null);
@@ -198,76 +200,76 @@ class SubjectDemographics
             $this->$additionalSubjectids = $additionalSubjectids;
         }
     }
-    function setStreetAddress($streetAddress) {
+    public function setStreetAddress($streetAddress) {
         if ($this->validateFields) {
             $this->streetAddress = (strlen($streetAddress) <= 100 ? $streetAddress : null);
         } else {
             $this->streetAddress = $streetAddress;
         }
     }
-    function setAddressLine2($addressLine2) {
+    public function setAddressLine2($addressLine2) {
         if ($this->validateFields) {
             $this->addressLine2 = (strlen($addressLine2) <= 100 ? $addressLine2 : null);
         } else {
             $this->addressLine2 = $addressLine2;
         }
     }
-    function setCity($city) {
+    public function setCity($city) {
         if ($this->validateFields) {
             $this->city = (strlen($city) <= 20 ? $city : null);
         } else {
             $this->city = $city;
         }
     }
-    function setState($state) {
+    public function setState($state) {
         if ($this->validateFields) {
-            // TODO: Need allowed states
+            // TODO: Need allowed states - 63 results
             $allowed_states = array();
             $this->state = in_array($state, $allowed_states);
         } else {
             $this->state = $state;
         }
     }
-    function setZip($zip) {
+    public function setZip($zip) {
         if ($this->validateFields) {
             $this->zip = (strlen($zip) <= 10 ? $zip : null);
         } else {
             $this->zip = $zip;
         }
     }
-    function setCounty($county) {
+    public function setCounty($county) {
         if ($this->validateFields) {
-            // TODO: Need allowed counties
+            // TODO: Need allowed counties - will create it if not already created
             $allowed_county = array();
             $this->county = in_array($county, $allowed_county);
         } else {
             $this->county = $county;
         }
     }
-    function setCountry($country) {
+    public function setCountry($country) {
         if ($this->validateFields) {
-            // TODO: Need allowed countries
+            // TODO: Need allowed countries - 240 options
             $allowed_country = array();
             $this->country = in_array($country, $allowed_country);
         } else {
             $this->country = $country;
         }
     }
-    function setPhoneNo($phoneNo) {
+    public function setPhoneNo($phoneNo) {
         if ($this->validateFields) {
             $this->phoneNo = (strlen($phoneNo) <= 20 ? $phoneNo : null);
         } else {
             $this->phoneNo = $phoneNo;
         }
     }
-    function setAlternatePhoneNo($alternatePhoneNo) {
+    public function setAlternatePhoneNo($alternatePhoneNo) {
         if ($this->validateFields) {
             $this->alternatePhoneNo = (strlen($alternatePhoneNo) <= 20 ? $alternatePhoneNo : null);
         } else {
             $this->alternatePhoneNo = $alternatePhoneNo;
         }
     }
-    function setEmail($email) {
+    public function setEmail($email) {
         if ($this->validateFields) {
             // Make sure it is in the correct email format
             if (strlen($email) <= 55) {
@@ -284,91 +286,91 @@ class SubjectDemographics
     /*
     * Getter functions
     */
-    function getSubjectDemographicsid() {
+    public function getSubjectDemographicsid() {
         return $this->subjectDemographicsid;
     }
-    function getSubjectSource() {
+    public function getSubjectSource() {
         return $this->subjectSource;
     }
     public function getMrn() {
         return $this->mrn;
     }
-    function getLastName() {
+    public function getLastName() {
         return $this->lastName;
     }
-    function getFirstName() {
+    public function getFirstName() {
         return $this->firstName;
     }
-    function getMiddleName() {
+    public function getMiddleName() {
         return $this->middleName;
     }
-    function getSuffix($suffix) {
+    public function getSuffix($suffix) {
         return $this->suffix;
     }
-    function getBirthDate() {
+    public function getBirthDate() {
         return $this->birthDate;
     }
-    function getApproximateBirthDate() {
+    public function getApproximateBirthDate() {
         return $this->approximateBirthDate;
     }
-    function getBirthDateNotAvailable() {
+    public function getBirthDateNotAvailable() {
         return $this->birthDateNotAvailable;
     }
-    function getExpiredDate() {
+    public function getExpiredDate() {
         return $this->expiredDate;
     }
-    function getApproximateExpiredDate() {
+    public function getApproximateExpiredDate() {
         return $this->approximateExpiredDate;
     }
-    function getLastDateKnownAlive() {
+    public function getLastDateKnownAlive() {
         return $this->lastDateKnownAlive;
     }
-    function getSsn() {
+    public function getSsn() {
         return $this->ssn;
     }
-    function getGender() {
+    public function getGender() {
         return $this->gender;
     }
-    function getEthnicity() {
+    public function getEthnicity() {
         return $this->ethnicity;
     }
-    function getRace() {
+    public function getRace() {
         return $this->race;
     }
-    function getSubjectComments() {
+    public function getSubjectComments() {
         return $this->subjectComments;
     }
-    function getAdditionalSubjectids() {
+    public function getAdditionalSubjectids() {
         return $this->additionalSubjectids;
     }
-    function getStreetAddress() {
+    public function getStreetAddress() {
         return $this->streetAddress;
     }
-    function getAddressLine2() {
+    public function getAddressLine2() {
         return $this->addressLine2;
     }
-    function getCity() {
+    public function getCity() {
         return $this->city;
     }
-    function getState() {
+    public function getState() {
         return $this->state;
     }
-    function getZip() {
+    public function getZip() {
         return $this->zip;
     }
-    function getCounty() {
+    public function getCounty() {
         return $this->county;
     }
-    function getCountry() {
+    public function getCountry() {
         return $this->country;
     }
     public function getPhoneNo() {
         return $this->phoneNo;
     }
-    function getAlternatePhoneNo() {
+    public function getAlternatePhoneNo() {
         return $this->alternatePhoneNo;
     }
-    function getEmail() {
+    public function getEmail() {
         return $this->email;
     }
     public function isMrnValid() {
