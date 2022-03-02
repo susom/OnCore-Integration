@@ -7,7 +7,7 @@ class Entities extends \REDCapEntity\EntityFactory
     public static function createLog($message, $url = '', $response = '', $type = 0)
     {
         $data = array(
-            'message' => $message,
+            'message' => date('m/d/Y H:i:s') . ' :' . $message,
             'url' => $url,
             'response' => $response,
             'type' => $type
@@ -17,5 +17,10 @@ class Entities extends \REDCapEntity\EntityFactory
         if (!$entity) {
             \REDCap::logEvent('Could not create log');
         }
+    }
+
+    public static function createException($message)
+    {
+        self::createException('EXCEPTION: ' . $message);
     }
 }

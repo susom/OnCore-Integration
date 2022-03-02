@@ -35,9 +35,15 @@
     "links": {
         "project": [
             {
-                "name": "Test Page",
-                "icon": "fas fa-columns",
-                "url": "pages/test.php",
+                "name": "OnCore Field Mapping",
+                "icon": "fas fa-check-circle",
+                "url": "pages/field_map.php",
+                "show-header-and-footer": true
+            },
+            {
+                "name": "Manual Sync With Oncore",
+                "icon": "fas fa-not-equal",
+                "url": "pages/sync_diff.php",
                 "show-header-and-footer": true
             }
         ],
@@ -54,6 +60,12 @@
         "pages/getEmrDemographics"
     ],
     "project-settings": [
+        {
+            "key": "redcap-oncore-fields-mapping",
+            "name": "Json Object represent the fields mapping between REDCap and OnCore <h6><span class='text-lg badge badge-lg badge-danger'>DO NOT MODIFY</span></h6>",
+            "required": false,
+            "type": "textarea"
+        },
         {
             "key": "enable-project-debug-logging",
             "name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
