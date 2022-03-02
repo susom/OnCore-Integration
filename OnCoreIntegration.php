@@ -848,6 +848,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             )
         );
 
+
+//        $module->getProtocols()->getSubjects()->setSyncedRecords($module->getProtocols()->getEntityRecord()['redcap_project_id'], $module->getProtocols()->getEntityRecord()['oncore_protocol_id']);
+//        $records = $module->getProtocols()->getSubjects()->getSyncedRecords();
+
         if(!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap) || 1){
             $sync_diff = array(
                 "match"     => $bin_match,
