@@ -148,10 +148,10 @@ class Subjects extends SubjectDemographics
     {
         foreach ($fields as $field) {
             if ($onCoreSubject[$field] != $redcapRecord[$field]) {
-                return OnCoreIntegration::RECORD_ON_REDCAP_ON_ONCORE_PARTIAL_MATCH;
+                return OnCoreIntegration::PARTIAL_MATCH;
             }
         }
-        return OnCoreIntegration::RECORD_ON_REDCAP_ON_ONCORE_FULL_MATCH;
+        return OnCoreIntegration::FULL_MATCH;
     }
 
 
