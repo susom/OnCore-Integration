@@ -29,7 +29,7 @@
     "permissions": [
         "redcap_every_page_top",
         "redcap_module_link_check_display",
-        "redcap_save_record"
+        "redcap_module_system_enable"
     ],
     "enable-every-page-hooks-on-system-pages": false,
     "links": {
@@ -48,6 +48,12 @@
             }
         ],
         "control-center": [
+            {
+                "name": "OnCore Demographic Options",
+                "icon": "fas fa-database",
+                "url": "pages/demo_options.php",
+                "show-header-and-footer": true
+            }
         ]
     },
     "no-auth-pages": [
@@ -106,6 +112,7 @@
         {
             "key": "mrn-verification-url",
             "name": "<b>MRN Verification URL</b><i>(optional)</i>If MRN Verification and demographics retrieval is used from an EMR system, fill in the URL to the API endpoint.",
+            "required": false,
             "type": "text"
         },
         {
