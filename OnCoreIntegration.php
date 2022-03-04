@@ -95,7 +95,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 //            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
         }
         // Other code to run when object is instantiated
+
     }
+
+    public function redcap_module_system_enable($version) {
+
+        $enabled = $this->isModuleEnabled('redcap_entity');
+        if (!$enabled) {
+            // TODO: what to do when redcap_entity is not enabled in the system
+            $this->emError("Cannot use this module OncoreIntegration because it is dependent on the REDCap Entities EM");
+        }
+    }
+
 
     public function redcap_every_page_top()
     {
@@ -228,7 +239,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             'special_keys' => [
                 'label' => 'redcap_username', // "name" represents the entity label.
             ],
-        ];;
+        ];
 
         $types['oncore_redcap_records_linkage'] = [
             'label' => 'OnCore REDCap records Linkage',
@@ -434,6 +445,34 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         // TODO redcap entity for OnCore records not in REDCap
 
         // TODO redcap entity to save the linkage between redcap and OnCore records
+
+        // REDCap entity to store allowed subject demographics
+        $types['oncore_demo_options'] = [
+                'label' => 'OnCore Allowed Subject Demographics Options',
+                'label_plural' => 'OnCore Allowed Subject Demographics Options',
+                'icon' => 'home_pencil',
+                'properties' => [
+                        'oncore_demo_field' => [
+                            'name' => 'OnCore Demographics Field',
+                            'type' => 'text',
+                            'required' => true,
+                            'choices'   => [
+                                'gender'    => 'Gender',
+                                'race'      => 'Race',
+                                'ethnicity' => 'Ethnicity',
+                                'state'     => 'State',
+                                'country'   => 'Country',
+                                'id_type'   => 'Identifier Type'
+                            ]
+                        ],
+                        'oncore_demo_option' => [
+                            'name' => 'OnCore Allowed Value',
+                            'type' => 'text',
+                            'required' => true
+                        ]
+                ]
+        ];
+
 
         return $types;
     }
