@@ -57,7 +57,8 @@
         ]
     },
     "no-auth-pages": [
-        "pages/getEmrDemographics"
+        "pages/getEmrDemographics",
+        "pages/saveDataToRedcap"
     ],
     "project-settings": [
         {
