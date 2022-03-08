@@ -47,6 +47,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const ONCORE_PROTOCOL_STATUS_YES = 2;
 
+    const YES = 1;
+
+    const NO = 0;
 
     public static $ONCORE_DEMOGRAPHICS_FIELDS = array("subjectDemographicsId",
         "subjectSource",
@@ -270,12 +273,22 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     'name' => 'Linkage Status',
                     'type' => 'integer',
                     'required' => true,
-                    'default' => 0,
+                    'default' => self::REDCAP_ONLY,
                     'choices' => [
                         self::REDCAP_ONLY => 'REDCAP_ONLY',
                         self::ONCORE_ONLY => 'ONCORE_ONLY',
                         self::FULL_MATCH => 'FULL_MATCH',
                         self::PARTIAL_MATCH => 'PARTIAL_MATCH',
+                    ],
+                ],
+                'excluded' => [
+                    'name' => 'Is Record Excluded?',
+                    'type' => 'integer',
+                    'required' => true,
+                    'default' => self::NO,
+                    'choices' => [
+                        self::NO => 'No',
+                        self::YES => 'Yes',
                     ],
                 ],
             ],
