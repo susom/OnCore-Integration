@@ -4,54 +4,80 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-$sync_diff          = $module->getSyncDiff();
-$project_mappings   = $module->getProjectFieldMappings();
+$sync_diff = $module->getSyncDiff();
+
+$full_match_count   = count($sync_diff["match"]);
+$oncore_count       = count($sync_diff["oncore"]);
+$redcap_count       = count($sync_diff["redcap"]);
 
 function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
+    global $module;
+
     $html = "<table class='table table-striped $disabled'>";
     $html .= "<thead>";
     $html .= "<tr>";
-    $html .= "<th style='width: 15%'>REDCap record Id</th>";
-    $html .= "<th style='width: 15%'>OnCore Protocol Id</th>";
-    $html .= "<th style='width: 5%'>Import</th>";
-    $html .= "<th style='width: 25%'>OnCore Protocol Subject Id</th>";
-    $html .= "<th style='width: 10%'>OnCore Data</th>";
-    $html .= "<th style='width: 10%'>REDCap Data</th>";
-    $html .= "<th style='width: 15%'>Linkage Status</th>";
-    $html .= "<th style='width: 15%'>Timestamp of last scan</th>";
+    $html .= "<th style='width: 5%'>Select All <input type='checkbox' name='check_all' value='1'/></th>";
+    $html .= "<th style='width: 25%'>REDCap record Id</th>";
+    $html .= "<th style='width: 25%'>OnCore Data</th>";
+    $html .= "<th style='width: 25%'>REDCap Data</th>";
+
     $html .= "</tr>";
 
     $html .= "</thead>";
     $html .= "<tbody>";
 
-    foreach($records as $rc_id => $rows){
+
+    foreach($records as $mrn => $rows){
         if($noredcap){
+            $module->emDebug($records);
             $rc_id = "";
         }
         $rowspan        = count($rows);
         $print_rowspan  = false;
+
+        $ts_last_scan   = null;
+
         foreach($rows as $row){
-            $oc_id          = $row["oc_id"];
             $entity_id      = $row["entity_id"];
+
+            $oc_id          = $row["oc_id"];
             $oc_pr_id       = $row["oc_pr_id"];
-            $oc_data        = $row["oc_data"];
+            $rc_id          = $row["rc_id"];
+
+            $oc_field       = $row["oc_field"];
+            $rc_field       = $row["rc_field"];
+
             $rc_data        = $row["rc_data"];
+            $oc_data        = $row["oc_data"];
+
             $link_status    = $row["link_status"];
             $ts_last_scan   = $row["ts_last_scan"];
             $diffmatch      = $oc_data == $rc_data ? "match" : "diff";
 
+            $rc = !empty($rc_field) ? "<b>$rc_field</b> : $rc_data" : "";
+            $oc = !empty($oc_field) ? "<b>$oc_field</b> : $oc_data" : "";
+
             $html .= "<tr class='$diffmatch'>";
             if(!$print_rowspan){
                 $print_rowspan = true;
-                $html .= "<td class='rc_id' rowspan=$rowspan>$rc_id</td>";
+
+                $id_info = array();
+                if(!empty($rc_id)) {
+                    $id_info[] = "REDCap ID : $rc_id";
+                }
+                if(!empty($oc_pr_id)) {
+                    $id_info[] = "OnCore Subject ID : $oc_pr_id";
+                }
+                if(!empty($mrn)) {
+                    $id_info[] = "MRN : $mrn";
+                }
+                $id_info = implode("<br>", $id_info);
+
+                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' name='entityid_$entity_id' value='1' checked/></td>";
+                $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
             }
-            $html .= "<td class='oc_id'>$oc_id</td>";
-            $html .= "<td class='import'><input type='checkbox' name='entityid_$entity_id' value='1' checked/></td>";
-            $html .= "<td class='oc_pr_id'>$oc_pr_id</td>";
-            $html .= "<td class='oc_data data'>$oc_data</td>";
-            $html .= "<td class='rc_data data'>$rc_data</td>";
-            $html .= "<td class='link_status'>$link_status</td>";
-            $html .= "<td class='ts_last_scan'>$ts_last_scan</td>";
+            $html .= "<td class='oc_data data'>$oc</td>";
+            $html .= "<td class='rc_data data'>$rc</td>";
             $html .= "</tr>";
         }
     }
@@ -59,8 +85,15 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
     $html .= "</tbody>";
     $html .= "<tfoot>";
     $html .= "<tr>";
-    $html .= "<td colspan=8 align='right'>";
-    $html .= "<button type='submit' class='more-button $disabled'>Accept Oncore Data</button>";
+    $html .= "<td colspan=6 align='right'>";
+
+    if($disabled){
+        $html .= "<button type='submit' class='btn btn-warning download_partial_redcap_csv'>Download CSV</button>";
+    }else{
+        $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button> <button type='submit' class='btn btn-warning download_partial_oncore_csv'>Download CSV</button>";
+    }
+
+
     $html .= "</td>";
     $html .= "</tr>";
     $html .= "</tfoot>";
@@ -77,19 +110,22 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
 
 <form id="oncore_mapping" class="container">
-    <h2>OnCore Adjudication - Sync Diff</h2>
+    <h3>OnCore Adjudication - Sync Diff</h3>
     <p class="lead">Data Stored in OnCore must be synced and adjudicated periodically.  The data will be pulled into an entity table and then matched against this projects REDCap data on the mapped fields.</p>
+    <p class="lead">TODO MAKE TABLE (date of last comparison, button to refresh, total count, new count ) This REDCap project contains 123 Subjects that are linked with OnCore Protocol 123456</p>
 
-
+    <h2>Adjudication required for following Subjects</h2>
     <ul class="nav nav-tabs">
-        <li class="active"><a data-toggle="tab" href="#fullmatch">Full Match</a></li>
-        <li><a data-toggle="tab" href="#oncore">Partial Oncore Match</a></li>
-        <li><a data-toggle="tab" href="#redcap">Partial REDCap Match</a></li>
+        <li class="active"><a data-toggle="tab" href="#fullmatch">Linked Subjects <span class="badge badge-light"><?=$full_match_count?></span></a></li>
+        <li><a data-toggle="tab" href="#oncore">Unlinked Oncore Subjects <span class="badge badge-light"><?=$oncore_count?></span></a></li>
+        <li><a data-toggle="tab" href="#redcap">Unlinked REDCap Subjects <span class="badge badge-light"><?=$redcap_count?></span></a></li>
+
+        <div id="refresh_syncdiff"><i>Last Sync : 02/23/22</i> <button class="btn btn-danger">Refresh Sync Data</button></div>
     </ul>
     <div class="tab-content">
         <div class="tab-pane active" id="fullmatch">
-            <h2>Full Match OnCore - REDCap</h2>
-            <p>Records were found in both OnCore and this REDCap project</p>
+            <h2>Linked Subjects</h2>
+            <p>This REDCap project has X records linked to OnCore Protocol ID </p>
 
             <form class="oncore_match">
                 <input type="hidden" name="matchtype" value="fullmatch"/>
@@ -97,9 +133,11 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
                 <?=makeSyncTableHTML($sync_diff["match"]);?>
             </form>
         </div>
+
+
         <div class="tab-pane" id="oncore">
-            <h2>Partial Match OnCore - Not in REDCap</h2>
-            <p>Records were found in OnCore but not in REDCap</p>
+            <h2>Unlinked Oncore Subjects not linked in this REDCap Project</h2>
+            <p>The following Subjects were found in the OnCore Protocol.  Click "Import Subjects" to create the following subjects in this project.  (TODO IF auto increment is disabled , get from PROJ object) The REDCap record will default to the OnCore Protocol Subject ID. </p>
 
             <form class="oncore_match">
                 <input type="hidden" name="matchtype" value="fullmatch"/>
@@ -108,8 +146,9 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
             </form>
         </div>
         <div class="tab-pane" id="redcap">
-            <h2>Partial Match REDCap - Not in OnCore</h2>
-            <p>Records were found in this REDCap project but not in OnCore</p>
+            <h2>Unlinked REDCap Subjects not found in OnCore Protocol</h2>
+            <p>The following REDCap records do not have a matching MRN with subjects in the OnCore Protocol</p>
+            <p>In order to import these records into OnCore , download the CSV and submit to your OnCore administrator</p>
             <em>This functionality is not available for Phase 1</em>
 
             <form class="oncore_match">
@@ -122,7 +161,19 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
     </div>
 
     <style>
-        td.rc_id,
+        #oncore_mapping ul.nav-tabs{
+            position:relative;
+        }
+        #refresh_syncdiff{
+            position:absolute;
+            right:0;
+        }
+        #refresh_syncdiff i{
+            display:inline-block;
+            margin-right:5px;
+            vertical-align: bottom;
+        }
+
         td.import,
         td.link_status{
             text-align:center;
@@ -132,9 +183,13 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
         }
         tr.match td.data{
             color:#0f6b58;
-
         }
-        tr.diff td:not(.rc_id){
+
+        tr.match td.rc_data,
+        tr.match td.oc_data{
+        }
+
+        tr.diff td:not(.rc_id, .import, .ts_last_scan, .link_status){
             background:#f2dede !important;
         }
         tr.diff td.data{
@@ -142,19 +197,32 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
             font-weight:bold;
         }
 
+
+
         button.disabled,
         .disabled tr.match td,
         .disabled tr.diff td {
             background:#efefef !important;
             color:#b3b3b3 !important;
         }
+
+        td.import,
+        td.ts_last_scan,
+        td.rc_id,
+        td.link_status{
+            border-left:1px solid #B9B9B9;
+        }
     </style>
 </form>
 <script>
     $(document).ready(function () {
-        var ajax_endpoint = "<?=$ajax_endpoint?>";
-        var mrn_fields = <?=json_encode($oncore_fields)?>;
+        var ajax_endpoint   = "<?=$ajax_endpoint?>";
+        var mrn_fields      = <?=json_encode($oncore_fields)?>;
 
+        $("#oncore_mapping ul.nav-tabs a").on("click", function(){
+            $("li.active").removeClass("active");
+            $(this).parent("li").addClass("active");
+        });
     });
 </script>
 <?php
