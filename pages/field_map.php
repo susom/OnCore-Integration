@@ -96,7 +96,7 @@ foreach ($oncore_fields as $field) {
                 method: 'POST',
                 data: {
                     "action": "saveMapping",
-                    "field_mappings": field_maps,
+                    "field_mappings": field_maps
                 },
                 dataType: 'json'
             }).done(function (result) {

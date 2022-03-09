@@ -8,6 +8,8 @@ require_once 'classes/Entities.php';
 require_once 'classes/Protocols.php';
 require_once 'classes/Subjects.php';
 
+use REDCapEntity\EntityDB;
+
 /**
  * Class OnCoreIntegration
  * @package Stanford\OnCoreIntegration
@@ -19,6 +21,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     use emLoggerTrait;
 
+    const ENTITY_MODULE = 'redcap_entity';
     const FIELD_MAPPINGS = 'oncore_field_mappings';
     const ONCORE_PROTOCOLS = 'oncore_protocols';
     const REDCAP_ENTITY_ONCORE_PROTOCOLS = 'redcap_entity_oncore_protocols';
@@ -30,6 +33,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     const REDCAP_ENTITY_ONCORE_SUBJECTS = 'redcap_entity_oncore_subjects';
     const ONCORE_REDCAP_RECORD_LINKAGE = 'oncore_redcap_records_linkage';
     const REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE = 'redcap_entity_oncore_redcap_records_linkage';
+    const ONCORE_DEMOGRAPHICS_OPTIONS = 'oncore_demo_options';
 
     const REDCAP_ONLY = 0;
 
@@ -47,6 +51,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const ONCORE_PROTOCOL_STATUS_YES = 2;
 
+    const ONCORE_SETUP_ISSUES_PAGE = 'OnCore Integration Errors';
 
     public static $ONCORE_DEMOGRAPHICS_FIELDS = array("subjectDemographicsId",
         "subjectSource",
@@ -100,14 +105,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function redcap_module_system_enable($version) {
 
-        $enabled = $this->isModuleEnabled('redcap_entity');
+        // Check to see if the REDCap Entity table is enabled. If not, the Config button will not
+        // be displayed so this EM cannot be Setup.
+        $enabled = $this->isModuleEnabled(self::ENTITY_MODULE);
         if (!$enabled) {
             // TODO: what to do when redcap_entity is not enabled in the system
-            $this->emError("Cannot use this module OncoreIntegration because it is dependent on the REDCap Entities EM");
+            $this->emError("The REDCap Entity EM is not enabled. This module cannot be configured until the REDCap Entity EM is enabled.");
+            return null;
+        } else {
+            return true;
         }
     }
-
-
     public function redcap_every_page_top()
     {
         try {
@@ -479,15 +487,33 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function redcap_module_link_check_display($project_id, $link)
     {
-        //if($this->hasOnCoreIntegration()){
-        if($this->hasOnCoreIntegration()){
-            return $link;
+        // Taking out the return $link for now since I want it to do the database table checks
+        // TODO: Not working for me
+        //if ($this->hasOnCoreIntegration()) {
+            // return $link;
+        //}
+
+        // If this project is not yet linked with an OnCore protocol, make sure the database tables are created
+        // TODO: How to tell if this project is already linked?
+        $onCoreIntegrated = false;
+        //if (!empty($project_id) and !empty($this->hasOnCoreIntegration())) {
+        if (!empty($project_id) and $onCoreIntegrated) {
+            // If this function is called on a project and the project is already link, return the setup pages but not the error page
+            $link_return = (self::ONCORE_SETUP_ISSUES_PAGE == $link['name'] ? null : $link);
+        } else if (!empty($project_id)) {
+            // If this function is called on a project and the project is not yet setup, check for the database tables.
+            $link_return = $this->checkForDatabaseTables($link);
+        } else {
+            // If this function is called from the Control Panel, return the link
+            $link_return = $link;
         }
+
+        return $link_return;
     }
 
     public function injectIntegrationUI()
     {
-//        $field_map_url = $this->getUrl("pages/field_map.php");
+        $field_map_url = $this->getUrl("pages/field_map.php");
         $ajax_endpoint = $this->getUrl("ajax/handler.php");
         ?>
         <script>
@@ -980,6 +1006,58 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             Entities::createLog('CRON JOB ERROR: ' . $e->getMessage());
 
         }
+    }
+
+    /**
+     * This function to make sure all required entity tables are created before allowing projects to setup OnCore linkages.
+     *
+     * @param $link
+     * @return $link|null - depending if the project is ready for setup or the database tables are not created
+     */
+    private function checkForDatabaseTables($link) {
+
+        // If we are enabling this EM on a project, make sure all the Entity tables
+        // are created. If they are and the project is ready to Setup their field mappings,
+        // show the mapping pages.  If the entity tables are not created, don't show
+        // the mapping page, instead show an error page.
+
+        // See if any of the required entity tables are missing
+        $missingTables = array();
+        $entity = new EntityDB();
+
+        // Check to see if the system Entity tables used by this EM are created
+        $db_exists = $entity->checkEntityDBTable(self::ONCORE_PROTOCOLS);
+        if (!$db_exists) {
+            $missingTables[] = self::ONCORE_PROTOCOLS;
+        }
+        $db_exists = $entity->checkEntityDBTable(self::ONCORE_REDCAP_API_ACTIONS_LOG);
+        if (!$db_exists) {
+            $missingTables[] = self::ONCORE_REDCAP_API_ACTIONS_LOG;
+        }
+        $db_exists = $entity->checkEntityDBTable(self::ONCORE_ADMINS);
+        if (!$db_exists) {
+            $missingTables[] = self::ONCORE_ADMINS;
+        }
+        $db_exists = $entity->checkEntityDBTable(self::ONCORE_REDCAP_RECORD_LINKAGE);
+        if (!$db_exists) {
+            $missingTables[] = self::ONCORE_REDCAP_RECORD_LINKAGE;
+        }
+        $db_exists = $entity->checkEntityDBTable(self::ONCORE_SUBJECTS);
+        if (!$db_exists) {
+            $missingTables[] = self::ONCORE_SUBJECTS;
+        }
+        $db_exists = $entity->checkEntityDBTable(self::ONCORE_DEMOGRAPHICS_OPTIONS);
+        if (!$db_exists) {
+            $missingTables[] = self::ONCORE_DEMOGRAPHICS_OPTIONS;
+        }
+
+        // Determine if this link should be displayed.
+        if (!empty($missingTables)) {
+            return (self::ONCORE_SETUP_ISSUES_PAGE == $link['name'] ? $link : null);
+        } else {
+            return (self::ONCORE_SETUP_ISSUES_PAGE == $link['name'] ? null : $link);
+        }
+
     }
 
 }

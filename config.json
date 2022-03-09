@@ -29,7 +29,8 @@
     "permissions": [
         "redcap_every_page_top",
         "redcap_module_link_check_display",
-        "redcap_module_system_enable"
+        "redcap_module_system_enable",
+        "redcap_module_configure_button_display"
     ],
     "enable-every-page-hooks-on-system-pages": false,
     "links": {
@@ -44,6 +45,12 @@
                 "name": "Manual Sync With Oncore",
                 "icon": "fas fa-not-equal",
                 "url": "pages/sync_diff.php",
+                "show-header-and-footer": true
+            },
+            {
+                "name": "OnCore Integration Errors",
+                "icon": "fas fa-ban",
+                "url": "pages/Errors.php",
                 "show-header-and-footer": true
             }
         ],

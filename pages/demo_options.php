@@ -23,7 +23,7 @@ if ($db_exists) {
 
 } else {
     $module->emError("Table does not exist.  Please go create it first");
-    $url = 'http://localhost/redcap_v12.2.2/ExternalModules/?prefix=redcap_entity&page=manager%2Fschema';
+    $url = APP_PATH_WEBROOT_FULL."redcap_v".REDCAP_VERSION.'/ExternalModules/?prefix=redcap_entity&page=manager%2Fschema';
 }
 
 
