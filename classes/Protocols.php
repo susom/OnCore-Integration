@@ -20,12 +20,12 @@ class Protocols extends Entities
     /**
      * @var array
      */
-    private $onCoreProtocol;
+    private $onCoreProtocol = [];
 
     /**
      * @var array
      */
-    private $entityRecord;
+    private $entityRecord = [];
 
     /**
      * @var Subjects
@@ -35,7 +35,7 @@ class Protocols extends Entities
     /**
      * @var array
      */
-    private $fieldsMap;
+    private $fieldsMap = [];
 
     /**
      * @param $user

@@ -95,7 +95,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         parent::__construct();
         if (isset($_GET['pid'])) {
             //TODO THIS BREAKS
-//            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
+            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
+
+            $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
         }
         // Other code to run when object is instantiated
 
@@ -944,7 +946,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function setProtocols(Protocols $protocols): void
     {
-        $this->protocols = $protocols;
+        if (!$this->protocols) {
+            $this->protocols = $protocols;
+        }
     }
 
     public function onCoreProtocolsScanCron()
