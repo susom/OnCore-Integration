@@ -16,7 +16,7 @@ $select = "<select class='form-select form-select-sm mrn_field' name='[ONCORE_FI
 $select .= "<option value=-99>-Map REDCap Field-</option>";
 foreach ($project_fields as $event_name => $fields) {
     $select .= "<optgroup label='$event_name'>\r\n";
-    foreach($fields as $field){
+    foreach ($fields as $field) {
         $select .= "<option $selected_val data-eventname='$event_name' value='$field'>$field</option>\r\n";
     }
     $select .= "</optgroup>\r\n";
@@ -90,14 +90,14 @@ foreach ($oncore_fields as $field) {
             var all_fields = $(this).find("select.mrn_field");
 
             all_fields.each(function (idx) {
-                var el      = $(this);
-                var name    = el.attr("name");
-                var val     = el.val();
-                var opt     = el.find("option:selected");
-                var ev      = opt.data("eventname");
+                var el = $(this);
+                var name = el.attr("name");
+                var val = el.val();
+                var opt = el.find("option:selected");
+                var ev = opt.data("eventname");
 
                 if (val != "-99") {
-                    field_maps[name] = {"redcap_field" : val, "event" : ev};
+                    field_maps[name] = {"redcap_field": val, "event": ev};
                 }
             });
 

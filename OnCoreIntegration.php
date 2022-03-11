@@ -96,7 +96,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         parent::__construct();
         if (isset($_GET['pid'])) {
             //TODO THIS STILL BREAKS FOR ME , MISSING SOMETHIGN?
-//            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
+            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
+
+            $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
         }
         // Other code to run when object is instantiated
 
@@ -708,19 +710,19 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getProjectFields()
     {
-        $event_fields   = array();
-        $events         = \REDCap::getEventNames(true);
-        if(!empty($events)){
-            foreach($events as $event_id => $event){
+        $event_fields = array();
+        $events = \REDCap::getEventNames(true);
+        if (!empty($events)) {
+            foreach ($events as $event_id => $event) {
                 $temp = \REDCap::getValidFieldsByEvents(PROJECT_ID, array($event));
-                $temp = array_filter($temp, function($v){
+                $temp = array_filter($temp, function ($v) {
                     return !strpos($v, "_complete");
                 });
                 $event_fields[$event] = $temp;
             }
-        }else{
-            $dict           = \REDCap::getDataDictionary(PROJECT_ID, "array");
-            $event_fields   = array(array_keys($dict));
+        } else {
+            $dict = \REDCap::getDataDictionary(PROJECT_ID, "array");
+            $event_fields = array(array_keys($dict));
         }
 
         return $event_fields;
@@ -731,8 +733,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getSyncDiff()
     {
-        $sync_diff      = array();
-        $mapped_fields  = $this->getProjectFieldMappings();
+        $sync_diff = array();
+        $mapped_fields = $this->getProjectFieldMappings();
 
         //TODO FILL IN BINS FOR 3 Scenarios,
         //TODO MRN MATCH BETWEEN ONCORE/REDCAP , Manually Opt out of ONcore -> REDCAp overwrite
@@ -742,257 +744,257 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 //        $module->getProtocols()->getSubjects()->setSyncedRecords($module->getProtocols()->getEntityRecord()['redcap_project_id'], $module->getProtocols()->getEntityRecord()['oncore_protocol_id']);
 //        $records = $module->getProtocols()->getSubjects()->getSyncedRecords();
 
-        $records = Array(
-              Array(
-                 "redcap" => Array(
-                    181 => Array(
-                         "birthdate" => "2000-01-01"
-                        ,"ethnicity" => "Unknown"
-                        ,"firstname" => "PROT-IZ firstname"
-                        ,"form_1_complete" => 0
-                        ,"gender" => "Male"
-                        ,"lastname" => "PROT-IZ lastname"
-                        ,"mrn" => "MRN23456"
-                        ,"record_id" => 1
-                        ,"subjectdemographicsid" => 87999
-                        ,"subjectsource" => "OnCore"
+        $records = array(
+            array(
+                "redcap" => array(
+                    181 => array(
+                        "birthdate" => "2000-01-01"
+                    , "ethnicity" => "Unknown"
+                    , "firstname" => "PROT-IZ firstname"
+                    , "form_1_complete" => 0
+                    , "gender" => "Male"
+                    , "lastname" => "PROT-IZ lastname"
+                    , "mrn" => "MRN23456"
+                    , "record_id" => 1
+                    , "subjectdemographicsid" => 87999
+                    , "subjectsource" => "OnCore"
                     )
 
                 )
-                ,"oncore" => Array(
-                    "protocolSubjectId" => 138811
-                    ,"protocolId" => 14071
-                    ,"studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
-                    ,"subjectDemographicsId" => 87999
-                    ,"subjectDemographics" => null
-                                ,"status" => null
-                                ,"demographics" => Array(
-                                    "id" => 1
-                                    ,"created" => 1645657226
-                                    ,"updated" => 1645657226
-                                    ,"subjectDemographicsId" => 87999
-                                    ,"subjectSource" => "OnCore"
-                                    ,"mrn" => "MRN23456"
-                                    ,"lastName" => "PROT-IZ LastName"
-                                    ,"firstName" => "PROT-IZ firstname"
-                                    ,"suffix" => null
-                                    ,"birthDate" => "2000-01-01"
-                                    ,"approximateBirthDate" => 0
-                                    ,"birthDateNotAvailable" => 0
-                                    ,"expiredDate" => null
-                                    ,"approximateExpiredDate" => 0
-                                    ,"lastDateKnownAlive" => null
-                                    ,"ssn" => null
-                                    ,"gender" => "Male"
-                                    ,"ethnicity" => "Unknown"
-                                    ,"race" => "Unknown"
-                                    ,"subjectComments" => null
-                                    ,"additionalSubjectIds" => array()
-                                    ,"streetAddress" => null
-                                    ,"addressLine2" => null
-                                    ,"city" => null
-                                    ,"state" => null
-                                    ,"zip" => null
-                                    ,"county" => null
-                                    ,"country" => null
-                                    ,"phoneNo" => null
-                                    ,"alternatePhoneNo" => null
-                                    ,"email" => null
-                                    ,"middleName" => null
-                        )
+            , "oncore" => array(
+                "protocolSubjectId" => 138811
+            , "protocolId" => 14071
+            , "studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
+            , "subjectDemographicsId" => 87999
+            , "subjectDemographics" => null
+            , "status" => null
+            , "demographics" => array(
+                    "id" => 1
+                , "created" => 1645657226
+                , "updated" => 1645657226
+                , "subjectDemographicsId" => 87999
+                , "subjectSource" => "OnCore"
+                , "mrn" => "MRN23456"
+                , "lastName" => "PROT-IZ LastName"
+                , "firstName" => "PROT-IZ firstname"
+                , "suffix" => null
+                , "birthDate" => "2000-01-01"
+                , "approximateBirthDate" => 0
+                , "birthDateNotAvailable" => 0
+                , "expiredDate" => null
+                , "approximateExpiredDate" => 0
+                , "lastDateKnownAlive" => null
+                , "ssn" => null
+                , "gender" => "Male"
+                , "ethnicity" => "Unknown"
+                , "race" => "Unknown"
+                , "subjectComments" => null
+                , "additionalSubjectIds" => array()
+                , "streetAddress" => null
+                , "addressLine2" => null
+                , "city" => null
+                , "state" => null
+                , "zip" => null
+                , "county" => null
+                , "country" => null
+                , "phoneNo" => null
+                , "alternatePhoneNo" => null
+                , "email" => null
+                , "middleName" => null
                 )
-                ,"status" => 3
             )
-            , Array(
-                "oncore" => Array(
-                     "protocolSubjectId" => 138812
-                    ,"protocolId" => 14071
-                    ,"studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
-                    ,"subjectDemographicsId" => 88000
-                    ,"subjectDemographics" =>null
-                        ,"status" => null
-                        ,"demographics" => Array(
-                            "id" => 2
-                            ,"created" => 1645657226
-                            ,"updated" => 1645657226
-                            ,"subjectDemographicsId" => 88000
-                            ,"subjectSource" => "OnCore"
-                            ,"mrn" => "MRN23456-2"
-                            ,"lastName" => "PROT-IZ LastName"
-                            ,"firstName" => "PROT-IZ firstname"
-                            ,"suffix" => null
-                            ,"birthDate" => "2000-01-01"
-                            ,"approximateBirthDate" => 0
-                            ,"birthDateNotAvailable" => 0
-                            ,"expiredDate" => null
-                            ,"approximateExpiredDate" => 0
-                            ,"lastDateKnownAlive" => null
-                            ,"ssn" => null
-                            ,"gender" => "Male"
-                            ,"ethnicity" => "Unknown"
-                            ,"race" => "Unknown"
-                            ,"subjectComments" => null
-                            ,"additionalSubjectIds" => array()
-                            ,"streetAddress" => null
-                            ,"addressLine2" => null
-                            ,"city" => null
-                            ,"state" => null
-                            ,"zip" => null
-                            ,"county" => null
-                            ,"country" => null
-                            ,"phoneNo" => null
-                            ,"alternatePhoneNo" => null
-                            ,"email" => null
-                            ,"middleName" => null
-                        )
+            , "status" => 3
+            )
+        , array(
+                "oncore" => array(
+                    "protocolSubjectId" => 138812
+                , "protocolId" => 14071
+                , "studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
+                , "subjectDemographicsId" => 88000
+                , "subjectDemographics" => null
+                , "status" => null
+                , "demographics" => array(
+                        "id" => 2
+                    , "created" => 1645657226
+                    , "updated" => 1645657226
+                    , "subjectDemographicsId" => 88000
+                    , "subjectSource" => "OnCore"
+                    , "mrn" => "MRN23456-2"
+                    , "lastName" => "PROT-IZ LastName"
+                    , "firstName" => "PROT-IZ firstname"
+                    , "suffix" => null
+                    , "birthDate" => "2000-01-01"
+                    , "approximateBirthDate" => 0
+                    , "birthDateNotAvailable" => 0
+                    , "expiredDate" => null
+                    , "approximateExpiredDate" => 0
+                    , "lastDateKnownAlive" => null
+                    , "ssn" => null
+                    , "gender" => "Male"
+                    , "ethnicity" => "Unknown"
+                    , "race" => "Unknown"
+                    , "subjectComments" => null
+                    , "additionalSubjectIds" => array()
+                    , "streetAddress" => null
+                    , "addressLine2" => null
+                    , "city" => null
+                    , "state" => null
+                    , "zip" => null
+                    , "county" => null
+                    , "country" => null
+                    , "phoneNo" => null
+                    , "alternatePhoneNo" => null
+                    , "email" => null
+                    , "middleName" => null
+                    )
                 )
-                ,"status" => 1
+            , "status" => 1
             )
-            , Array(
-                "oncore" => Array(
+        , array(
+                "oncore" => array(
                     "protocolSubjectId" => 138813
-                    ,"protocolId" => 14071
-                    ,"studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
-                    ,"subjectDemographicsId" => 88001
-                    ,"subjectDemographics" => null
-                    ,"status" => null
-                    ,"demographics" => Array(
-                            "id" => 3
-                            ,"created" => 1645657226
-                            ,"updated" => 1645657226
-                            ,"subjectDemographicsId" => 88001
-                            ,"subjectSource" => "OnCore"
-                            ,"mrn" => "MRN23456-3"
-                            ,"lastName" => "PROT-IZ LastName"
-                            ,"firstName" => "PROT-IZ firstname"
-                            ,"suffix" => null
-                            ,"birthDate" => "2000-01-01"
-                            ,"approximateBirthDate" => 0
-                            ,"birthDateNotAvailable" => 0
-                            ,"expiredDate" => null
-                            ,"approximateExpiredDate" => 0
-                            ,"lastDateKnownAlive" => null
-                            ,"ssn" => null
-                            ,"gender" => "Male"
-                            ,"ethnicity" => "Unknown"
-                            ,"race" => "Unknown"
-                            ,"subjectComments" => null
-                            ,"additionalSubjectIds" => array()
-                            ,"streetAddress" => null
-                            ,"addressLine2" => null
-                            ,"city" => null
-                            ,"state" => null
-                            ,"zip" => null
-                            ,"county" => null
-                            ,"country" => null
-                            ,"phoneNo" => null
-                            ,"alternatePhoneNo" => null
-                            ,"email" => null
-                            ,"middleName" => null
-                        )
+                , "protocolId" => 14071
+                , "studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
+                , "subjectDemographicsId" => 88001
+                , "subjectDemographics" => null
+                , "status" => null
+                , "demographics" => array(
+                        "id" => 3
+                    , "created" => 1645657226
+                    , "updated" => 1645657226
+                    , "subjectDemographicsId" => 88001
+                    , "subjectSource" => "OnCore"
+                    , "mrn" => "MRN23456-3"
+                    , "lastName" => "PROT-IZ LastName"
+                    , "firstName" => "PROT-IZ firstname"
+                    , "suffix" => null
+                    , "birthDate" => "2000-01-01"
+                    , "approximateBirthDate" => 0
+                    , "birthDateNotAvailable" => 0
+                    , "expiredDate" => null
+                    , "approximateExpiredDate" => 0
+                    , "lastDateKnownAlive" => null
+                    , "ssn" => null
+                    , "gender" => "Male"
+                    , "ethnicity" => "Unknown"
+                    , "race" => "Unknown"
+                    , "subjectComments" => null
+                    , "additionalSubjectIds" => array()
+                    , "streetAddress" => null
+                    , "addressLine2" => null
+                    , "city" => null
+                    , "state" => null
+                    , "zip" => null
+                    , "county" => null
+                    , "country" => null
+                    , "phoneNo" => null
+                    , "alternatePhoneNo" => null
+                    , "email" => null
+                    , "middleName" => null
+                    )
                 )
-                ,"status" => 1
+            , "status" => 1
             )
         );
 
-        $exclude    = array("mrn");
-        $bin_match  = array();
+        $exclude = array("mrn");
+        $bin_match = array();
         $bin_oncore = array();
         $bin_redcap = array();
-        foreach($records as $record){
-            $link_status    = $record["status"];
-            $entity_id      = 123;
-            $last_scan      = "01/01/22 12:00";
+        foreach ($records as $record) {
+            $link_status = $record["status"];
+            $entity_id = 123;
+            $last_scan = "01/01/22 12:00";
 
-            if(array_key_exists("oncore", $record) && array_key_exists("redcap", $record)){
-                $oncore     = $record["oncore"];
-                $oc_pr_id   = $oncore["protocolSubjectId"];
-                $redcap     = current($record["redcap"]);
-                $rc_id      = $redcap["record_id"];
-                $mrn        = $oncore["demographics"]["mrn"];
+            if (array_key_exists("oncore", $record) && array_key_exists("redcap", $record)) {
+                $oncore = $record["oncore"];
+                $oc_pr_id = $oncore["protocolSubjectId"];
+                $redcap = current($record["redcap"]);
+                $rc_id = $redcap["record_id"];
+                $mrn = $oncore["demographics"]["mrn"];
 
-                if(!array_key_exists($mrn, $bin_match)){
+                if (!array_key_exists($mrn, $bin_match)) {
                     $bin_match[$mrn] = array();
                 }
 
-                foreach($mapped_fields as $oncore_field => $redcap_details){
-                    if(in_array($oncore_field, $exclude)){
+                foreach ($mapped_fields as $oncore_field => $redcap_details) {
+                    if (in_array($oncore_field, $exclude)) {
                         continue;
                     }
-                    $rc_data    = isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
-                    $oc_data    = isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
-                    $temp       = array(
-                         "entity_id"     => $entity_id
-                        ,"ts_last_scan"  => $last_scan
+                    $rc_data = isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
+                    $oc_data = isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
+                    $temp = array(
+                        "entity_id" => $entity_id
+                    , "ts_last_scan" => $last_scan
 
-                        ,"oc_id"         => $oncore["protocolId"]
-                        ,"oc_pr_id"      => $oc_pr_id
-                        ,"rc_id"         => $rc_id
-                        ,"oc_data"       => $oc_data
-                        ,"rc_data"       => $rc_data
-                        ,"link_status"   => $link_status
-                        ,"oc_field" => $oncore_field
-                        ,"rc_field" => $redcap_details["redcap_field"]
-                        ,"rc_event" => $redcap_details["event"]
+                    , "oc_id" => $oncore["protocolId"]
+                    , "oc_pr_id" => $oc_pr_id
+                    , "rc_id" => $rc_id
+                    , "oc_data" => $oc_data
+                    , "rc_data" => $rc_data
+                    , "link_status" => $link_status
+                    , "oc_field" => $oncore_field
+                    , "rc_field" => $redcap_details["redcap_field"]
+                    , "rc_event" => $redcap_details["event"]
                     );
                     array_push($bin_match[$mrn], $temp);
                 }
-            }else if(array_key_exists("oncore", $record)){
-                $oncore     = $record["oncore"];
-                $oc_pr_id   = $oncore["protocolSubjectId"];
-                $mrn        = $oncore["demographics"]["mrn"];
+            } else if (array_key_exists("oncore", $record)) {
+                $oncore = $record["oncore"];
+                $oc_pr_id = $oncore["protocolSubjectId"];
+                $mrn = $oncore["demographics"]["mrn"];
 
-                if(!array_key_exists($mrn, $bin_oncore)){
+                if (!array_key_exists($mrn, $bin_oncore)) {
                     $bin_oncore[$mrn] = array();
                 }
-                foreach($mapped_fields as $oncore_field => $redcap_details){
-                    if(in_array($oncore_field, $exclude)){
+                foreach ($mapped_fields as $oncore_field => $redcap_details) {
+                    if (in_array($oncore_field, $exclude)) {
                         continue;
                     }
-                    $oc_data    = isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
-                    $temp       = array(
-                         "entity_id"    => $entity_id
-                        ,"ts_last_scan" => $last_scan
+                    $oc_data = isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
+                    $temp = array(
+                        "entity_id" => $entity_id
+                    , "ts_last_scan" => $last_scan
 
-                        ,"oc_id"        => $oncore["protocolId"]
-                        ,"oc_pr_id"     => $oncore["protocolSubjectId"]
-                        ,"rc_id"        => null
-                        ,"oc_data"      => $oc_data
-                        ,"rc_data"      => null
-                        ,"link_status"  => $link_status
-                        ,"oc_field"     => $oncore_field
-                        ,"rc_field"     => null
-                        ,"rc_event"     => null
+                    , "oc_id" => $oncore["protocolId"]
+                    , "oc_pr_id" => $oncore["protocolSubjectId"]
+                    , "rc_id" => null
+                    , "oc_data" => $oc_data
+                    , "rc_data" => null
+                    , "link_status" => $link_status
+                    , "oc_field" => $oncore_field
+                    , "rc_field" => null
+                    , "rc_event" => null
                     );
                     array_push($bin_oncore[$mrn], $temp);
                 }
-            }else if(array_key_exists("redcap", $record)){
+            } else if (array_key_exists("redcap", $record)) {
                 $redcap = current($record["redcap"]);
-                $rc_id  = $redcap["record_id"];
-                $mrn    = $redcap["mrn"];
-                $rc_id  = $redcap["record_id"];
+                $rc_id = $redcap["record_id"];
+                $mrn = $redcap["mrn"];
+                $rc_id = $redcap["record_id"];
 
-                if(!array_key_exists($mrn, $bin_redcap)){
+                if (!array_key_exists($mrn, $bin_redcap)) {
                     $bin_redcap[$mrn] = array();
                 }
-                foreach($mapped_fields as $oncore_field => $redcap_details){
-                    if(in_array($oncore_field, $exclude)){
+                foreach ($mapped_fields as $oncore_field => $redcap_details) {
+                    if (in_array($oncore_field, $exclude)) {
                         continue;
                     }
-                    $rc_data    = isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
-                    $temp       = array(
-                         "entity_id"    => $entity_id
-                        ,"ts_last_scan" => $last_scan
+                    $rc_data = isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
+                    $temp = array(
+                        "entity_id" => $entity_id
+                    , "ts_last_scan" => $last_scan
 
-                        ,"oc_id"        => $oncore["protocolId"]
-                        ,"oc_pr_id"     => $oncore["protocolSubjectId"]
-                        ,"rc_id"        => $rc_id
-                        ,"oc_data"      => null
-                        ,"rc_data"      => $rc_data
-                        ,"link_status"  => $link_status
-                        ,"oc_field"     => $oncore_field
-                        ,"rc_field"     => $redcap_details["redcap_field"]
-                        ,"rc_event"     => $redcap_details["event"]
+                    , "oc_id" => $oncore["protocolId"]
+                    , "oc_pr_id" => $oncore["protocolSubjectId"]
+                    , "rc_id" => $rc_id
+                    , "oc_data" => null
+                    , "rc_data" => $rc_data
+                    , "link_status" => $link_status
+                    , "oc_field" => $oncore_field
+                    , "rc_field" => $redcap_details["redcap_field"]
+                    , "rc_event" => $redcap_details["event"]
                     );
                     array_push($bin_redcap[$mrn], $temp);
                 }
@@ -1000,19 +1002,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         }
 
 
-        if(!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap)){
+        if (!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap)) {
             $sync_diff = array(
-                "match"     => $bin_match,
-                "oncore"    => $bin_oncore,
-                "redcap"    => $bin_redcap
+                "match" => $bin_match,
+                "oncore" => $bin_oncore,
+                "redcap" => $bin_redcap
             );
         }
 
         return $sync_diff;
     }
-
-
-
 
 
     /**
@@ -1044,7 +1043,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function setProtocols(Protocols $protocols): void
     {
-        $this->protocols = $protocols;
+        if (!$this->protocols) {
+            $this->protocols = $protocols;
+        }
     }
 
     public function onCoreProtocolsScanCron()

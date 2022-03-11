@@ -6,11 +6,12 @@ namespace Stanford\OnCoreIntegration;
 
 $sync_diff = $module->getSyncDiff();
 
-$full_match_count   = count($sync_diff["match"]);
-$oncore_count       = count($sync_diff["oncore"]);
-$redcap_count       = count($sync_diff["redcap"]);
+$full_match_count = count($sync_diff["match"]);
+$oncore_count = count($sync_diff["oncore"]);
+$redcap_count = count($sync_diff["redcap"]);
 
-function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
+function makeSyncTableHTML($records, $noredcap = null, $disabled = null)
+{
     global $module;
 
     $html = "<table class='table table-striped $disabled'>";
@@ -27,48 +28,48 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
     $html .= "<tbody>";
 
 
-    foreach($records as $mrn => $rows){
-        if($noredcap){
+    foreach ($records as $mrn => $rows) {
+        if ($noredcap) {
             $module->emDebug($records);
             $rc_id = "";
         }
-        $rowspan        = count($rows);
-        $print_rowspan  = false;
+        $rowspan = count($rows);
+        $print_rowspan = false;
 
-        $ts_last_scan   = null;
+        $ts_last_scan = null;
 
-        foreach($rows as $row){
-            $entity_id      = $row["entity_id"];
+        foreach ($rows as $row) {
+            $entity_id = $row["entity_id"];
 
-            $oc_id          = $row["oc_id"];
-            $oc_pr_id       = $row["oc_pr_id"];
-            $rc_id          = $row["rc_id"];
+            $oc_id = $row["oc_id"];
+            $oc_pr_id = $row["oc_pr_id"];
+            $rc_id = $row["rc_id"];
 
-            $oc_field       = $row["oc_field"];
-            $rc_field       = $row["rc_field"];
+            $oc_field = $row["oc_field"];
+            $rc_field = $row["rc_field"];
 
-            $rc_data        = $row["rc_data"];
-            $oc_data        = $row["oc_data"];
+            $rc_data = $row["rc_data"];
+            $oc_data = $row["oc_data"];
 
-            $link_status    = $row["link_status"];
-            $ts_last_scan   = $row["ts_last_scan"];
-            $diffmatch      = $oc_data == $rc_data ? "match" : "diff";
+            $link_status = $row["link_status"];
+            $ts_last_scan = $row["ts_last_scan"];
+            $diffmatch = $oc_data == $rc_data ? "match" : "diff";
 
             $rc = !empty($rc_field) ? "<b>$rc_field</b> : $rc_data" : "";
             $oc = !empty($oc_field) ? "<b>$oc_field</b> : $oc_data" : "";
 
             $html .= "<tr class='$diffmatch'>";
-            if(!$print_rowspan){
+            if (!$print_rowspan) {
                 $print_rowspan = true;
 
                 $id_info = array();
-                if(!empty($rc_id)) {
+                if (!empty($rc_id)) {
                     $id_info[] = "REDCap ID : $rc_id";
                 }
-                if(!empty($oc_pr_id)) {
+                if (!empty($oc_pr_id)) {
                     $id_info[] = "OnCore Subject ID : $oc_pr_id";
                 }
-                if(!empty($mrn)) {
+                if (!empty($mrn)) {
                     $id_info[] = "MRN : $mrn";
                 }
                 $id_info = implode("<br>", $id_info);
@@ -87,9 +88,9 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
     $html .= "<tr>";
     $html .= "<td colspan=6 align='right'>";
 
-    if($disabled){
+    if ($disabled) {
         $html .= "<button type='submit' class='btn btn-warning download_partial_redcap_csv'>Download CSV</button>";
-    }else{
+    } else {
         $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button> <button type='submit' class='btn btn-warning download_partial_oncore_csv'>Download CSV</button>";
     }
 
@@ -101,128 +102,144 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
     return $html;
 }
 ?>
-<link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:600i,700,700i">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
-<link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
-<link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
+    <link rel="stylesheet"
+          href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:600i,700,700i">
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
+    <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
+    <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
 
-<form id="oncore_mapping" class="container">
-    <h3>OnCore Adjudication - Sync Diff</h3>
-    <p class="lead">Data Stored in OnCore must be synced and adjudicated periodically.  The data will be pulled into an entity table and then matched against this projects REDCap data on the mapped fields.</p>
-    <p class="lead">TODO MAKE TABLE (date of last comparison, button to refresh, total count, new count ) This REDCap project contains 123 Subjects that are linked with OnCore Protocol 123456</p>
+    <form id="oncore_mapping" class="container">
+        <h3>OnCore Adjudication - Sync Diff</h3>
+        <p class="lead">Data Stored in OnCore must be synced and adjudicated periodically. The data will be pulled into
+            an entity table and then matched against this projects REDCap data on the mapped fields.</p>
+        <p class="lead">TODO MAKE TABLE (date of last comparison, button to refresh, total count, new count ) This
+            REDCap project contains 123 Subjects that are linked with OnCore Protocol 123456</p>
 
-    <h2>Adjudication required for following Subjects</h2>
-    <ul class="nav nav-tabs">
-        <li class="active"><a data-toggle="tab" href="#fullmatch">Linked Subjects <span class="badge badge-light"><?=$full_match_count?></span></a></li>
-        <li><a data-toggle="tab" href="#oncore">Unlinked Oncore Subjects <span class="badge badge-light"><?=$oncore_count?></span></a></li>
-        <li><a data-toggle="tab" href="#redcap">Unlinked REDCap Subjects <span class="badge badge-light"><?=$redcap_count?></span></a></li>
+        <h2>Adjudication required for following Subjects</h2>
+        <ul class="nav nav-tabs">
+            <li class="active"><a data-toggle="tab" href="#fullmatch">Linked Subjects <span
+                        class="badge badge-light"><?= $full_match_count ?></span></a></li>
+            <li><a data-toggle="tab" href="#oncore">Unlinked Oncore Subjects <span
+                        class="badge badge-light"><?= $oncore_count ?></span></a></li>
+            <li><a data-toggle="tab" href="#redcap">Unlinked REDCap Subjects <span
+                        class="badge badge-light"><?= $redcap_count ?></span></a></li>
 
-        <div id="refresh_syncdiff"><i>Last Sync : 02/23/22</i> <button class="btn btn-danger">Refresh Sync Data</button></div>
-    </ul>
-    <div class="tab-content">
-        <div class="tab-pane active" id="fullmatch">
-            <h2>Linked Subjects</h2>
-            <p>This REDCap project has X records linked to OnCore Protocol ID </p>
+            <div id="refresh_syncdiff"><i>Last Sync : 02/23/22</i>
+                <button class="btn btn-danger">Refresh Sync Data</button>
+            </div>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane active" id="fullmatch">
+                <h2>Linked Subjects</h2>
+                <p>This REDCap project has X records linked to OnCore Protocol ID </p>
 
-            <form class="oncore_match">
-                <input type="hidden" name="matchtype" value="fullmatch"/>
+                <form class="oncore_match">
+                    <input type="hidden" name="matchtype" value="fullmatch"/>
 
-                <?=makeSyncTableHTML($sync_diff["match"]);?>
-            </form>
+                    <?= makeSyncTableHTML($sync_diff["match"]); ?>
+                </form>
+            </div>
+
+
+            <div class="tab-pane" id="oncore">
+                <h2>Unlinked Oncore Subjects not linked in this REDCap Project</h2>
+                <p>The following Subjects were found in the OnCore Protocol. Click "Import Subjects" to create the
+                    following subjects in this project. (TODO IF auto increment is disabled , get from PROJ object) The
+                    REDCap record will default to the OnCore Protocol Subject ID. </p>
+
+                <form class="oncore_match">
+                    <input type="hidden" name="matchtype" value="fullmatch"/>
+
+                    <?=makeSyncTableHTML($sync_diff["oncore"], true);?>
+                </form>
+            </div>
+            <div class="tab-pane" id="redcap">
+                <h2>Unlinked REDCap Subjects not found in OnCore Protocol</h2>
+                <p>The following REDCap records do not have a matching MRN with subjects in the OnCore Protocol</p>
+                <p>In order to import these records into OnCore , download the CSV and submit to your OnCore
+                    administrator</p>
+                <em>This functionality is not available for Phase 1</em>
+
+                <form class="oncore_match">
+                    <input type="hidden" name="matchtype" value="fullmatch"/>
+
+                    <?=makeSyncTableHTML($sync_diff["redcap"], false,"disabled");?>
+
+                </form>
+            </div>
         </div>
 
+        <style>
+            #oncore_mapping ul.nav-tabs {
+                position: relative;
+            }
 
-        <div class="tab-pane" id="oncore">
-            <h2>Unlinked Oncore Subjects not linked in this REDCap Project</h2>
-            <p>The following Subjects were found in the OnCore Protocol.  Click "Import Subjects" to create the following subjects in this project.  (TODO IF auto increment is disabled , get from PROJ object) The REDCap record will default to the OnCore Protocol Subject ID. </p>
+            #refresh_syncdiff {
+                position: absolute;
+                right: 0;
+            }
 
-            <form class="oncore_match">
-                <input type="hidden" name="matchtype" value="fullmatch"/>
+            #refresh_syncdiff i {
+                display: inline-block;
+                margin-right: 5px;
+                vertical-align: bottom;
+            }
 
-                <?=makeSyncTableHTML($sync_diff["oncore"], true);?>
-            </form>
-        </div>
-        <div class="tab-pane" id="redcap">
-            <h2>Unlinked REDCap Subjects not found in OnCore Protocol</h2>
-            <p>The following REDCap records do not have a matching MRN with subjects in the OnCore Protocol</p>
-            <p>In order to import these records into OnCore , download the CSV and submit to your OnCore administrator</p>
-            <em>This functionality is not available for Phase 1</em>
+            td.import,
+            td.link_status {
+                text-align: center;
+            }
 
-            <form class="oncore_match">
-                <input type="hidden" name="matchtype" value="fullmatch"/>
+            tr.match td {
+                background: #F9F9F9;
+            }
 
-                <?=makeSyncTableHTML($sync_diff["redcap"], false,"disabled");?>
+            tr.match td.data {
+                color: #0f6b58;
+            }
 
-            </form>
-        </div>
-    </div>
+            tr.match td.rc_data,
+            tr.match td.oc_data {
+            }
 
-    <style>
-        #oncore_mapping ul.nav-tabs{
-            position:relative;
-        }
-        #refresh_syncdiff{
-            position:absolute;
-            right:0;
-        }
-        #refresh_syncdiff i{
-            display:inline-block;
-            margin-right:5px;
-            vertical-align: bottom;
-        }
+            tr.diff td:not(.rc_id, .import, .ts_last_scan, .link_status) {
+                background: #f2dede !important;
+            }
 
-        td.import,
-        td.link_status{
-            text-align:center;
-        }
-        tr.match td{
-            background:#F9F9F9;
-        }
-        tr.match td.data{
-            color:#0f6b58;
-        }
-
-        tr.match td.rc_data,
-        tr.match td.oc_data{
-        }
-
-        tr.diff td:not(.rc_id, .import, .ts_last_scan, .link_status){
-            background:#f2dede !important;
-        }
-        tr.diff td.data{
-            color:#e74c3c;
-            font-weight:bold;
-        }
+            tr.diff td.data {
+                color: #e74c3c;
+                font-weight: bold;
+            }
 
 
+            button.disabled,
+            .disabled tr.match td,
+            .disabled tr.diff td {
+                background: #efefef !important;
+                color: #b3b3b3 !important;
+            }
 
-        button.disabled,
-        .disabled tr.match td,
-        .disabled tr.diff td {
-            background:#efefef !important;
-            color:#b3b3b3 !important;
-        }
+            td.import,
+            td.ts_last_scan,
+            td.rc_id,
+            td.link_status {
+                border-left: 1px solid #B9B9B9;
+            }
+        </style>
+    </form>
+    <script>
+        $(document).ready(function () {
+            var ajax_endpoint = "<?=$ajax_endpoint?>";
+            var mrn_fields = <?=json_encode($oncore_fields)?>;
 
-        td.import,
-        td.ts_last_scan,
-        td.rc_id,
-        td.link_status{
-            border-left:1px solid #B9B9B9;
-        }
-    </style>
-</form>
-<script>
-    $(document).ready(function () {
-        var ajax_endpoint   = "<?=$ajax_endpoint?>";
-        var mrn_fields      = <?=json_encode($oncore_fields)?>;
-
-        $("#oncore_mapping ul.nav-tabs a").on("click", function(){
-            $("li.active").removeClass("active");
-            $(this).parent("li").addClass("active");
+            $("#oncore_mapping ul.nav-tabs a").on("click", function () {
+                $("li.active").removeClass("active");
+                $(this).parent("li").addClass("active");
+            });
         });
-    });
-</script>
+    </script>
 <?php
