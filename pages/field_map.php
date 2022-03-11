@@ -12,25 +12,33 @@ $oncore_fields      = $module->getOnCoreFields();
 $project_mappings   = $module->getProjectFieldMappings();
 
 //REDCap Data Dictionary Fields w/ generic 'xxx'name
-$select = "<select class='form-select form-select-sm mrn_field' name='xxx'>\r\n";
+$select = "<select class='form-select form-select-sm mrn_field' name='[ONCORE_FIELD]'>\r\n";
 $select .= "<option value=-99>-Map REDCap Field-</option>";
-foreach ($project_fields as $field) {
-    $select .= "<option $selected_val value='$field'>$field</option>\r\n";
+foreach ($project_fields as $event_name => $fields) {
+    $select .= "<optgroup label='$event_name'>\r\n";
+    foreach ($fields as $field) {
+        $select .= "<option $selected_val data-eventname='$event_name' value='$field'>$field</option>\r\n";
+    }
+    $select .= "</optgroup>\r\n";
 }
 $select .= "</select>\r\n";
-
 
 //OnCore Static Field names need mapping to REDCap fields
 $html = "";
 foreach ($oncore_fields as $field) {
     //each select will have different input['name']
-    $map_select = str_replace("xxx", $field, $select);
+    $map_select = str_replace("[ONCORE_FIELD]", $field, $select);
     $icon_status = "fa-times-circle";
+
     if (array_key_exists($field, $project_mappings)) {
         $rc_field = $project_mappings[$field];
         $icon_status = "fa-check-circle";
-        $map_select = str_replace("'$rc_field'", "'$rc_field' selected", $map_select);
+
+        $rc = $rc_field["redcap_field"];
+
+        $map_select = str_replace("'$rc'", "'$rc' selected", $map_select);
     }
+
     $html .= "<tr class='$field'>\r\n";
     $html .= "<td>$field</td>";
     $html .= "<td>$map_select</td>";
@@ -85,9 +93,11 @@ foreach ($oncore_fields as $field) {
                 var el = $(this);
                 var name = el.attr("name");
                 var val = el.val();
+                var opt = el.find("option:selected");
+                var ev = opt.data("eventname");
 
                 if (val != "-99") {
-                    field_maps[name] = val;
+                    field_maps[name] = {"redcap_field": val, "event": ev};
                 }
             });
 

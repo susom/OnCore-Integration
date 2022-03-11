@@ -51,22 +51,23 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const NO = 0;
 
-    public static $ONCORE_DEMOGRAPHICS_FIELDS = array("subjectDemographicsId",
+    public static $ONCORE_DEMOGRAPHICS_FIELDS = array(
         "subjectSource",
+        "subjectDemographicsId",
         "mrn",
+        "gender",
+        "ethnicity",
+        "birthDate",
         "lastName",
         "firstName",
         "middleName",
         "suffix",
-        "birthDate",
         "approximateBirthDate",
         "birthDateNotAvailable",
         "expiredDate",
         "approximateExpiredDate",
         "lastDateKnownAlive",
         "ssn",
-        "gender",
-        "ethnicity",
         "race",
         "subjectComments",
         "additionalSubjectIds",
@@ -94,7 +95,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         parent::__construct();
         if (isset($_GET['pid'])) {
-            //TODO THIS BREAKS
+            //TODO THIS STILL BREAKS FOR ME , MISSING SOMETHIGN?
             $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
 
             $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
@@ -104,7 +105,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     }
 
     public function redcap_module_system_enable($version) {
-
         $enabled = $this->isModuleEnabled('redcap_entity');
         if (!$enabled) {
             // TODO: what to do when redcap_entity is not enabled in the system
@@ -119,7 +119,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             // in case we are loading record homepage load its the record children if existed
             preg_match('/redcap_v[\d\.].*\/index\.php/m', $_SERVER['SCRIPT_NAME'], $matches, PREG_OFFSET_CAPTURE);
             if (strpos($_SERVER['SCRIPT_NAME'], 'ProjectSetup') !== false || !empty($matches)) {
-
                 $this->injectIntegrationUI();
                 $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
             }
@@ -494,7 +493,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function redcap_module_link_check_display($project_id, $link)
     {
-        //if($this->hasOnCoreIntegration()){
         if($this->hasOnCoreIntegration()){
             return $link;
         }
@@ -502,6 +500,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function injectIntegrationUI()
     {
+
 //        $field_map_url = $this->getUrl("pages/field_map.php");
         $ajax_endpoint = $this->getUrl("ajax/handler.php");
         ?>
@@ -635,6 +634,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function integrateOnCoreProject()
     {
+        //TODO THIS ISNT SETTING IT??
         //TODO PROBABLY ALREADY EXISTS IN IHAB's CLASSES
         $entity = $this->getProtocols()->getEntityRecord();
 //        $this->getProtocolEntityRecord($redcapProjectId);
@@ -647,12 +647,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function hasOnCoreProject(): array
     {
+        return array(654321);
+
+        //TODO THIS IS STILL BREAKING?
         if ($this->getProtocols()->getOnCoreProtocol()) {
             return $this->getProtocols()->getOnCoreProtocol();
         } else {
             return [];
         }
-
     }
 
     /**
@@ -660,7 +662,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function hasOnCoreIntegration()
     {
-//        return null;
+        return 123456;
+
+        //TODO THIS STILL NOT WORKING?
         return $this->getProtocols()->getEntityRecord();
     }
 
@@ -674,7 +678,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         if (!empty($mappings)) {
             $results = json_decode($mappings, true);
         }
-//        $results = $this->getProtocols()->setFieldsMap($field_mappings);
+
+        //[oncore_field] => array( “redcap_field” => [redcap_field] , “event” => “baseline_arm_1” )
+
+        //TODO THIS IS STILL BROKEN?
+//        $results = $this->getProtocols()->getFieldsMap();
         return $results;
     }
 
@@ -683,6 +691,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function setProjectFieldMappings($mappings=array())
     {
+        //TODO THIS STILL BROKEN?
 //        return $this->getProtocols()->setFieldsMap($mappings);
         return $this->setProjectSetting(self::FIELD_MAPPINGS, json_encode($mappings));
     }
@@ -697,13 +706,26 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     }
 
     /**
-     * @return field_list
+     * @return array
      */
     public function getProjectFields()
     {
-        $dict       = \REDCap::getDataDictionary(PROJECT_ID, "array");
-        $field_list = array_keys($dict);
-        return $field_list;
+        $event_fields = array();
+        $events = \REDCap::getEventNames(true);
+        if (!empty($events)) {
+            foreach ($events as $event_id => $event) {
+                $temp = \REDCap::getValidFieldsByEvents(PROJECT_ID, array($event));
+                $temp = array_filter($temp, function ($v) {
+                    return !strpos($v, "_complete");
+                });
+                $event_fields[$event] = $temp;
+            }
+        } else {
+            $dict = \REDCap::getDataDictionary(PROJECT_ID, "array");
+            $event_fields = array(array_keys($dict));
+        }
+
+        return $event_fields;
     }
 
     /**
@@ -711,211 +733,286 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getSyncDiff()
     {
-        $sync_diff  = array();
-
+        $sync_diff = array();
         $mapped_fields = $this->getProjectFieldMappings();
+
         //TODO FILL IN BINS FOR 3 Scenarios,
         //TODO MRN MATCH BETWEEN ONCORE/REDCAP , Manually Opt out of ONcore -> REDCAp overwrite
         //TODO ONCORE ONLY DATA , COPY INTO RC Entitys and UPDATE RC Data
         //TODO REDCAP ONLY DATA , Not for Phase 1
 
-
-
-        $bin_match  = array(
-            "123" => array(
-                array(
-                     "oc_id"         => 111
-                    ,"entity_id"     => 1
-                    ,"oc_pr_id"      => 777
-                    ,"oc_data"       => "abcd"
-                    ,"rc_data"       => "dcba"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 222
-                    ,"entity_id"     => 2
-                    ,"oc_pr_id"      => 888
-                    ,"oc_data"       => "wxyz"
-                    ,"rc_data"       => "wxyz"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 333
-                    ,"entity_id"     => 3
-                    ,"oc_pr_id"      => 999
-                    ,"oc_data"       => "4323"
-                    ,"rc_data"       => "2343"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                )
-            ),
-            "231" => array(
-                array(
-                    "oc_id"         => 111
-                    ,"entity_id"     => 4
-                    ,"oc_pr_id"      => 777
-                    ,"oc_data"       => "qwer"
-                    ,"rc_data"       => "rewq"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 222
-                    ,"entity_id"     => 5
-                    ,"oc_pr_id"      => 888
-                    ,"oc_data"       => "lmnop"
-                    ,"rc_data"       => "lmnop"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 333
-                    ,"entity_id"     => 6
-                    ,"oc_pr_id"      => 999
-                    ,"oc_data"       => "4111"
-                    ,"rc_data"       => "4111"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                )
-            )
-        );
-        $bin_oncore = array(
-            array(
-                array(
-                    "oc_id"         => 111
-                    ,"entity_id"     => 13
-                    ,"oc_pr_id"      => 777
-                    ,"oc_data"       => "abcd"
-                    ,"rc_data"       => ""
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 222
-                    ,"entity_id"     => 14
-                    ,"oc_pr_id"      => 888
-                    ,"oc_data"       => "wxyz"
-                    ,"rc_data"       => ""
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 333
-                    ,"entity_id"     => 15
-                    ,"oc_pr_id"      => 999
-                    ,"oc_data"       => "4323"
-                    ,"rc_data"       => ""
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                )
-            ),
-            array(
-                array(
-                    "oc_id"         => 111
-                    ,"entity_id"     => 16
-                    ,"oc_pr_id"      => 777
-                    ,"oc_data"       => "qwer"
-                    ,"rc_data"       => ""
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 222
-                    ,"entity_id"     => 17
-                    ,"oc_pr_id"      => 888
-                    ,"oc_data"       => "lmnop"
-                    ,"rc_data"       => ""
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 333
-                    ,"entity_id"     => 18
-                    ,"oc_pr_id"      => 999
-                    ,"oc_data"       => "4111"
-                    ,"rc_data"       => ""
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                )
-            )
-        );
-        $bin_redcap = array(
-            "234" => array(
-                array(
-                     "oc_id"         => 111
-                    ,"entity_id"     => 7
-                    ,"oc_pr_id"      => 777
-                    ,"oc_data"       => ""
-                    ,"rc_data"       => "dcba"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 222
-                    ,"entity_id"     => 8
-                    ,"oc_pr_id"      => 888
-                    ,"oc_data"       => ""
-                    ,"rc_data"       => "wxyz"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 333
-                    ,"entity_id"     => 9
-                    ,"oc_pr_id"      => 999
-                    ,"oc_data"       => ""
-                    ,"rc_data"       => "2343"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                )
-            ),
-            "432" => array(
-                array(
-                    "oc_id"         => 111
-                    ,"entity_id"     => 10
-                    ,"oc_pr_id"      => 777
-                    ,"oc_data"       => ""
-                    ,"rc_data"       => "rewq"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 222
-                    ,"entity_id"     => 11
-                    ,"oc_pr_id"      => 888
-                    ,"oc_data"       => ""
-                    ,"rc_data"       => "lmnop"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                ),
-                array(
-                    "oc_id"         => 333
-                    ,"entity_id"     => 12
-                    ,"oc_pr_id"      => 999
-                    ,"oc_data"       => ""
-                    ,"rc_data"       => "4111"
-                    ,"link_status"   =>  0
-                    ,"ts_last_scan"  => "01/01/22 12:00"
-                )
-            )
-        );
-
-
 //        $module->getProtocols()->getSubjects()->setSyncedRecords($module->getProtocols()->getEntityRecord()['redcap_project_id'], $module->getProtocols()->getEntityRecord()['oncore_protocol_id']);
 //        $records = $module->getProtocols()->getSubjects()->getSyncedRecords();
 
-        if(!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap) || 1){
+        $records = array(
+            array(
+                "redcap" => array(
+                    181 => array(
+                        "birthdate" => "2000-01-01"
+                    , "ethnicity" => "Unknown"
+                    , "firstname" => "PROT-IZ firstname"
+                    , "form_1_complete" => 0
+                    , "gender" => "Male"
+                    , "lastname" => "PROT-IZ lastname"
+                    , "mrn" => "MRN23456"
+                    , "record_id" => 1
+                    , "subjectdemographicsid" => 87999
+                    , "subjectsource" => "OnCore"
+                    )
+
+                )
+            , "oncore" => array(
+                "protocolSubjectId" => 138811
+            , "protocolId" => 14071
+            , "studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
+            , "subjectDemographicsId" => 87999
+            , "subjectDemographics" => null
+            , "status" => null
+            , "demographics" => array(
+                    "id" => 1
+                , "created" => 1645657226
+                , "updated" => 1645657226
+                , "subjectDemographicsId" => 87999
+                , "subjectSource" => "OnCore"
+                , "mrn" => "MRN23456"
+                , "lastName" => "PROT-IZ LastName"
+                , "firstName" => "PROT-IZ firstname"
+                , "suffix" => null
+                , "birthDate" => "2000-01-01"
+                , "approximateBirthDate" => 0
+                , "birthDateNotAvailable" => 0
+                , "expiredDate" => null
+                , "approximateExpiredDate" => 0
+                , "lastDateKnownAlive" => null
+                , "ssn" => null
+                , "gender" => "Male"
+                , "ethnicity" => "Unknown"
+                , "race" => "Unknown"
+                , "subjectComments" => null
+                , "additionalSubjectIds" => array()
+                , "streetAddress" => null
+                , "addressLine2" => null
+                , "city" => null
+                , "state" => null
+                , "zip" => null
+                , "county" => null
+                , "country" => null
+                , "phoneNo" => null
+                , "alternatePhoneNo" => null
+                , "email" => null
+                , "middleName" => null
+                )
+            )
+            , "status" => 3
+            )
+        , array(
+                "oncore" => array(
+                    "protocolSubjectId" => 138812
+                , "protocolId" => 14071
+                , "studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
+                , "subjectDemographicsId" => 88000
+                , "subjectDemographics" => null
+                , "status" => null
+                , "demographics" => array(
+                        "id" => 2
+                    , "created" => 1645657226
+                    , "updated" => 1645657226
+                    , "subjectDemographicsId" => 88000
+                    , "subjectSource" => "OnCore"
+                    , "mrn" => "MRN23456-2"
+                    , "lastName" => "PROT-IZ LastName"
+                    , "firstName" => "PROT-IZ firstname"
+                    , "suffix" => null
+                    , "birthDate" => "2000-01-01"
+                    , "approximateBirthDate" => 0
+                    , "birthDateNotAvailable" => 0
+                    , "expiredDate" => null
+                    , "approximateExpiredDate" => 0
+                    , "lastDateKnownAlive" => null
+                    , "ssn" => null
+                    , "gender" => "Male"
+                    , "ethnicity" => "Unknown"
+                    , "race" => "Unknown"
+                    , "subjectComments" => null
+                    , "additionalSubjectIds" => array()
+                    , "streetAddress" => null
+                    , "addressLine2" => null
+                    , "city" => null
+                    , "state" => null
+                    , "zip" => null
+                    , "county" => null
+                    , "country" => null
+                    , "phoneNo" => null
+                    , "alternatePhoneNo" => null
+                    , "email" => null
+                    , "middleName" => null
+                    )
+                )
+            , "status" => 1
+            )
+        , array(
+                "oncore" => array(
+                    "protocolSubjectId" => 138813
+                , "protocolId" => 14071
+                , "studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
+                , "subjectDemographicsId" => 88001
+                , "subjectDemographics" => null
+                , "status" => null
+                , "demographics" => array(
+                        "id" => 3
+                    , "created" => 1645657226
+                    , "updated" => 1645657226
+                    , "subjectDemographicsId" => 88001
+                    , "subjectSource" => "OnCore"
+                    , "mrn" => "MRN23456-3"
+                    , "lastName" => "PROT-IZ LastName"
+                    , "firstName" => "PROT-IZ firstname"
+                    , "suffix" => null
+                    , "birthDate" => "2000-01-01"
+                    , "approximateBirthDate" => 0
+                    , "birthDateNotAvailable" => 0
+                    , "expiredDate" => null
+                    , "approximateExpiredDate" => 0
+                    , "lastDateKnownAlive" => null
+                    , "ssn" => null
+                    , "gender" => "Male"
+                    , "ethnicity" => "Unknown"
+                    , "race" => "Unknown"
+                    , "subjectComments" => null
+                    , "additionalSubjectIds" => array()
+                    , "streetAddress" => null
+                    , "addressLine2" => null
+                    , "city" => null
+                    , "state" => null
+                    , "zip" => null
+                    , "county" => null
+                    , "country" => null
+                    , "phoneNo" => null
+                    , "alternatePhoneNo" => null
+                    , "email" => null
+                    , "middleName" => null
+                    )
+                )
+            , "status" => 1
+            )
+        );
+
+        $exclude = array("mrn");
+        $bin_match = array();
+        $bin_oncore = array();
+        $bin_redcap = array();
+        foreach ($records as $record) {
+            $link_status = $record["status"];
+            $entity_id = 123;
+            $last_scan = "01/01/22 12:00";
+
+            if (array_key_exists("oncore", $record) && array_key_exists("redcap", $record)) {
+                $oncore = $record["oncore"];
+                $oc_pr_id = $oncore["protocolSubjectId"];
+                $redcap = current($record["redcap"]);
+                $rc_id = $redcap["record_id"];
+                $mrn = $oncore["demographics"]["mrn"];
+
+                if (!array_key_exists($mrn, $bin_match)) {
+                    $bin_match[$mrn] = array();
+                }
+
+                foreach ($mapped_fields as $oncore_field => $redcap_details) {
+                    if (in_array($oncore_field, $exclude)) {
+                        continue;
+                    }
+                    $rc_data = isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
+                    $oc_data = isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
+                    $temp = array(
+                        "entity_id" => $entity_id
+                    , "ts_last_scan" => $last_scan
+
+                    , "oc_id" => $oncore["protocolId"]
+                    , "oc_pr_id" => $oc_pr_id
+                    , "rc_id" => $rc_id
+                    , "oc_data" => $oc_data
+                    , "rc_data" => $rc_data
+                    , "link_status" => $link_status
+                    , "oc_field" => $oncore_field
+                    , "rc_field" => $redcap_details["redcap_field"]
+                    , "rc_event" => $redcap_details["event"]
+                    );
+                    array_push($bin_match[$mrn], $temp);
+                }
+            } else if (array_key_exists("oncore", $record)) {
+                $oncore = $record["oncore"];
+                $oc_pr_id = $oncore["protocolSubjectId"];
+                $mrn = $oncore["demographics"]["mrn"];
+
+                if (!array_key_exists($mrn, $bin_oncore)) {
+                    $bin_oncore[$mrn] = array();
+                }
+                foreach ($mapped_fields as $oncore_field => $redcap_details) {
+                    if (in_array($oncore_field, $exclude)) {
+                        continue;
+                    }
+                    $oc_data = isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
+                    $temp = array(
+                        "entity_id" => $entity_id
+                    , "ts_last_scan" => $last_scan
+
+                    , "oc_id" => $oncore["protocolId"]
+                    , "oc_pr_id" => $oncore["protocolSubjectId"]
+                    , "rc_id" => null
+                    , "oc_data" => $oc_data
+                    , "rc_data" => null
+                    , "link_status" => $link_status
+                    , "oc_field" => $oncore_field
+                    , "rc_field" => null
+                    , "rc_event" => null
+                    );
+                    array_push($bin_oncore[$mrn], $temp);
+                }
+            } else if (array_key_exists("redcap", $record)) {
+                $redcap = current($record["redcap"]);
+                $rc_id = $redcap["record_id"];
+                $mrn = $redcap["mrn"];
+                $rc_id = $redcap["record_id"];
+
+                if (!array_key_exists($mrn, $bin_redcap)) {
+                    $bin_redcap[$mrn] = array();
+                }
+                foreach ($mapped_fields as $oncore_field => $redcap_details) {
+                    if (in_array($oncore_field, $exclude)) {
+                        continue;
+                    }
+                    $rc_data = isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
+                    $temp = array(
+                        "entity_id" => $entity_id
+                    , "ts_last_scan" => $last_scan
+
+                    , "oc_id" => $oncore["protocolId"]
+                    , "oc_pr_id" => $oncore["protocolSubjectId"]
+                    , "rc_id" => $rc_id
+                    , "oc_data" => null
+                    , "rc_data" => $rc_data
+                    , "link_status" => $link_status
+                    , "oc_field" => $oncore_field
+                    , "rc_field" => $redcap_details["redcap_field"]
+                    , "rc_event" => $redcap_details["event"]
+                    );
+                    array_push($bin_redcap[$mrn], $temp);
+                }
+            }
+        }
+
+
+        if (!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap)) {
             $sync_diff = array(
-                "match"     => $bin_match,
-                "oncore"    => $bin_oncore,
-                "redcap"    => $bin_redcap
+                "match" => $bin_match,
+                "oncore" => $bin_oncore,
+                "redcap" => $bin_redcap
             );
         }
 
         return $sync_diff;
     }
+
 
     /**
      * @return Users

@@ -14,8 +14,10 @@ try {
 
         switch ($action) {
             case "saveMapping":
-                //expected format = array("oncore_field1" => "redcap_field1", "oncore_field2" => "redcap_field2");
+                //expected format = array("oncore_field1" => ["redcap_field" => "redcap_field1" , "event" => "baseline_arm_1"]);
                 $field_mappings = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
+
+                //TODO THIS STILL BROKEN?
                 $result = $module->setProjectFieldMappings($field_mappings);
 //                $module->getProtocols()->setFieldsMap($field_mappings);
                 $result = $field_mappings;
