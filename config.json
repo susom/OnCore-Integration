@@ -123,6 +123,12 @@
             "type": "text"
         },
         {
+            "key": "mrn-shared-secret",
+            "name": "<b>MRN Verification Shared Secret</b><i>(optional)</i>If MRN Verification is used, this is an optional shared secret to ensure securty between the two systems.",
+            "required": false,
+            "type": "text"
+        },
+        {
             "key": "enable-system-debug-logging",
             "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
             "required": false,
