@@ -63,30 +63,43 @@ class Subjects extends SubjectDemographics
      * the URL in the EM system configuration file will not be set and this function will never get called.
      *
      * @param $mrns - list of MRNs to retrieve demographics data
-     * @param bool $getDemographics - if true, demographics will be retrieved.  If false, only true/false will be
+     * @param bool $getDemo - if true, demographics will be retrieved.  If false, only true/false will be
      *     retrieved for each MRN for validation.
      * @return array
      */
-    public function getEMRDemographics($mrns, $getDemographics = true)
+    public function getEMRDemographics($mrns, $getDemo = true)
     {
         $demographics = array();
 
         // Retrieve the URL to the MRN Verification API.  If one is not entered, just set all MRNs as valid.
         $url = $this->getUser()->getMrnVerificationURL();
+
         if (!empty($url)) {
 
-            // Call API Endpoint
             try {
-
-                // Put togther the URL with the info needed to process the rrequest
-                $url .= "&mrns=" . implode(',', $mrns);
-
+                // Put togther the message with the info needed to process the rrequest
+                $body = array("mrns"  => implode(',', $mrns),
+                                "action" => ($getDemo ? 'demographics' : 'validate'),
+                                "secret" => $this->getUser()->getMrnVerificationSecret());
 
                 // Make the API call
-                $client = new GuzzleHttp\Client;
-                $resp = $client->request('GET', $url, [
-                    GuzzleHttp\RequestOptions::SYNCHRONOUS => true
+                $client = new \GuzzleHttp\Client;
+                $resp = $client->request('POST', $url, [
+                    GuzzleHttp\RequestOptions::SYNCHRONOUS  => true,
+                    GuzzleHttp\RequestOptions::BODY  => json_encode($body)
                 ]);
+
+                // Make the API call was successful.
+                $returnStatus = $resp->getStatusCode();
+                if ($returnStatus <> 200) {
+                    $this->emError("API call to $url, HTTP Return Code is: $returnStatus");
+                    Entities::createException("API call to $url, HTTP Return Code is: $returnStatus");
+                } else {
+
+                    // Everything worked so retrieve the demographics data
+                    $demographics = $resp->getBody()->getContents();
+                }
+
             } catch (Exception $ex) {
 
                 // TODO: What to do about exceptions
@@ -94,15 +107,7 @@ class Subjects extends SubjectDemographics
                 Entities::createException("Exception calling endpoint: " . $ex);
             }
 
-            // Make the API call was successful.
-            $returnStatus = $resp->getStatusCode();
-            if ($returnStatus <> 200) {
-                $this->emError("API call to $url, HTTP Return Code is: $returnStatus");
-                Entities::createException("API call to $url, HTTP Return Code is: $returnStatus");
-            } else {
-                // Everything worked so retrieve the demographics data
-                $demographics = $resp->getBody()->getContents();
-            }
+
         } else {
 
             // A URL was not entered so we will not verify the MRNs and retrieve demographic data.
@@ -143,9 +148,9 @@ class Subjects extends SubjectDemographics
              *      }
              * }
              */
-
-            return $demographics;
         }
+
+        return $demographics;
     }
 
     /**
