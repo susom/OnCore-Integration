@@ -321,7 +321,7 @@ class Subjects extends SubjectDemographics
         $param = array(
             'project_id' => $redcapProjectId,
             'return_format' => 'array',
-            'events' => $redcapEventId
+//            'events' => $redcapEventId
         );
         $this->redcapProjectRecords = \REDCap::getData($param);
     }
