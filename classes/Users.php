@@ -80,7 +80,7 @@ class Users extends Clients
                 'oncore_client_id' => (string)$clientId,
                 'oncore_client_secret' => (string)$clientSecret
             );
-            $entity = $this->create(OnCoreIntegration::ONCORE_ADMINS, $data);
+            $entity = (new Entities)->create(OnCoreIntegration::ONCORE_ADMINS, $data);
             if ($entity) {
                 Entities::createLog(' : OnCore Admin Entity record created for redcap username: ' . $redcapUsername . '.');
                 return $entity->getData();

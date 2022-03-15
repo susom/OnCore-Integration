@@ -10,7 +10,7 @@ use ExternalModules\ExternalModules;
  * @property Users $user
  * @property array $onCoreProtocol
  */
-class Protocols extends Entities
+class Protocols
 {
     /**
      * @var Users
@@ -43,7 +43,7 @@ class Protocols extends Entities
      */
     public function __construct($user, $redcapProjectId = '', $reset = false)
     {
-        parent::__construct($reset);
+//        parent::__construct($reset);
 
         $this->setUser($user);
 
@@ -101,7 +101,7 @@ class Protocols extends Entities
                     if ($record) {
                         $this->getSubjects()->updateLinkageRecord($record['id'], $data);
                     } else {
-                        $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                        $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                         if (!$entity) {
                             throw new \Exception(implode(',', $entity->errors));
                         }
@@ -122,7 +122,7 @@ class Protocols extends Entities
                         'status' => OnCoreIntegration::ONCORE_ONLY
                     );
 
-                    $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                    $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                     if (!$entity) {
                         throw new \Exception(implode(',', $entity->errors));
                     }
@@ -142,7 +142,7 @@ class Protocols extends Entities
                     'oncore_protocol_subject_id' => '',
                     'status' => OnCoreIntegration::REDCAP_ONLY
                 );
-                $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                 if (!$entity) {
                     throw new \Exception(implode(',', $entity->errors));
                 }

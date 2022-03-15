@@ -1075,7 +1075,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                                 'last_date_scanned' => time()
                             );
 
-                            $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
+                            $entity = (new Entities)->create(self::ONCORE_PROTOCOLS, $data);
 
                             if ($entity) {
                                 Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
