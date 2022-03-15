@@ -7,6 +7,8 @@ require_once 'classes/Users.php';
 require_once 'classes/Entities.php';
 require_once 'classes/Protocols.php';
 require_once 'classes/Subjects.php';
+require_once 'classes/Projects.php';
+require_once 'classes/Mapping.php';
 
 /**
  * Class OnCoreIntegration
@@ -57,6 +59,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         "mrn",
         "gender",
         "ethnicity",
+        "race",
         "birthDate",
         "lastName",
         "firstName",
@@ -68,7 +71,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         "approximateExpiredDate",
         "lastDateKnownAlive",
         "ssn",
-        "race",
         "subjectComments",
         "additionalSubjectIds",
         "streetAddress",
@@ -95,7 +97,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         parent::__construct();
         if (isset($_GET['pid'])) {
-            //TODO THIS STILL BREAKS FOR ME , MISSING SOMETHIGN?
+//            TODO THIS STILL BREAKS FOR ME , MISSING SOMETHIGN?
 //            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
         }
         // Other code to run when object is instantiated
@@ -677,8 +679,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             $results = json_decode($mappings, true);
         }
 
-        //[oncore_field] => array( “redcap_field” => [redcap_field] , “event” => “baseline_arm_1” )
-
         //TODO THIS IS STILL BROKEN?
 //        $results = $this->getProtocols()->getFieldsMap();
         return $results;
@@ -695,12 +695,29 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     }
 
     /**
-     * @return field_list
+     * @return array
      */
     public function getOnCoreFields()
     {
         $field_list = self::$ONCORE_DEMOGRAPHICS_FIELDS;
         return $field_list;
+    }
+
+    /**
+     * @return array
+     */
+    public function getRequiredOncoreFields(){
+        //TODO WILL THIS BE A GLOBAL EM SETTING JSON ARRAY?
+        return ["subjectSource",
+            "subjectDemographicsId",
+            "mrn",
+            "gender",
+            "ethnicity",
+            "race",
+            "birthDate",
+            "lastName",
+            "firstName",
+            "middleName"];
     }
 
     /**
@@ -999,7 +1016,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             }
         }
 
-
         if(!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap)){
             $sync_diff = array(
                 "match"     => $bin_match,
@@ -1011,6 +1027,25 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $sync_diff;
     }
 
+    /**
+     * @return array
+     */
+    public function getSyncDiffSummary(){
+        //TODO FILL THIS WITH REAL DATA
+        $linked_sub         = 125;
+        $full_match_count   = 0;
+        $oncore_count       = 0;
+        $redcap_count       = 0;
+        $last_scan_ts       = "01/01/22 10:00";
+
+        return [
+             "total_linked" => $linked_sub
+            ,"full_match"   => $full_match_count
+            ,"oncore_only"  => $oncore_count
+            ,"redcap_only"  => $redcap_count
+            ,"last_scan_ts" => $last_scan_ts
+        ];
+    }
 
 
 
