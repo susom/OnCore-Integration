@@ -10,7 +10,7 @@ require_once 'Subjects.php';
  * information that OnCore will accept.
  *
  */
-class SubjectDemographics extends Entities
+class SubjectDemographics
 {
 
     private $subjectDemographicsid;
@@ -89,7 +89,7 @@ class SubjectDemographics extends Entities
                         return [];
                     } else {
                         // create entity table record before return.
-                        $this->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
+                        (new Entities)->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
                         return $data;
                     }
                 }

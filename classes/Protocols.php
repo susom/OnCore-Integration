@@ -10,7 +10,7 @@ use ExternalModules\ExternalModules;
  * @property Users $user
  * @property array $onCoreProtocol
  */
-class Protocols extends Entities
+class Protocols
 {
     /**
      * @var Users
@@ -43,7 +43,7 @@ class Protocols extends Entities
      */
     public function __construct($user, $redcapProjectId = '', $reset = false)
     {
-        parent::__construct($reset);
+//        parent::__construct($reset);
 
         $this->setUser($user);
 
@@ -82,7 +82,8 @@ class Protocols extends Entities
 
         foreach ($oncoreProtocolSubjects as $subject) {
             $onCoreMrn = $subject['demographics']['mrn'];
-            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $this->getEntityRecord()['redcap_event_id'], $fields['mrn']);
+//            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $this->getEntityRecord()['redcap_event_id'], $fields['mrn']);
+            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $fields['mrn']['event'], $fields['mrn']['redcap_field']);
             if ($redcapRecord) {
                 $data = array(
                     'redcap_project_id' => $this->getEntityRecord()['redcap_project_id'],
@@ -101,7 +102,7 @@ class Protocols extends Entities
                     if ($record) {
                         $this->getSubjects()->updateLinkageRecord($record['id'], $data);
                     } else {
-                        $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                        $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                         if (!$entity) {
                             throw new \Exception(implode(',', $entity->errors));
                         }
@@ -122,7 +123,7 @@ class Protocols extends Entities
                         'status' => OnCoreIntegration::ONCORE_ONLY
                     );
 
-                    $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                    $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                     if (!$entity) {
                         throw new \Exception(implode(',', $entity->errors));
                     }
@@ -142,7 +143,7 @@ class Protocols extends Entities
                     'oncore_protocol_subject_id' => '',
                     'status' => OnCoreIntegration::REDCAP_ONLY
                 );
-                $entity = $this->getSubjects()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                 if (!$entity) {
                     throw new \Exception(implode(',', $entity->errors));
                 }
@@ -245,7 +246,51 @@ class Protocols extends Entities
             $this->setSubjects(new Subjects($this->getUser()));
             $this->getSubjects()->setOnCoreProtocolSubjects($this->getEntityRecord()['oncore_protocol_id']);
         } catch (\Exception $e) {
-            // TODO exception handler
+            Entities::createException($e->getMessage());
+        }
+    }
+
+    /**
+     * @return array|void
+     */
+    public function getSyncedRecords()
+    {
+        if ($this->getEntityRecord()) {
+            $this->getSubjects()->setSyncedRecords($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id']);
+            return $this->getSubjects()->getSyncedRecords();
+        } else {
+            throw new \Exception('No Protocol entity record found for this Protocol');
+        }
+    }
+
+    /**
+     * @return array
+     * @throws \Exception
+     */
+    public function getSyncedRecordsSummaries()
+    {
+        $results = array();
+        if ($this->getEntityRecord()) {
+            $records = $this->getSyncedRecords();
+            $results['total_count'] = count($records);
+            $results['redcap_only_count'] = 0;
+            $results['oncore_only_count'] = 0;
+            $results['full_match_count'] = 0;
+            $results['partial_match_count'] = 0;
+            foreach ($records as $record) {
+                if (isset($record['redcap']) && !isset($record['oncore'])) {
+                    $results['redcap_only_count'] += 1;
+                } elseif (!isset($record['redcap']) && isset($record['oncore'])) {
+                    $results['oncore_only_count'] += 1;
+                } elseif (isset($record['redcap']) && isset($record['oncore']) && $record['status'] == OnCoreIntegration::FULL_MATCH) {
+                    $results['full_match_count'] += 1;
+                } elseif (isset($record['redcap']) && isset($record['oncore']) && $record['status'] == OnCoreIntegration::PARTIAL_MATCH) {
+                    $results['partial_match_count'] += 1;
+                }
+            }
+            return $results;
+        } else {
+            throw new \Exception('No Protocol entity record found for this Protocol');
         }
     }
 
