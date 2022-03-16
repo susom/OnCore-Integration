@@ -123,8 +123,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
             }
         } catch (\Exception $e) {
-            // TODO routine to handle exception for not finding OnCore protocol
+            Entities::createException($e->getMessage());
+            $this->message = $e->getMessage();
+            $this->includeFile('pages/exceptions.php');
         }
+    }
+
+    /**
+     * @param string $path
+     */
+    public function includeFile($path)
+    {
+        require $path;
     }
 
     public function redcap_entity_types()
