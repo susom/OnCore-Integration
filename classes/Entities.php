@@ -21,6 +21,6 @@ class Entities extends \REDCapEntity\EntityFactory
 
     public static function createException($message)
     {
-        self::createException('EXCEPTION: ' . $message);
+        self::createLog('EXCEPTION: ' . $message);
     }
 }

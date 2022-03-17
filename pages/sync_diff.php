@@ -87,7 +87,6 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
 
         $ts_last_scan = null;
 
-
         $html           .= "<tbody class='$mrn' data-subject_mrn='$mrn'>";
         foreach($rows as $row){
             $entity_id      = $row["entity_id"];
@@ -264,6 +263,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             </form>
         </div>
     </div>
+</form>
 
 <style>
     #oncore_mapping ul.nav-tabs {
@@ -314,7 +314,6 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         font-weight: bold;
     }
 
-
     button.disabled,
     .disabled tr.match td,
     .disabled tr.diff td {
@@ -335,7 +334,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         display:none;
     }
 </style>
-</form>
+
 <script>
     $(document).ready(function () {
         var ajax_endpoint   = "<?=$ajax_endpoint?>";
