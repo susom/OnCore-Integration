@@ -21,6 +21,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     use emLoggerTrait;
 
+    const EXCLUDE_SUBJECTS = 'excluded_subjects';
     const FIELD_MAPPINGS = 'oncore_field_mappings';
     const ONCORE_PROTOCOLS = 'oncore_protocols';
     const REDCAP_ENTITY_ONCORE_PROTOCOLS = 'redcap_entity_oncore_protocols';
@@ -1046,6 +1047,26 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             ,"last_scan_ts" => $last_scan_ts
         ];
     }
+
+    /**
+     * @return null
+     */
+    public function getExcludedSubjects(){
+        $results    = array();
+        $excludes   = $this->getProjectSetting(self::EXCLUDE_SUBJECTS);
+        if (!empty($excludes)) {
+            $results = json_decode($excludes, true);
+        }
+        return $results;
+    }
+
+    /**
+     * @return array
+     */
+    public function setExcludedSubjects($excludes){
+        return $this->setProjectSetting(self::EXCLUDE_SUBJECTS, json_encode($excludes));
+    }
+
 
     /**
      * @return Users

@@ -30,6 +30,15 @@ try {
             case "syncDiff":
                 $result = $module->getSyncDiff();
                 break;
+
+            case "excludeSubject":
+//                $excludes   = $module->getExcludedSubjects();
+//                $subject    = !empty($_POST["subject_mrn"]) ? filter_var($_POST["subject_mrn"], FILTER_SANITIZE_STRING) : null;
+//                if($subject){
+//                    array_push($excludes, $subject);
+//                    $result = $module->setExcludedSubjects($excludes);
+//                }
+                break;
         }
 
 

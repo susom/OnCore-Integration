@@ -4,11 +4,12 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-$sync_diff = $module->getSyncDiff();
+$ajax_endpoint      = $module->getUrl("ajax/handler.php");
+$sync_diff          = $module->getSyncDiff();
 
-$full_match_count = count($sync_diff["match"]);
-$oncore_count = count($sync_diff["oncore"]);
-$redcap_count = count($sync_diff["redcap"]);
+$full_match_count   = count($sync_diff["match"]);
+$oncore_count       = count($sync_diff["oncore"]);
+$redcap_count       = count($sync_diff["redcap"]);
 
 if(isset($_GET["download_csv"])){
     if(!empty($_GET["bin"])){
@@ -76,11 +77,9 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
     $html .= "<th style='width: 25%'>REDCap Data $show_all_btn</th>";
     $html .= "</tr>";
     $html .= "</thead>";
-    $html .= "<tbody>";
 
     foreach($records as $mrn => $rows){
         if($noredcap){
-            $module->emDebug($records);
             $rc_id = "";
         }
         $rowspan = count($rows);
@@ -88,8 +87,10 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
 
         $ts_last_scan = null;
 
-        foreach ($rows as $row) {
-            $entity_id = $row["entity_id"];
+
+        $html           .= "<tbody class='$mrn' data-subject_mrn='$mrn'>";
+        foreach($rows as $row){
+            $entity_id      = $row["entity_id"];
 
             $oc_id = $row["oc_id"];
             $oc_pr_id = $row["oc_pr_id"];
@@ -124,7 +125,7 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
                 }
                 $id_info = implode("<br>", $id_info);
 
-                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='entityid_$entity_id' value='1' checked/> <button class='btn btn-sm btn-danger'>Exclude</button></td>";
+                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='entityid_$entity_id' value='1' checked/> <button class='btn btn-sm btn-danger exclude_subject' data-subject_mrn='$mrn'>Exclude</button></td>";
                 $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
             }
             $html .= "<td class='oc_data oc_field'>$oc_field</td>";
@@ -132,9 +133,10 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
             $html .= "<td class='rc_data data'>$rc</td>";
             $html .= "</tr>";
         }
+        $html .= "</tbody>";
     }
 
-    $html .= "</tbody>";
+
     $html .= "<tfoot>";
     $html .= "<tr>";
     $html .= "<td colspan=6 align='right'>";
@@ -191,8 +193,21 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
             <form class="oncore_match">
                 <input type="hidden" name="matchtype" value="fullmatch"/>
+                <?=makeSyncTableHTML($sync_diff["match"]);?>
 
-                <?= makeSyncTableHTML($sync_diff["match"]); ?>
+
+                <h2>Exlcuded Subjects</h2>
+                <table class="table table-striped disabled excludes">
+                    <thead>
+                    <tr>
+                        <th style="width: 7%"></th>
+                        <th style="width: 23%">Subject Details</th>
+                        <th style="width: 20%">OnCore Field</th>
+                        <th style="width: 25%">OnCore Data</th>
+                        <th style="width: 25%">REDCap Data </th>
+                    </tr>
+                    </thead>
+                </table>
             </form>
         </div>
 
@@ -207,6 +222,19 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 <input type="hidden" name="matchtype" value="fullmatch"/>
 
                 <?=makeSyncTableHTML($sync_diff["oncore"], true);?>
+
+                <h2>Exlcuded Subjects</h2>
+                <table class="table table-striped disabled excludes">
+                    <thead>
+                    <tr>
+                        <th style="width: 7%"></th>
+                        <th style="width: 23%">Subject Details</th>
+                        <th style="width: 20%">OnCore Field</th>
+                        <th style="width: 25%">OnCore Data</th>
+                        <th style="width: 25%">REDCap Data </th>
+                    </tr>
+                    </thead>
+                </table>
             </form>
         </div>
         <div class="tab-pane" id="redcap">
@@ -221,6 +249,18 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
                 <?=makeSyncTableHTML($sync_diff["redcap"], false,"disabled");?>
 
+                <h2>Exlcuded Subjects</h2>
+                <table class="table table-striped disabled excludes">
+                    <thead>
+                    <tr>
+                    <th style="width: 7%"></th>
+                    <th style="width: 23%">Subject Details</th>
+                    <th style="width: 20%">OnCore Field</th>
+                    <th style="width: 25%">OnCore Data</th>
+                    <th style="width: 25%">REDCap Data </th>
+                    </tr>
+                    </thead>
+                </table>
             </form>
         </div>
     </div>
@@ -290,8 +330,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         border-left:1px solid #B9B9B9;
     }
 
-    .check_all {
 
+    table.excludes td.import *{
+        display:none;
     }
 </style>
 </form>
@@ -343,6 +384,40 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             var actual_link = "<?php echo "https://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]" ?>";
             var csv_link    = actual_link + "&download_csv=1&bin=" + whichbin;
             location.href=csv_link;
+        });
+
+        //EXCLUDE SUBJECT FROM DIFF OVERWRITE
+        $(".exclude_subject").on("click", function(e){
+            e.preventDefault();
+            var subject_mrn     = $(this).data("subject_mrn");
+
+            var _parent_tbody   = $("tbody."+subject_mrn);
+            var _parent_form   = _parent_tbody.closest(".oncore_match");
+
+            $.ajax({
+                url: ajax_endpoint,
+                method: 'POST',
+                data: {
+                    "action": "excludeSubject",
+                    "subject_mrn": subject_mrn,
+                },
+                dataType: 'json'
+            }).done(function (result) {
+                console.log("saved?",result);
+
+                //fade the row
+                var _parent_clone = _parent_tbody.clone();
+                _parent_tbody.fadeOut("fast", function(){
+                    //clone the row to exluded table
+                    _parent_form.find("table.excludes thead").after(_parent_clone);
+
+                    //disable clone
+                    console.log("why wont td.import empty?", _parent_clone.find("td.import button").length);
+                    _parent_clone.find("td.import").empty();
+                });
+            }).fail(function (e) {
+                console.log("failed to save", e);
+            });
         });
     });
 </script>
