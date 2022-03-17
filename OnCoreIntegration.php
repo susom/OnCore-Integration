@@ -202,7 +202,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             'properties' => [
                 'message' => [
                     'name' => 'Action Body',
-                    'type' => 'long_text',
+                    'type' => 'text',
                     'required' => false,
                 ],
                 'url' => [
