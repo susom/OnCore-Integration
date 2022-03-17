@@ -94,17 +94,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function __construct()
     {
         parent::__construct();
-        if (isset($_GET['pid'])) {
-            //TODO THIS STILL BREAKS FOR ME , MISSING SOMETHIGN?
-            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
-
-            $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
-        }
+//        if (isset($_GET['pid'])) {
+//            //TODO THIS STILL BREAKS FOR ME , MISSING SOMETHIGN?
+//            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
+//
+//            $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
+//        }
         // Other code to run when object is instantiated
 
     }
 
-    public function redcap_module_system_enable($version) {
+    public function redcap_module_system_enable($version)
+    {
         $enabled = $this->isModuleEnabled('redcap_entity');
         if (!$enabled) {
             // TODO: what to do when redcap_entity is not enabled in the system
@@ -112,6 +113,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         }
     }
 
+    public function initiateProtocol()
+    {
+        $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+
+        $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
+    }
 
     public function redcap_every_page_top()
     {
@@ -119,8 +126,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             // in case we are loading record homepage load its the record children if existed
             preg_match('/redcap_v[\d\.].*\/index\.php/m', $_SERVER['SCRIPT_NAME'], $matches, PREG_OFFSET_CAPTURE);
             if (strpos($_SERVER['SCRIPT_NAME'], 'ProjectSetup') !== false || !empty($matches)) {
+                $this->initiateProtocol();
                 $this->injectIntegrationUI();
-                $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
             }
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
@@ -1063,7 +1070,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         try {
             $projects = self::query("select project_id, project_irb_number from redcap_projects where project_irb_number is NOT NULL ", []);
 
-            $this->setProtocols(new Protocols($this->getUsers()));
+            $this->initiateProtocol();
 
             while ($project = $projects->fetch_assoc()) {
                 $id = $project['project_id'];
@@ -1105,7 +1112,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         } catch (\Exception $e) {
             $this->emError($e->getMessage());
             \REDCap::logEvent('CRON JOB ERROR: ' . $e->getMessage());
-            Entities::createLog('CRON JOB ERROR: ' . $e->getMessage());
+            Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
         }
     }
