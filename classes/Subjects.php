@@ -321,7 +321,7 @@ class Subjects extends SubjectDemographics
         $param = array(
             'project_id' => $redcapProjectId,
             'return_format' => 'array',
-            'events' => $redcapEventId
+//            'events' => $redcapEventId
         );
         $this->redcapProjectRecords = \REDCap::getData($param);
     }
@@ -411,6 +411,7 @@ class Subjects extends SubjectDemographics
                     $record['oncore'] = $this->getOnCoreProtocolSubject($onCoreProtocolId, $row['oncore_protocol_subject_id']);
                 }
                 $record['status'] = $row['status'];
+                $record['excluded'] = $row['excluded'];
                 $result[] = $record;
             }
         }

@@ -22,10 +22,8 @@ namespace Stanford\OnCoreIntegration;
 //}
 
 try {
-    $module->setProtocols(new Protocols($module->getUsers(), $module->getProjectId()));
-    $module->getProtocols()->processSyncedRecords();
-    $module->getProtocols()->getSubjects()->setSyncedRecords($module->getProtocols()->getEntityRecord()['redcap_project_id'], $module->getProtocols()->getEntityRecord()['oncore_protocol_id']);
-    $records = $module->getProtocols()->getSubjects()->getSyncedRecords();
+
+    $records = $module->getProtocols()->getSyncedRecordsSummaries();
     echo '<pre>';
     print_r($records);
     echo '</pre>';

@@ -124,8 +124,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
             }
         } catch (\Exception $e) {
-            // TODO routine to handle exception for not finding OnCore protocol
+            Entities::createException($e->getMessage());
+            $this->message = $e->getMessage();
+            $this->includeFile('pages/exceptions.php');
         }
+    }
+
+    /**
+     * @param string $path
+     */
+    public function includeFile($path)
+    {
+        require $path;
     }
 
     public function redcap_entity_types()
@@ -1129,7 +1139,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                                 'last_date_scanned' => time()
                             );
 
-                            $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
+                            $entity = (new Entities)->create(self::ONCORE_PROTOCOLS, $data);
 
                             if ($entity) {
                                 Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
