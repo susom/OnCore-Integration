@@ -97,13 +97,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function __construct()
     {
         parent::__construct();
-        if (isset($_GET['pid'])) {
-            //TODO THIS STILL BREAKS FOR ME , MISSING SOMETHIGN?
-            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), ''));
-            $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
-        }
         // Other code to run when object is instantiated
-
     }
 
     public function redcap_module_system_enable($version)
@@ -118,7 +112,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function initiateProtocol()
     {
         $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
-
         $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
     }
 
@@ -656,9 +649,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function hasOnCoreProject(): array
     {
-        return array(654321);
-
-        //TODO THIS IS STILL BREAKING?
+//        return array(654321);
+//
+//        //TODO THIS IS STILL BREAKING?
         if ($this->getProtocols()->getOnCoreProtocol()) {
             return $this->getProtocols()->getOnCoreProtocol();
         } else {
@@ -671,9 +664,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function hasOnCoreIntegration()
     {
-        return 123456;
-
-        //TODO THIS STILL NOT WORKING?
+//        return 123456;
+//
+//        //TODO THIS STILL NOT WORKING?
         return $this->getProtocols()->getEntityRecord();
     }
 
@@ -683,13 +676,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function getProjectFieldMappings()
     {
         $results = array();
-        $mappings = $this->getProjectSetting(self::FIELD_MAPPINGS);
-        if (!empty($mappings)) {
-            $results = json_decode($mappings, true);
-        }
-
-        //TODO THIS IS STILL BROKEN?
-//        $results = $this->getProtocols()->getFieldsMap();
+//        $mappings = $this->getProjectSetting(self::FIELD_MAPPINGS);
+//        if (!empty($mappings)) {
+//            $results = json_decode($mappings, true);
+//        }
+//
+//        //TODO THIS IS STILL BROKEN?
+        $results = $this->getProtocols()->getFieldsMap();
         return $results;
     }
 
@@ -698,9 +691,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function setProjectFieldMappings($mappings=array())
     {
-        //TODO THIS STILL BROKEN?
-//        return $this->getProtocols()->setFieldsMap($mappings);
-        return $this->setProjectSetting(self::FIELD_MAPPINGS, json_encode($mappings));
+//      //TODO THIS STILL BROKEN?
+        //        return $this->setProjectSetting(self::FIELD_MAPPINGS, json_encode($mappings));
+        return $this->getProtocols()->setFieldsMap($mappings);
     }
 
     /**
@@ -752,6 +745,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $event_fields;
     }
 
+
     /**
      * @return sync_diff
      */
@@ -765,161 +759,161 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         //TODO ONCORE ONLY DATA , COPY INTO RC Entitys and UPDATE RC Data
         //TODO REDCAP ONLY DATA , Not for Phase 1
 
-//        $module->getProtocols()->getSubjects()->setSyncedRecords($module->getProtocols()->getEntityRecord()['redcap_project_id'], $module->getProtocols()->getEntityRecord()['oncore_protocol_id']);
-//        $records = $module->getProtocols()->getSubjects()->getSyncedRecords();
+        $module->getProtocols()->getSubjects()->setSyncedRecords($module->getProtocols()->getEntityRecord()['redcap_project_id'], $module->getProtocols()->getEntityRecord()['oncore_protocol_id']);
+        $records = $module->getProtocols()->getSubjects()->getSyncedRecords();
 
-        $records = Array(
-              Array(
-                 "redcap" => Array(
-                    181 => Array(
-                         "birthdate" => "2000-01-01"
-                        ,"ethnicity" => "Unknown"
-                        ,"firstname" => "PROT-IZ firstname"
-                        ,"form_1_complete" => 0
-                        ,"gender" => "Male"
-                        ,"lastname" => "PROT-IZ lastname"
-                        ,"mrn" => "MRN23456"
-                        ,"record_id" => 1
-                        ,"subjectdemographicsid" => 87999
-                        ,"subjectsource" => "OnCore"
-                    )
-
-                )
-                ,"oncore" => Array(
-                    "protocolSubjectId" => 138811
-                    ,"protocolId" => 14071
-                    ,"studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
-                    ,"subjectDemographicsId" => 87999
-                    ,"subjectDemographics" => null
-                                ,"status" => null
-                                ,"demographics" => Array(
-                                    "id" => 1
-                                    ,"created" => 1645657226
-                                    ,"updated" => 1645657226
-                                    ,"subjectDemographicsId" => 87999
-                                    ,"subjectSource" => "OnCore"
-                                    ,"mrn" => "MRN23456"
-                                    ,"lastName" => "PROT-IZ LastName"
-                                    ,"firstName" => "PROT-IZ firstname"
-                                    ,"suffix" => null
-                                    ,"birthDate" => "2000-01-01"
-                                    ,"approximateBirthDate" => 0
-                                    ,"birthDateNotAvailable" => 0
-                                    ,"expiredDate" => null
-                                    ,"approximateExpiredDate" => 0
-                                    ,"lastDateKnownAlive" => null
-                                    ,"ssn" => null
-                                    ,"gender" => "Male"
-                                    ,"ethnicity" => "Unknown"
-                                    ,"race" => "Unknown"
-                                    ,"subjectComments" => null
-                                    ,"additionalSubjectIds" => array()
-                                    ,"streetAddress" => null
-                                    ,"addressLine2" => null
-                                    ,"city" => null
-                                    ,"state" => null
-                                    ,"zip" => null
-                                    ,"county" => null
-                                    ,"country" => null
-                                    ,"phoneNo" => null
-                                    ,"alternatePhoneNo" => null
-                                    ,"email" => null
-                                    ,"middleName" => null
-                        )
-                )
-                ,"status" => 3
-            )
-            , Array(
-                "oncore" => Array(
-                     "protocolSubjectId" => 138812
-                    ,"protocolId" => 14071
-                    ,"studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
-                    ,"subjectDemographicsId" => 88000
-                    ,"subjectDemographics" =>null
-                        ,"status" => null
-                        ,"demographics" => Array(
-                            "id" => 2
-                            ,"created" => 1645657226
-                            ,"updated" => 1645657226
-                            ,"subjectDemographicsId" => 88000
-                            ,"subjectSource" => "OnCore"
-                            ,"mrn" => "MRN23456-2"
-                            ,"lastName" => "PROT-IZ LastName"
-                            ,"firstName" => "PROT-IZ firstname"
-                            ,"suffix" => null
-                            ,"birthDate" => "2000-01-01"
-                            ,"approximateBirthDate" => 0
-                            ,"birthDateNotAvailable" => 0
-                            ,"expiredDate" => null
-                            ,"approximateExpiredDate" => 0
-                            ,"lastDateKnownAlive" => null
-                            ,"ssn" => null
-                            ,"gender" => "Male"
-                            ,"ethnicity" => "Unknown"
-                            ,"race" => "Unknown"
-                            ,"subjectComments" => null
-                            ,"additionalSubjectIds" => array()
-                            ,"streetAddress" => null
-                            ,"addressLine2" => null
-                            ,"city" => null
-                            ,"state" => null
-                            ,"zip" => null
-                            ,"county" => null
-                            ,"country" => null
-                            ,"phoneNo" => null
-                            ,"alternatePhoneNo" => null
-                            ,"email" => null
-                            ,"middleName" => null
-                        )
-                )
-                ,"status" => 1
-            )
-            , Array(
-                "oncore" => Array(
-                    "protocolSubjectId" => 138813
-                    ,"protocolId" => 14071
-                    ,"studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
-                    ,"subjectDemographicsId" => 88001
-                    ,"subjectDemographics" => null
-                    ,"status" => null
-                    ,"demographics" => Array(
-                            "id" => 3
-                            ,"created" => 1645657226
-                            ,"updated" => 1645657226
-                            ,"subjectDemographicsId" => 88001
-                            ,"subjectSource" => "OnCore"
-                            ,"mrn" => "MRN23456-3"
-                            ,"lastName" => "PROT-IZ LastName"
-                            ,"firstName" => "PROT-IZ firstname"
-                            ,"suffix" => null
-                            ,"birthDate" => "2000-01-01"
-                            ,"approximateBirthDate" => 0
-                            ,"birthDateNotAvailable" => 0
-                            ,"expiredDate" => null
-                            ,"approximateExpiredDate" => 0
-                            ,"lastDateKnownAlive" => null
-                            ,"ssn" => null
-                            ,"gender" => "Male"
-                            ,"ethnicity" => "Unknown"
-                            ,"race" => "Unknown"
-                            ,"subjectComments" => null
-                            ,"additionalSubjectIds" => array()
-                            ,"streetAddress" => null
-                            ,"addressLine2" => null
-                            ,"city" => null
-                            ,"state" => null
-                            ,"zip" => null
-                            ,"county" => null
-                            ,"country" => null
-                            ,"phoneNo" => null
-                            ,"alternatePhoneNo" => null
-                            ,"email" => null
-                            ,"middleName" => null
-                        )
-                )
-                ,"status" => 1
-            )
-        );
+//        $records = Array(
+//              Array(
+//                 "redcap" => Array(
+//                    181 => Array(
+//                         "birthdate" => "2000-01-01"
+//                        ,"ethnicity" => "Unknown"
+//                        ,"firstname" => "PROT-IZ firstname"
+//                        ,"form_1_complete" => 0
+//                        ,"gender" => "Male"
+//                        ,"lastname" => "PROT-IZ lastname"
+//                        ,"mrn" => "MRN23456"
+//                        ,"record_id" => 1
+//                        ,"subjectdemographicsid" => 87999
+//                        ,"subjectsource" => "OnCore"
+//                    )
+//
+//                )
+//                ,"oncore" => Array(
+//                    "protocolSubjectId" => 138811
+//                    ,"protocolId" => 14071
+//                    ,"studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
+//                    ,"subjectDemographicsId" => 87999
+//                    ,"subjectDemographics" => null
+//                                ,"status" => null
+//                                ,"demographics" => Array(
+//                                    "id" => 1
+//                                    ,"created" => 1645657226
+//                                    ,"updated" => 1645657226
+//                                    ,"subjectDemographicsId" => 87999
+//                                    ,"subjectSource" => "OnCore"
+//                                    ,"mrn" => "MRN23456"
+//                                    ,"lastName" => "PROT-IZ LastName"
+//                                    ,"firstName" => "PROT-IZ firstname"
+//                                    ,"suffix" => null
+//                                    ,"birthDate" => "2000-01-01"
+//                                    ,"approximateBirthDate" => 0
+//                                    ,"birthDateNotAvailable" => 0
+//                                    ,"expiredDate" => null
+//                                    ,"approximateExpiredDate" => 0
+//                                    ,"lastDateKnownAlive" => null
+//                                    ,"ssn" => null
+//                                    ,"gender" => "Male"
+//                                    ,"ethnicity" => "Unknown"
+//                                    ,"race" => "Unknown"
+//                                    ,"subjectComments" => null
+//                                    ,"additionalSubjectIds" => array()
+//                                    ,"streetAddress" => null
+//                                    ,"addressLine2" => null
+//                                    ,"city" => null
+//                                    ,"state" => null
+//                                    ,"zip" => null
+//                                    ,"county" => null
+//                                    ,"country" => null
+//                                    ,"phoneNo" => null
+//                                    ,"alternatePhoneNo" => null
+//                                    ,"email" => null
+//                                    ,"middleName" => null
+//                        )
+//                )
+//                ,"status" => 3
+//            )
+//            , Array(
+//                "oncore" => Array(
+//                     "protocolSubjectId" => 138812
+//                    ,"protocolId" => 14071
+//                    ,"studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
+//                    ,"subjectDemographicsId" => 88000
+//                    ,"subjectDemographics" =>null
+//                        ,"status" => null
+//                        ,"demographics" => Array(
+//                            "id" => 2
+//                            ,"created" => 1645657226
+//                            ,"updated" => 1645657226
+//                            ,"subjectDemographicsId" => 88000
+//                            ,"subjectSource" => "OnCore"
+//                            ,"mrn" => "MRN23456-2"
+//                            ,"lastName" => "PROT-IZ LastName"
+//                            ,"firstName" => "PROT-IZ firstname"
+//                            ,"suffix" => null
+//                            ,"birthDate" => "2000-01-01"
+//                            ,"approximateBirthDate" => 0
+//                            ,"birthDateNotAvailable" => 0
+//                            ,"expiredDate" => null
+//                            ,"approximateExpiredDate" => 0
+//                            ,"lastDateKnownAlive" => null
+//                            ,"ssn" => null
+//                            ,"gender" => "Male"
+//                            ,"ethnicity" => "Unknown"
+//                            ,"race" => "Unknown"
+//                            ,"subjectComments" => null
+//                            ,"additionalSubjectIds" => array()
+//                            ,"streetAddress" => null
+//                            ,"addressLine2" => null
+//                            ,"city" => null
+//                            ,"state" => null
+//                            ,"zip" => null
+//                            ,"county" => null
+//                            ,"country" => null
+//                            ,"phoneNo" => null
+//                            ,"alternatePhoneNo" => null
+//                            ,"email" => null
+//                            ,"middleName" => null
+//                        )
+//                )
+//                ,"status" => 1
+//            )
+//            , Array(
+//                "oncore" => Array(
+//                    "protocolSubjectId" => 138813
+//                    ,"protocolId" => 14071
+//                    ,"studySite" => "SHC Main Hosp, Welch Rd & campus/nearby clinics"
+//                    ,"subjectDemographicsId" => 88001
+//                    ,"subjectDemographics" => null
+//                    ,"status" => null
+//                    ,"demographics" => Array(
+//                            "id" => 3
+//                            ,"created" => 1645657226
+//                            ,"updated" => 1645657226
+//                            ,"subjectDemographicsId" => 88001
+//                            ,"subjectSource" => "OnCore"
+//                            ,"mrn" => "MRN23456-3"
+//                            ,"lastName" => "PROT-IZ LastName"
+//                            ,"firstName" => "PROT-IZ firstname"
+//                            ,"suffix" => null
+//                            ,"birthDate" => "2000-01-01"
+//                            ,"approximateBirthDate" => 0
+//                            ,"birthDateNotAvailable" => 0
+//                            ,"expiredDate" => null
+//                            ,"approximateExpiredDate" => 0
+//                            ,"lastDateKnownAlive" => null
+//                            ,"ssn" => null
+//                            ,"gender" => "Male"
+//                            ,"ethnicity" => "Unknown"
+//                            ,"race" => "Unknown"
+//                            ,"subjectComments" => null
+//                            ,"additionalSubjectIds" => array()
+//                            ,"streetAddress" => null
+//                            ,"addressLine2" => null
+//                            ,"city" => null
+//                            ,"state" => null
+//                            ,"zip" => null
+//                            ,"county" => null
+//                            ,"country" => null
+//                            ,"phoneNo" => null
+//                            ,"alternatePhoneNo" => null
+//                            ,"email" => null
+//                            ,"middleName" => null
+//                        )
+//                )
+//                ,"status" => 1
+//            )
+//        );
 
         $exclude    = array("mrn");
         $bin_match  = array();
@@ -1060,6 +1054,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      * @return null
      */
     public function getExcludedSubjects(){
+        //TODO USE IHABS
         $results    = array();
         $excludes   = $this->getProjectSetting(self::EXCLUDE_SUBJECTS);
         if (!empty($excludes)) {
@@ -1072,6 +1067,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      * @return array
      */
     public function setExcludedSubjects($excludes){
+        //TODO USE IHABS
         return $this->setProjectSetting(self::EXCLUDE_SUBJECTS, json_encode($excludes));
     }
 
