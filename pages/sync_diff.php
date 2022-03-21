@@ -140,14 +140,10 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
     $html .= "<tr>";
     $html .= "<td colspan=6 align='right'>";
 
-    if($disabled){
-        $which_bin = "redcap_only";
-    }else{
-        $which_bin = "fullmatch";
-        if($noredcap){
-            $which_bin = "oncore_only";
-        }
-        $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button>";
+    if ($disabled) {
+        $html .= "<button type='submit' class='btn btn-warning download_partial_redcap_csv'>Download CSV</button>";
+    } else {
+        $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button> <button type='submit' class='btn btn-warning download_partial_oncore_csv'>Download CSV</button>";
     }
 
     $html .= " <a href='#' class='btn btn-warning download_csv' data-bin='$which_bin'>Download CSV</a>";
@@ -212,7 +208,6 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             <form class="oncore_match">
                 <input type="hidden" name="matchtype" value="fullmatch"/>
                 <?=makeSyncTableHTML($sync_diff["match"]);?>
-
 
                 <h2>Exlcuded Subjects</h2>
                 <table class="table table-striped disabled excludes">
