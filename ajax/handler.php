@@ -17,10 +17,10 @@ try {
                 //expected format = array("oncore_field1" => ["redcap_field" => "redcap_field1" , "event" => "baseline_arm_1"]);
                 $field_mappings = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
 
-                //TODO THIS STILL BROKEN?
-                $result = $module->setProjectFieldMappings($field_mappings);
-//                $module->getProtocols()->setFieldsMap($field_mappings);
-                $result = $field_mappings;
+                //TODO VERIFY AND DELETE COMMENT
+                $module->getProtocols()->setFieldsMap($field_mappings);
+//                $result = $module->setProjectFieldMappings($field_mappings);
+//                $result = $field_mappings;
                 break;
 
             case "integrateOnCore":
@@ -32,6 +32,7 @@ try {
                 break;
 
             case "excludeSubject":
+                //TODO USE IHABS
 //                $excludes   = $module->getExcludedSubjects();
 //                $subject    = !empty($_POST["subject_mrn"]) ? filter_var($_POST["subject_mrn"], FILTER_SANITIZE_STRING) : null;
 //                if($subject){
@@ -40,7 +41,6 @@ try {
 //                }
                 break;
         }
-
 
         echo json_encode($result);
     }
