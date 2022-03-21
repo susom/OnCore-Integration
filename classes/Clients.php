@@ -88,7 +88,11 @@ abstract class Clients
         $this->setPREFIX($PREFIX);
 
 
-        $this->setGuzzleClient(new \GuzzleHttp\Client());
+        $this->setGuzzleClient(new \GuzzleHttp\Client([
+                'timeout' => 30,
+                'connect_timeout' => 5
+            ]
+        ));
 
         $this->setApiURL(ExternalModules::getSystemSetting($this->getPrefix(), 'oncore-api-url'));
 
