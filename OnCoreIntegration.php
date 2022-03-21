@@ -502,15 +502,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function injectIntegrationUI()
     {
-
-//        $field_map_url = $this->getUrl("pages/field_map.php");
         $ajax_endpoint = $this->getUrl("ajax/handler.php");
         ?>
         <script>
         var has_oncore_project  = <?=json_encode($this->hasOnCoreProject()); ?>;
         var oncore_integrated   = <?=json_encode($this->hasOnCoreIntegration()); ?>;
         var has_field_mappings  = <?=json_encode(!empty($this->getProjectFieldMappings())); ?>;
-        var last_adjudication   = <?=json_encode($this->getSyncDiff()); ?>;
+        var last_adjudication   = <?=json_encode($this->getSyncDiffSummary()); ?>;
         var ajax_endpoint       = "<?=$ajax_endpoint?>";
         var field_map_url       = "<?=$field_map_url?>";
 
@@ -754,13 +752,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $sync_diff      = array();
         $mapped_fields  = $this->getProjectFieldMappings();
 
-        //TODO FILL IN BINS FOR 3 Scenarios,
-        //TODO MRN MATCH BETWEEN ONCORE/REDCAP , Manually Opt out of ONcore -> REDCAp overwrite
-        //TODO ONCORE ONLY DATA , COPY INTO RC Entitys and UPDATE RC Data
-        //TODO REDCAP ONLY DATA , Not for Phase 1
-
+        //TODO DO I STILL NEED TO SET IT FIRST?
         $module->getProtocols()->getSubjects()->setSyncedRecords($module->getProtocols()->getEntityRecord()['redcap_project_id'], $module->getProtocols()->getEntityRecord()['oncore_protocol_id']);
-        $records = $module->getProtocols()->getSubjects()->getSyncedRecords();
+        $records = $module->getProtocols()->getSyncedRecords();
+
 
 //        $records = Array(
 //              Array(
@@ -1034,20 +1029,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      * @return array
      */
     public function getSyncDiffSummary(){
-        //TODO FILL THIS WITH REAL DATA
-        $linked_sub         = 125;
-        $full_match_count   = 0;
-        $oncore_count       = 0;
-        $redcap_count       = 0;
-        $last_scan_ts       = "01/01/22 10:00";
-
-        return [
-             "total_linked" => $linked_sub
-            ,"full_match"   => $full_match_count
-            ,"oncore_only"  => $oncore_count
-            ,"redcap_only"  => $redcap_count
-            ,"last_scan_ts" => $last_scan_ts
-        ];
+        return $this->getProtocols()->getSyncedRecordsSummaries();
     }
 
     /**

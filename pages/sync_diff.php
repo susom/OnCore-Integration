@@ -6,6 +6,8 @@ namespace Stanford\OnCoreIntegration;
 
 $ajax_endpoint      = $module->getUrl("ajax/handler.php");
 $sync_diff          = $module->getSyncDiff();
+$sync_summ          = $module->getSyncDiffSummary();
+
 
 $full_match_count   = count($sync_diff["match"]);
 $oncore_count       = count($sync_diff["oncore"]);
