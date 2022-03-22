@@ -412,6 +412,7 @@ class Subjects extends SubjectDemographics
                 }
                 $record['status'] = $row['status'];
                 $record['excluded'] = $row['excluded'];
+                $record['entity_id'] = $row['id'];
                 $result[] = $record;
             }
         }
