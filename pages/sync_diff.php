@@ -9,9 +9,9 @@ $sync_diff          = $module->getSyncDiff();
 $sync_summ          = $module->getSyncDiffSummary();
 
 
-$full_match_count   = count($sync_diff["match"]);
-$oncore_count       = count($sync_diff["oncore"]);
-$redcap_count       = count($sync_diff["redcap"]);
+$full_match_count   = $sync_summ["full_match_count"];
+$oncore_count       = $sync_summ["oncore_only_count"];
+$redcap_count       = $sync_summ["redcap_only_count"];
 
 if(isset($_GET["download_csv"])){
     if(!empty($_GET["bin"])){
@@ -148,8 +148,6 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null){
         $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button> <button type='submit' class='btn btn-warning download_partial_oncore_csv'>Download CSV</button>";
     }
 
-    $html .= " <a href='#' class='btn btn-warning download_csv' data-bin='$which_bin'>Download CSV</a>";
-
     $html .= "</td>";
     $html .= "</tr>";
     $html .= "</tfoot>";
@@ -184,15 +182,14 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
     $html .= "<tbody>";
     $html .= "<tr>";
     $html .= "<td>03/15/22 10:00</td>";
-    $html .= "<td>128</td>";
-    $html .= "<td>6</td>";
+    $html .= "<td>{$sync_summ["total_count"]}</td>";
+    $html .= "<td>{$sync_summ["partial_match_count"]}</td>";
     $html .= "<td><button class='btn btn-danger' id='refresh_sync_diff'>Refresh Sync Data</button></td>";
     $html .= "</tr>";
     $html .= "</tbody>";
     $html .= "<tfoot>";
     $html .= "</tfoot>";
     $html .= "</table>";
-
     echo $html;
     ?>
 

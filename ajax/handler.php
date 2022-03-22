@@ -15,12 +15,8 @@ try {
         switch ($action) {
             case "saveMapping":
                 //expected format = array("oncore_field1" => ["redcap_field" => "redcap_field1" , "event" => "baseline_arm_1"]);
-                $field_mappings = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
-
-                //TODO VERIFY AND DELETE COMMENT
-                $module->getProtocols()->setFieldsMap($field_mappings);
-//                $result = $module->setProjectFieldMappings($field_mappings);
-//                $result = $field_mappings;
+                $result = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
+                $module->setProjectFieldMappings($result);
                 break;
 
             case "integrateOnCore":

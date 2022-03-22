@@ -10,5 +10,21 @@ class Mapping
         $this->module = $module;
     }
 
+    /**
+     * @return null
+     */
+    public function setFieldMapping($map_array=array()) {
+        global $Proj;
 
+        return;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFieldMapping() {
+        global $module, $Proj;
+
+        return $fieldMapping;
+    }
 }

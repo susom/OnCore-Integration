@@ -12,7 +12,7 @@ $oncore_fields      = $module->getOnCoreFields();
 $project_mappings   = $module->getProjectFieldMappings();
 
 $required_fields    = $module->getRequiredOncoreFields();
-$module->emDebug($required_fields);
+$module->emDebug("project_mappings", $project_mappings);
 
 //REDCap Data Dictionary Fields w/ generic 'xxx'name
 $select = "<select class='form-select form-select-sm mrn_field' name='[ONCORE_FIELD]'>\r\n";
