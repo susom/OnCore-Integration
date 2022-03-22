@@ -24,20 +24,17 @@ try {
                 break;
 
             case "syncDiff":
-                $result = $module->getSyncDiff();
+                $result = $module->pullSync();
                 break;
 
             case "excludeSubject":
                 //TODO USE IHABS
-//                $excludes   = $module->getExcludedSubjects();
-//                $subject    = !empty($_POST["subject_mrn"]) ? filter_var($_POST["subject_mrn"], FILTER_SANITIZE_STRING) : null;
-//                if($subject){
-//                    array_push($excludes, $subject);
-//                    $result = $module->setExcludedSubjects($excludes);
-//                }
+                $result = !empty($_POST["entity_record_id"]) ? filter_var_array($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
+                if($result){
+                    $module->updateLinkage($result, array("excluded" => 1));
+                }
                 break;
         }
-
         echo json_encode($result);
     }
 } catch (\LogicException|ClientException|GuzzleException $e) {
