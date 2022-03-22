@@ -376,7 +376,7 @@ class Subjects extends SubjectDemographics
      */
     public function updateLinkageRecord($id, $data)
     {
-        $entity = $this->getInstance(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $id);
+        $entity = (new Entities)->getInstance(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $id);
         if ($entity->setData($data)) {
             $entity->save();
         } else {
