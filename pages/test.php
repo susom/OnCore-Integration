@@ -4,8 +4,6 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-//
-//
 //// test contact functionality.
 //$user = $module->framework->getUser();
 //$admin = $module->getUsers()->getOnCoreAdmin($user->getUsername());
@@ -25,7 +23,7 @@ namespace Stanford\OnCoreIntegration;
 try {
     $module->initiateProtocol();
     $module->getProtocols()->processSyncedRecords();
-    $records = $module->getProtocols()->getSyncedRecordsSummaries();
+    $records = $module->getProtocols()->getSyncedRecords();
     echo '<pre>';
     print_r($records);
     echo '</pre>';

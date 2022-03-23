@@ -763,119 +763,97 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getSyncDiff()
     {
-        $sync_diff      = array();
-        $mapped_fields  = $this->getProjectFieldMappings();
-
         $this->initiateProtocol();
         $this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
-        $records = $this->getProtocols()->getSyncedRecords();
+        $records        = $this->getProtocols()->getSyncedRecords();
+        $mapped_fields  = $this->getProjectFieldMappings();
 
+        $sync_diff  = array();
+        $bin_match  = array("excluded" => array(), "included" => array());
+        $bin_oncore = array("excluded" => array(), "included" => array());
+        $bin_redcap = array("excluded" => array(), "included" => array());
+        $bin_array  = array("bin_redcap", "bin_oncore", "bin_match", "bin_match");
         $exclude    = array("mrn");
-        $bin_match  = array();
-        $bin_oncore = array();
-        $bin_redcap = array();
+
         foreach($records as $record){
             $link_status    = $record["status"];
             $entity_id      = $record["entity_id"];
-            $last_scan      = null;
             $excluded       = $record["excluded"] ?? 0;
+            $oncore         = null;
+            $redcap         = null;
 
-            if(array_key_exists("oncore", $record) && array_key_exists("redcap", $record)){
-                $oncore     = $record["oncore"];
-                $oc_pr_id   = $oncore["protocolSubjectId"];
-                $redcap     = current($record["redcap"]);
-                $rc_id      = $redcap["record_id"];
-                $mrn        = $oncore["demographics"]["mrn"];
-                $update_ts  = $oncore["demographics"]["updated"];
+            $last_scan      = null;
+            $full           = false;
 
+            $oc_id          = null;
+            $oc_pr_id       = null;
+            $rc_id          = null;
+            $oc_data        = null;
+            $rc_data        = null;
+            $rc_field       = null;
+            $rc_event       = null;
 
-                if(!array_key_exists($mrn, $bin_match)){
-                    $bin_match[$mrn] = array();
-                }
+            switch($link_status){
+                case 2:
+                    //full
+                    $full = true;
 
-                foreach($mapped_fields as $oncore_field => $redcap_details){
-                    if(in_array($oncore_field, $exclude)){
-                        continue;
+                case 1:
+                    //oncore only
+                    $oncore     = $record["oncore"];
+                    $oc_id      = $oncore["protocolId"];
+                    $oc_pr_id   = $oncore["protocolSubjectId"];
+                    $mrn        = $oncore["demographics"]["mrn"];
+                    $last_scan  = date("Y-m-d H:i:s", $oncore["demographics"]["updated"]);
+
+                case 0:
+                    //redcap only
+                    if(array_key_exists("redcap",$record)){
+                        $redcap     = current($record["redcap"]);
+                        $rc_id      = $redcap["record_id"];
+                        $mrn        = $redcap["mrn"];
                     }
-                    $rc_data    = isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
-                    $oc_data    = isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
-                    $temp       = array(
-                         "entity_id"     => $entity_id
-                        ,"ts_last_scan"  => $last_scan
 
-                        ,"oc_id"         => $oncore["protocolId"]
-                        ,"oc_pr_id"      => $oc_pr_id
-                        ,"rc_id"         => $rc_id
-                        ,"oc_data"       => $oc_data
-                        ,"rc_data"       => $rc_data
-                        ,"link_status"   => $link_status
-                        ,"oc_field" => $oncore_field
-                        ,"rc_field" => $redcap_details["redcap_field"]
-                        ,"rc_event" => $redcap_details["event"]
-                    );
-                    array_push($bin_match[$mrn], $temp);
-                }
-            }else if(array_key_exists("oncore", $record)){
-                $oncore     = $record["oncore"];
-                $oc_pr_id   = $oncore["protocolSubjectId"];
-                $mrn        = $oncore["demographics"]["mrn"];
-                $update_ts  = $oncore["demographics"]["updated"];
-
-
-                if(!array_key_exists($mrn, $bin_oncore)){
-                    $bin_oncore[$mrn] = array();
-                }
-                foreach($mapped_fields as $oncore_field => $redcap_details){
-                    if(in_array($oncore_field, $exclude)){
-                        continue;
+                case 3:
+                    //partial
+                    $bin_var    = $bin_array[$link_status];
+                    $bin        = $excluded ? $$bin_var["excluded"] : $$bin_var["included"];
+                    if(!array_key_exists($mrn, $bin)){
+                        if($excluded){
+                            $$bin_var["excluded"][$mrn] = array();
+                        }else{
+                            $$bin_var["included"][$mrn] = array();
+                        }
                     }
-                    $oc_data    = isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
-                    $temp       = array(
-                         "entity_id"    => $entity_id
-                        ,"ts_last_scan" => $last_scan
+                    foreach($mapped_fields as $oncore_field => $redcap_details){
+                        if(in_array($oncore_field, $exclude)){
+                            continue;
+                        }
+                        $rc_field   = $redcap_details["redcap_field"];
+                        $rc_event   = $redcap_details["event"];
 
-                        ,"oc_id"        => $oncore["protocolId"]
-                        ,"oc_pr_id"     => $oncore["protocolSubjectId"]
-                        ,"rc_id"        => null
-                        ,"oc_data"      => $oc_data
-                        ,"rc_data"      => null
-                        ,"link_status"  => $link_status
-                        ,"oc_field"     => $oncore_field
-                        ,"rc_field"     => null
-                        ,"rc_event"     => null
-                    );
-                    array_push($bin_oncore[$mrn], $temp);
-                }
-            }else if(array_key_exists("redcap", $record)){
-                $redcap = current($record["redcap"]);
-                $rc_id  = $redcap["record_id"];
-                $mrn    = $redcap["mrn"];
-                $rc_id  = $redcap["record_id"];
-
-                if(!array_key_exists($mrn, $bin_redcap)){
-                    $bin_redcap[$mrn] = array();
-                }
-                foreach($mapped_fields as $oncore_field => $redcap_details){
-                    if(in_array($oncore_field, $exclude)){
-                        continue;
+                        $rc_data    = $redcap && isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
+                        $oc_data    = $oncore && isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
+                        $temp       = array(
+                             "entity_id"    => $entity_id
+                            ,"ts_last_scan" => $last_scan
+                            ,"oc_id"        => $oc_id
+                            ,"oc_pr_id"     => $oc_pr_id
+                            ,"rc_id"        => $rc_id
+                            ,"oc_data"      => $oc_data
+                            ,"rc_data"      => $rc_data
+                            ,"oc_field"     => $oncore_field
+                            ,"rc_field"     => $rc_field
+                            ,"rc_event"     => $rc_event
+                            ,"full"         => $full
+                        );
+                        if($excluded){
+                            array_push($$bin_var["excluded"][$mrn], $temp);
+                        }else{
+                            array_push($$bin_var["included"][$mrn], $temp);
+                        }
                     }
-                    $rc_data    = isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
-                    $temp       = array(
-                         "entity_id"    => $entity_id
-                        ,"ts_last_scan" => $last_scan
-
-                        ,"oc_id"        => $oncore["protocolId"]
-                        ,"oc_pr_id"     => $oncore["protocolSubjectId"]
-                        ,"rc_id"        => $rc_id
-                        ,"oc_data"      => null
-                        ,"rc_data"      => $rc_data
-                        ,"link_status"  => $link_status
-                        ,"oc_field"     => $oncore_field
-                        ,"rc_field"     => $redcap_details["redcap_field"]
-                        ,"rc_event"     => $redcap_details["event"]
-                    );
-                    array_push($bin_redcap[$mrn], $temp);
-                }
+                    break;
             }
         }
 
@@ -886,6 +864,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 "redcap"    => $bin_redcap
             );
         }
+
+        $this->emDebug($sync_diff);
 
         return $sync_diff;
     }
