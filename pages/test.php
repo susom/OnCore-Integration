@@ -4,7 +4,6 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-$module->initiateProtocol();
 
 //
 //
@@ -27,7 +26,7 @@ $module->initiateProtocol();
 try {
     $module->initiateProtocol();
     $module->getProtocols()->processSyncedRecords();
-    $records = $module->getProtocols()->getSyncedRecordsSummaries();
+    $records = $module->getProtocols()->getSyncedRecords();
     echo '<pre>';
     print_r($records);
     echo '</pre>';
