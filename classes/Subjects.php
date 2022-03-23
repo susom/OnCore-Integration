@@ -171,8 +171,8 @@ class Subjects extends SubjectDemographics
      */
     public function determineSyncedRecordMatch($onCoreSubject, $redcapRecord, $fields)
     {
-        foreach ($fields as $field) {
-            if ($onCoreSubject[$field] != $redcapRecord[$field]) {
+        foreach ($fields as $key => $field) {
+            if ($onCoreSubject['demographics'][$key] != $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']]) {
                 return OnCoreIntegration::PARTIAL_MATCH;
             }
         }
@@ -209,7 +209,7 @@ class Subjects extends SubjectDemographics
         if ($this->getRedcapProjectRecords()) {
             foreach ($this->getRedcapProjectRecords() as $id => $record) {
                 if ($record[$redcapEventId][$redcapMRNField] == $mrn) {
-                    return array('id' => $id, 'record' => $record[$redcapEventId]);
+                    return array('id' => $id, 'record' => $record);
                 }
             }
         }
