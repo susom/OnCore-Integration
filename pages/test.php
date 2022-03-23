@@ -4,9 +4,6 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-
-//
-//
 //// test contact functionality.
 //$user = $module->framework->getUser();
 //$admin = $module->getUsers()->getOnCoreAdmin($user->getUsername());
