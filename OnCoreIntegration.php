@@ -699,7 +699,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         //[oncore_field] => array( “redcap_field” => [redcap_field] , “event” => “baseline_arm_1” )
 
         //TODO THIS IS STILL BROKEN?
-//        $results = $this->getProtocols()->getFieldsMap();
+        $results = $this->getProtocols()->getFieldsMap();
         return $results;
     }
 
@@ -738,8 +738,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $event_fields[$event] = $temp;
             }
         } else {
+            global $Proj;
             $dict = \REDCap::getDataDictionary(PROJECT_ID, "array");
-            $event_fields = array(array_keys($dict));
+            $event_fields[$Proj->getUniqueEventNames($this->getFirstEventId())] = array_keys($dict);
         }
 
         return $event_fields;
@@ -1047,11 +1048,25 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $this->users = $users;
     }
 
+    public static function getEventNameUniqueId($name)
+    {
+        $id = \REDCap::getEventIdFromUniqueEvent($name);
+        // false means this project is not longitudinal
+        if (!$id) {
+            global $Proj;
+            return $Proj->firstEventId;
+        }
+        return $id;
+    }
+
     /**
      * @return Protocols
      */
     public function getProtocols(): Protocols
     {
+        if (!$this->protocols) {
+            $this->initiateProtocol();
+        }
         return $this->protocols;
     }
 

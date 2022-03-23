@@ -83,7 +83,7 @@ class Protocols
         foreach ($oncoreProtocolSubjects as $subject) {
             $onCoreMrn = $subject['demographics']['mrn'];
 //            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $this->getEntityRecord()['redcap_event_id'], $fields['mrn']);
-            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $fields['mrn']['event'], $fields['mrn']['redcap_field']);
+            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['mrn']['event']), $fields['mrn']['redcap_field']);
             if ($redcapRecord) {
                 $data = array(
                     'redcap_project_id' => $this->getEntityRecord()['redcap_project_id'],
@@ -155,7 +155,7 @@ class Protocols
     /**
      * @return array
      */
-    public function getFieldsMap(): array
+    public function getFieldsMap()
     {
         return json_decode(ExternalModules::getProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
     }

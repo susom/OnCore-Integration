@@ -22,7 +22,8 @@ namespace Stanford\OnCoreIntegration;
 //}
 
 try {
-
+    $module->initiateProtocol();
+    $module->getProtocols()->processSyncedRecords();
     $records = $module->getProtocols()->getSyncedRecordsSummaries();
     echo '<pre>';
     print_r($records);
