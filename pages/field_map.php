@@ -10,6 +10,8 @@ $ajax_endpoint = $module->getUrl("ajax/handler.php");
 $project_fields     = $module->getProjectFields();
 $oncore_fields      = $module->getOnCoreFields();
 $project_mappings   = $module->getProjectFieldMappings();
+$required_fields    = $module->getRequiredOncoreFields();
+
 
 //REDCap Data Dictionary Fields w/ generic 'xxx'name
 $select = "<select class='form-select form-select-sm mrn_field' name='[ONCORE_FIELD]'>\r\n";
@@ -24,26 +26,47 @@ foreach ($project_fields as $event_name => $fields) {
 $select .= "</select>\r\n";
 
 //OnCore Static Field names need mapping to REDCap fields
-$html = "";
+$required_html  = "";
+$not_required   = "";
+$not_shown      = 0;
 foreach ($oncore_fields as $field) {
     //each select will have different input['name']
-    $map_select = str_replace("[ONCORE_FIELD]", $field, $select);
-    $icon_status = "fa-times-circle";
+    $map_select     = str_replace("[ONCORE_FIELD]", $field, $select);
+    $icon_status    = "fa-times-circle";
+    $required       = null;
+    $event_name     = null;
 
-    if (array_key_exists($field, $project_mappings)) {
-        $rc_field = $project_mappings[$field];
-        $icon_status = "fa-check-circle";
-
-        $rc = $rc_field["redcap_field"];
-
-        $map_select = str_replace("'$rc'", "'$rc' selected", $map_select);
+    if( in_array($field, $required_fields) ){
+        $required = "required";
     }
 
-    $html .= "<tr class='$field'>\r\n";
-    $html .= "<td>$field</td>";
-    $html .= "<td>$map_select</td>";
-    $html .= "<td><i class='fa $icon_status'></i></td>";
-    $html .= "</tr>\r\n";
+    if (array_key_exists($field, $project_mappings)) {
+        $rc_field       = $project_mappings[$field];
+        $icon_status    = "fa-check-circle";
+
+        $rc             = $rc_field["redcap_field"];
+        $event_name     = $rc_field["event"];
+
+        $map_select = str_replace("'$rc'", "'$rc' selected", $map_select);
+        $required = "required";
+    }
+
+    if(!$required){
+        $not_shown++;
+        $not_required .= "<tr class='$field notrequired'>\r\n";
+        $not_required .= "<td>$field</td>";
+        $not_required .= "<td>$map_select</td>";
+        $not_required .= "<td>$event_name</td>";
+        $not_required .= "<td class='centered'><i class='fa $icon_status'></i></td>";
+        $not_required .= "</tr>\r\n";
+    }else{
+        $required_html .= "<tr class='$field $required'>\r\n";
+        $required_html .= "<td>$field</td>";
+        $required_html .= "<td>$map_select</td>";
+        $required_html .= "<td>$event_name</td>";
+        $required_html .= "<td class='centered'><i class='fa $icon_status'></i></td>";
+        $required_html .= "</tr>\r\n";
+    }
 }
 ?>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
@@ -62,22 +85,45 @@ foreach ($oncore_fields as $field) {
         <thead>
         <tr>
             <th style="width: 35%">OnCore Field</th>
-            <th style="width: 50%">REDCap Field</th>
+            <th style="width: 35%">REDCap Field</th>
+            <th style="width: 15%">REDCap Event</th>
             <th style="width: 15%">Map Status</th>
         </tr>
         </thead>
         <tbody>
-        <?= $html ?>
+        <?= $required_html ?>
+
+        <tr class="show_optional required">
+            <td colspan="4" ><a href="#" ><span>Show</span> Optional Fields +</a></td>
+        </tr>
+
+        <?= $not_required ?>
         </tbody>
         <tfoot>
         <tr>
-            <td colspan="3" align="right">
+            <td colspan="4" align="right">
                 <button type="submit" href="#" class="more-button">Save Mappings</button>
             </td>
         </tr>
         </tfoot>
     </table>
 </form>
+<style>
+    tr.required td{
+        color:initial;
+    }
+
+    tbody tr.required td:first-child:after{
+        content:"*";
+    }
+    tbody tr.notrequired td{
+        display:none;
+    }
+    tr.show_optional td {
+        text-align:left;
+    }
+    td.centered { text-align:center; }
+</style>
 <script>
     $(document).ready(function () {
         var ajax_endpoint = "<?=$ajax_endpoint?>";
@@ -127,6 +173,25 @@ foreach ($oncore_fields as $field) {
             }).fail(function (e) {
                 console.log("failed to save", e);
             });
+        });
+
+        $(".show_optional a").on("click",function(e){
+            e.preventDefault();
+            if($("tr.notrequired td").is(":visible")){
+                $(this).find("span").text("Show");
+                $("tr.notrequired td").hide();
+            }else{
+                $(this).find("span").text("Hide");
+                $("tr.notrequired td").show();
+            }
+        });
+
+        $("#oncore_mapping select").on("change",function(){
+            if($(this).find("option:selected")){
+                var _opt    = $(this).find("option:selected");
+                var en      = _opt.data("eventname");
+                $(this).closest("td").next().text("").text(en);
+            }
         });
     });
 </script>

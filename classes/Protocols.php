@@ -69,6 +69,8 @@ class Protocols
 //            throw new \Exception('Cant find recap records');
 //        }
 
+
+
         $oncoreProtocolSubjects = $this->getSubjects()->getOnCoreProtocolSubjects($this->getEntityRecord()['oncore_protocol_id']);
 //        if(!$oncoreProtocolSubjects){
 //            throw new \Exception('Cant find oncore subjects');

@@ -44,7 +44,7 @@
                 "name": "Manual Sync With Oncore",
                 "icon": "fas fa-not-equal",
                 "url": "pages/sync_diff.php",
-                "show-header-and-footer": true
+                "show-header-and-footer": false
             }
         ],
         "control-center": [
