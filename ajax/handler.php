@@ -14,24 +14,35 @@ try {
 
         switch ($action) {
             case "saveMapping":
+                //Saves to em project settings
                 //expected format = array("oncore_field1" => ["redcap_field" => "redcap_field1" , "event" => "baseline_arm_1"]);
                 $result = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
                 $module->setProjectFieldMappings($result);
                 break;
 
             case "integrateOnCore":
+                //integrate oncore project(s)!!
                 $result = $module->integrateOnCoreProject();
                 break;
 
             case "syncDiff":
+                //returns sync summary
                 $result = $module->pullSync();
                 break;
 
             case "excludeSubject":
-                //TODO USE IHABS
+                //flips excludes flag on entitry record
                 $result = !empty($_POST["entity_record_id"]) ? filter_var_array($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
                 if($result){
                     $module->updateLinkage($result, array("excluded" => 1));
+                }
+                break;
+
+            case "includeSubject":
+                //flips excludes flag on entitry record
+                $result = !empty($_POST["entity_record_id"]) ? filter_var_array($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
+                if($result){
+                    $module->updateLinkage($result, array("excluded" => 0));
                 }
                 break;
         }

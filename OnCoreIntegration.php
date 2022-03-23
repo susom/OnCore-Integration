@@ -514,7 +514,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         <script>
             var has_oncore_project  = <?=json_encode($this->hasOnCoreProject()); ?>;
             var oncore_integrated   = <?=json_encode($this->hasOnCoreIntegration()); ?>;
-            var has_field_mappings  = <?=json_encode(empty($this->getProjectFieldMappings())); ?>;
+            var has_field_mappings  = <?=json_encode(!empty($this->getProjectFieldMappings())); ?>;
             var last_adjudication   = <?=json_encode($this->getSyncDiffSummary()); ?>;
 
             var ajax_endpoint       = "<?=$ajax_endpoint?>";
@@ -920,6 +920,23 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 )
                 ,"status" => 1
             )
+            , Array(
+                "redcap" => Array(
+                    181 => Array(
+                        "birthdate" => "2000-01-01"
+                        ,"ethnicity" => "Unknown"
+                        ,"firstname" => "PROT-IZ firstname"
+                        ,"form_1_complete" => 0
+                        ,"gender" => "Male"
+                        ,"lastname" => "PROT-IZ lastname"
+                        ,"mrn" => "MRN23456"
+                        ,"record_id" => 1
+                        ,"subjectdemographicsid" => 87999
+                        ,"subjectsource" => "OnCore"
+                    )
+                )
+                ,"status" => 2
+            )
         );
 //        $records = $stub;
 
@@ -1047,6 +1064,15 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     }
 
     /**
+     * @return array
+     */
+    public function pullSync(){
+        $this->initiateProtocol();
+        $this->getProtocols()->processSyncedRecords();
+        return $this->getSyncDiffSummary();
+    }
+
+    /**
      * @return null
      */
     public function updateLinkage($entity_record_id, $data){
@@ -1054,17 +1080,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $this->getProtocols()->getSubjects()->updateLinkageRecord($entity_record_id, $data);
         return;
     }
-
-    /**
-     * @return null
-     */
-    public function pullSync(){
-        $this->initiateProtocol();
-        $this->getProtocols()->processSyncedRecords();
-        return;
-    }
-
-
 
 
     /**

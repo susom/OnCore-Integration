@@ -174,8 +174,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
     $html .= "<thead>";
     $html .= "<tr>";
     $html .= "<th style='width: 25%'>Timestamp of Last Scan</th>";
-    $html .= "<th style='width: 25%'>Total Count</th>";
-    $html .= "<th style='width: 25%'>New Count</th>";
+    $html .= "<th style='width: 25%'>Total Subjects</th>";
+    $html .= "<th style='width: 25%'>Full Matches</th>";
     $html .= "<th style='width: 25%'></th>";
     $html .= "</tr>";
     $html .= "</thead>";
@@ -183,7 +183,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
     $html .= "<tr>";
     $html .= "<td>03/15/22 10:00</td>";
     $html .= "<td>{$sync_summ["total_count"]}</td>";
-    $html .= "<td>{$sync_summ["partial_match_count"]}</td>";
+    $html .= "<td>{$sync_summ["full_match_count"]}</td>";
     $html .= "<td><button class='btn btn-danger' id='refresh_sync_diff'>Refresh Sync Data</button></td>";
     $html .= "</tr>";
     $html .= "</tbody>";
@@ -425,9 +425,29 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     _parent_form.find("table.excludes thead").after(_parent_clone);
 
                     //disable clone
+                    console.log("where is the exlcude table?", _parent_form.find("table.excludes thead").length);
                     console.log("why wont td.import empty?", _parent_clone.find("td.import button").length);
                     _parent_clone.find("td.import").empty();
                 });
+            }).fail(function (e) {
+                console.log("failed to save", e);
+            });
+        });
+
+
+        $("#refresh_sync_diff").on("click", function(e){
+            e.preventDefault();
+            $.ajax({
+                url: ajax_endpoint,
+                method: 'POST',
+                data: {
+                    "action": "syncDiff"
+                },
+                dataType: 'json'
+            }).done(function (syncsummary) {
+                console.log(syncsummary);
+
+
             }).fail(function (e) {
                 console.log("failed to save", e);
             });
