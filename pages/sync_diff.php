@@ -173,17 +173,19 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
     $html = "<table class='table table-striped'>";
     $html .= "<thead>";
     $html .= "<tr>";
-    $html .= "<th style='width: 25%'>Timestamp of Last Scan</th>";
-    $html .= "<th style='width: 25%'>Total Subjects</th>";
-    $html .= "<th style='width: 25%'>Full Matches</th>";
-    $html .= "<th style='width: 25%'></th>";
+    $html .= "<th style='width: 20%'>Last Scanned</th>";
+    $html .= "<th style='width: 20%'>Total Subjects</th>";
+    $html .= "<th style='width: 20%'>Full Matches</th>";
+    $html .= "<th style='width: 20%'>Partial Matches</th>";
+    $html .= "<th style='width: 20%'></th>";
     $html .= "</tr>";
     $html .= "</thead>";
     $html .= "<tbody>";
     $html .= "<tr>";
-    $html .= "<td>03/15/22 10:00</td>";
-    $html .= "<td>{$sync_summ["total_count"]}</td>";
-    $html .= "<td>{$sync_summ["full_match_count"]}</td>";
+    $html .= "<td id='summ_last_ts'>03/15/22 10:00</td>";
+    $html .= "<td id='summ_total_count'>{$sync_summ["total_count"]}</td>";
+    $html .= "<td id='summ_full_match'>{$sync_summ["full_match_count"]}</td>";
+    $html .= "<td id='summ_partial_match'>{$sync_summ["partial_match_count"]}</td>";
     $html .= "<td><button class='btn btn-danger' id='refresh_sync_diff'>Refresh Sync Data</button></td>";
     $html .= "</tr>";
     $html .= "</tbody>";
@@ -446,8 +448,15 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 dataType: 'json'
             }).done(function (syncsummary) {
                 console.log(syncsummary);
+                $("#summ_total_count").html(syncsummary["total_count"]);
+                $("#summ_full_match").html(syncsummary["full_match_count"]);
+                $("#summ_partial_match").html(syncsummary["partial_match_count"]);
 
-
+                //USE "fake now" TS for this... then when page refresh get the exact one from new syn diff
+                var ts = new Date();
+                var fake_date = ts.toDateString();
+                var fake_time = ts.toLocaleTimeString();
+                $("#summ_last_ts").html(fake_date + " " + fake_time);
             }).fail(function (e) {
                 console.log("failed to save", e);
             });

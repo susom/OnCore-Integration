@@ -776,8 +776,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $bin_redcap = array();
         foreach($records as $record){
             $link_status    = $record["status"];
-            $entity_id      = 123;
-            $last_scan      = "01/01/22 12:00";
+            $entity_id      = $record["entity_id"];
+            $last_scan      = null;
+            $excluded       = $record["excluded"] ?? 0;
 
             if(array_key_exists("oncore", $record) && array_key_exists("redcap", $record)){
                 $oncore     = $record["oncore"];
@@ -785,6 +786,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $redcap     = current($record["redcap"]);
                 $rc_id      = $redcap["record_id"];
                 $mrn        = $oncore["demographics"]["mrn"];
+                $update_ts  = $oncore["demographics"]["updated"];
+
 
                 if(!array_key_exists($mrn, $bin_match)){
                     $bin_match[$mrn] = array();
@@ -816,6 +819,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $oncore     = $record["oncore"];
                 $oc_pr_id   = $oncore["protocolSubjectId"];
                 $mrn        = $oncore["demographics"]["mrn"];
+                $update_ts  = $oncore["demographics"]["updated"];
+
 
                 if(!array_key_exists($mrn, $bin_oncore)){
                     $bin_oncore[$mrn] = array();
