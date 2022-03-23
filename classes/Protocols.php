@@ -92,6 +92,7 @@ class Protocols
                     'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
                     'redcap_record_id' => $redcapRecord['id'],
                     'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
+                    'excluded' => OnCoreIntegration::NO,
                     'status' => $this->getSubjects()->determineSyncedRecordMatch($subject, $redcapRecord['record'], $fields)
                 );
                 // select oncore subject without redcap record
@@ -122,6 +123,7 @@ class Protocols
                         'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
                         'redcap_record_id' => '',
                         'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
+                        'excluded' => OnCoreIntegration::NO,
                         'status' => OnCoreIntegration::ONCORE_ONLY
                     );
 
@@ -143,6 +145,7 @@ class Protocols
                     'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
                     'redcap_record_id' => $id,
                     'oncore_protocol_subject_id' => '',
+                    'excluded' => OnCoreIntegration::NO,
                     'status' => OnCoreIntegration::REDCAP_ONLY
                 );
                 $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
