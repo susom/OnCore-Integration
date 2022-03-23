@@ -6,9 +6,6 @@ namespace Stanford\OnCoreIntegration;
 
 $module->initiateProtocol();
 
-
-
-
 //
 //
 //// test contact functionality.
@@ -28,8 +25,8 @@ $module->initiateProtocol();
 //}
 
 try {
+    $module->initiateProtocol();
     $module->getProtocols()->processSyncedRecords();
-    $module->emDebug("sync records?");
     $records = $module->getProtocols()->getSyncedRecordsSummaries();
     echo '<pre>';
     print_r($records);
