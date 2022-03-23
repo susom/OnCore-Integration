@@ -4,8 +4,6 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-$module->initiateProtocol();
-
 //
 //
 //// test contact functionality.
