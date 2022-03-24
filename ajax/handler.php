@@ -32,7 +32,7 @@ try {
 
             case "excludeSubject":
                 //flips excludes flag on entitry record
-                $result = !empty($_POST["entity_record_id"]) ? filter_var_array($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
+                $result = !empty($_POST["entity_record_id"]) ? filter_var($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
                 if($result){
                     $module->updateLinkage($result, array("excluded" => 1));
                 }
@@ -40,7 +40,7 @@ try {
 
             case "includeSubject":
                 //flips excludes flag on entitry record
-                $result = !empty($_POST["entity_record_id"]) ? filter_var_array($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
+                $result = !empty($_POST["entity_record_id"]) ? filter_var($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
                 if($result){
                     $module->updateLinkage($result, array("excluded" => 0));
                 }
