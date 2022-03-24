@@ -798,13 +798,15 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     //full
                     $full = true;
 
+                case 3:
+
                 case 1:
                     //oncore only
                     $oncore     = $record["oncore"];
                     $oc_id      = $oncore["protocolId"];
                     $oc_pr_id   = $oncore["protocolSubjectId"];
                     $mrn        = $oncore["demographics"]["mrn"];
-                    $last_scan  = date("Y-m-d H:i:s", $oncore["demographics"]["updated"]);
+                    $last_scan  = date("Y-m-d H:i", $oncore["demographics"]["updated"]);
 
                 case 0:
                     //redcap only
@@ -814,7 +816,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $mrn        = $redcap["mrn"];
                     }
 
-                case 3:
+                default:
                     //partial
                     $bin_var    = $bin_array[$link_status];
                     $bin        = $excluded ? $$bin_var["excluded"] : $$bin_var["included"];
@@ -864,8 +866,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 "redcap"    => $bin_redcap
             );
         }
-
-        $this->emDebug($sync_diff);
 
         return $sync_diff;
     }
