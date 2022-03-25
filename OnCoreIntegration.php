@@ -4,7 +4,10 @@ namespace Stanford\OnCoreIntegration;
 
 require_once "emLoggerTrait.php";
 require_once 'classes/Users.php';
-require_once 'classes/Entities.php';
+if (class_exists('\REDCapEntity\EntityFactory')) {
+    require_once 'classes/Entities.php';
+}
+
 require_once 'classes/Protocols.php';
 require_once 'classes/Subjects.php';
 require_once 'classes/Projects.php';
@@ -705,7 +708,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function setProjectFieldMappings($mappings=array())
     {
         $this->initiateProtocol();
-        return $this->getProtocols()->setFieldsMap($mappings);
+        $this->getProtocols()->setFieldsMap($mappings);
     }
 
     /**

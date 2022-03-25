@@ -162,7 +162,13 @@ class Protocols
      */
     public function getFieldsMap()
     {
-        return json_decode(ExternalModules::getProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
+        if ($this->getEntityRecord()) {
+            $arr = json_decode(ExternalModules::getProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
+            return $arr ?: [];
+        } else {
+            return [];
+        }
+
     }
 
     /**
@@ -295,7 +301,7 @@ class Protocols
             }
             return $results;
         } else {
-            throw new \Exception('No Protocol entity record found for this Protocol');
+            return [];
         }
     }
 
