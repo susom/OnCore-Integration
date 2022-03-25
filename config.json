@@ -116,6 +116,12 @@
             "type": "text"
         },
         {
+            "key": "oncore-field-definition",
+            "name": "<b>JSON Object that defines OnCore Fields info. For Examples check EM README.md</b>",
+            "required": true,
+            "type": "textarea"
+        },
+        {
             "key": "enable-system-debug-logging",
             "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
             "required": false,
