@@ -117,7 +117,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
         if(!$this->protocols){
             $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
-            $this->emDebug("users set, protocol set");
         }
     }
 
@@ -509,14 +508,24 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         }
     }
 
+    public function isAssoc(array $arr)
+    {
+        //check if array is associative or sequential
+        if (array() === $arr) return false;
+        return array_keys($arr) !== range(0, count($arr) - 1);
+    }
+
     public function injectIntegrationUI()
     {
         $field_map_url = $this->getUrl("pages/field_map.php");
         $ajax_endpoint = $this->getUrl("ajax/handler.php");
+
+        $available_oncore_projects  = $this->hasOnCoreProject();
+        $oncore_integrations        = $this->hasOnCoreIntegration();
         ?>
         <script>
-            var has_oncore_project  = <?=json_encode($this->hasOnCoreProject()); ?>;
-            var oncore_integrated   = <?=json_encode($this->hasOnCoreIntegration()); ?>;
+            var has_oncore_projects = <?=json_encode($available_oncore_projects); ?>;
+            var oncore_integrated   = <?=json_encode($oncore_integrations); ?>;
             var has_field_mappings  = <?=json_encode(!empty($this->getProjectFieldMappings())); ?>;
             var last_adjudication   = <?=json_encode($this->getSyncDiffSummary()); ?>;
 
@@ -562,47 +571,62 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
             //  this over document.ready because we need this last!
             $(window).on('load', function () {
-                var integrate_text      = $("<span>").addClass("enable_oncore").text("Integrate with OnCore Project #" + oncore_integrated["oncore_protocol_id"]);
-                var enable_text         = "Enable&nbsp;";
-                var integrated_class    = "not_integrated";
-
-                if(oncore_integrated){
-                    enable_text         = "Enabled";
-                    integrated_class    = "integrated";
-
+                var integrated_oncores  = [];
+                if(Object.keys(oncore_integrated).length){
                     //BORROW UI FROM OTHER ELEMENT TO ADD A NEW MODULE TO PROJECT SETUP
                     make_oncore_module();
+                    integrated_oncores  = Object.keys(oncore_integrated);
                 }
 
-                if(has_oncore_project){
+                if(Object.keys(has_oncore_projects).length){
                     if($("#setupChklist-modify_project button:contains('Modify project title, purpose, etc.')").length){
                         //ADD LINE TO MAIN PROJECT SEETTINGS IF THERE IS POSSIBLE ONCORE INTEGRATION
+                        for(var protocolId in has_oncore_projects){
+                            let projectIntegrated   = integrated_oncores.includes(protocolId);
+                            let entity_record_id    = has_oncore_projects[protocolId]["entity_record_id"];
+                            let protocol_status     = has_oncore_projects[protocolId]["protocolStatus"];
+                            let protocol_title      = has_oncore_projects[protocolId]["shortTitle"];
 
-                        var new_line    = $("<div>").addClass(integrated_class).attr("style","text-indent:-75px;margin-left:75px;padding:2px 0;font-size:13px;");
-                        var button      = $("<button>").attr("id","integrate_oncore").addClass("btn btn-defaultrc btn-xs fs11").html(enable_text);
-                        new_line.append(button);
-                        button.after(integrate_text);
+                            let btn_text            = projectIntegrated ? "Unlink Project&nbsp;" : "Link Project&nbsp;";
+                            let integrated_class    = projectIntegrated ? "integrated" : "not_integrated";
+                            var line_text           = "with OnCore Protocol "+protocolId+" : "+protocol_title+" [<i>" + protocol_status.toLowerCase() + "</i>]";
+                            line_text               = projectIntegrated ?  "Linked " + line_text : "Link " + line_text;
 
-                        if(integrated_class == "integrated"){
-                            button.attr("disabled","disabled");
+                            let integrate_text      = $("<span>").addClass("enable_oncore").html(line_text);
+                            let new_line            = $("<div>").addClass(integrated_class).attr("style","text-indent:-75px;margin-left:75px;padding:2px 0;font-size:13px;");
+                            let button              = $("<button>").addClass("integrate_oncore").data("entity_record_id", entity_record_id).addClass("btn btn-defaultrc btn-xs fs11").html(btn_text);
+                            new_line.append(button);
+                            button.after(integrate_text);
+
+                            // if(integrated_class == "integrated"){
+                            //     button.attr("disabled","disabled");
+                            // }
+
+                            $("#setupChklist-modify_project button:contains('Modify project title, purpose, etc.')").before(new_line);
                         }
-                        $("#setupChklist-modify_project button:contains('Modify project title, purpose, etc.')").before(new_line);
                     }
                 }
 
                 //INTEGRATE AJAX
-                $("#integrate_oncore").on("click",function(e){
+                $(".integrate_oncore").on("click",function(e){
                     e.preventDefault();
+
+                    var _par                = $(this).parent("div");
+                    var need_to_integrate   = _par.hasClass("not_integrated") ? 1 : 0;
+                    var entity_record_id    = $(this).data("entity_record_id");
 
                     //LINKAGE AJAX
                     $.ajax({
                         url : ajax_endpoint,
                         method: 'POST',
                         data: {
-                            "action" : "integrateOnCore"
+                            "action" : "integrateOnCore",
+                            "entity_record_id" : entity_record_id,
+                            "integrate" : need_to_integrate
                         },
                         dataType: 'json'
                     }).done(function (oncore_integrated) {
+                        // console.log(oncore_integrated);
                         document.location.reload();
                     }).fail(function (e) {
                         console.log("failed to integrate", e);
@@ -645,14 +669,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
 
     /**
-     * @return int ?
+     * @return null
      */
-    public function integrateOnCoreProject()
+    public function integrateOnCoreProject($entityId, $integrate = false)
     {
-        //TODO THIS ISNT ACTUALLY SETTING IT??
         $this->initiateProtocol();
-        $entity = $this->getProtocols()->getEntityRecord();
-        return $entity['oncore_protocol_id'];
+        $setStatus  = $integrate ? self::ONCORE_PROTOCOL_STATUS_YES : self::ONCORE_PROTOCOL_STATUS_NO;
+        $entity     = $this->getProtocols()->updateProtocolEntityRecordStatus($entityId, $setStatus);
+        return $entity;
     }
 
     /**
@@ -660,12 +684,23 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function hasOnCoreProject(): array
     {
+        //TODO VERIFY THAT getOnCoreProtocols(returns array of protocols not single ass array)
         $this->initiateProtocol();
-        if ($this->getProtocols()->getOnCoreProtocol()) {
-            return $this->getProtocols()->getOnCoreProtocol();
-        } else {
-            return [];
+        $available_oncore_projects  = $this->getProtocols()->getOnCoreProtocol();
+        $result                     = array();
+        if (!empty($available_oncore_projects)) {
+            if($this->isAssoc($available_oncore_projects)){
+                $available_oncore_projects = array($available_oncore_projects);
+            }
         }
+
+        foreach($available_oncore_projects as $oncore_project){
+            $result[$oncore_project["protocolId"]] = array("entity_record_id" => 1, "protocolStatus" => $oncore_project["protocolStatus"], "title" => $oncore_project["title"], "shortTitle" => $oncore_project["shortTitle"]);
+        }
+
+//        //TODO REMOVE THIS THING
+//        $result[$oncore_project["protocolId"]+1] = array("entity_record_id" => 2, "protocolStatus" => $oncore_project["protocolStatus"], "title" => "Second Project", "shortTitle" => "Second Project");
+        return $result;
     }
 
     /**
@@ -686,9 +721,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             [redcap_event_id] => 129
         )
         */
+        //TODO VERIFY THAT getEntityRecord THAT WILL RETURN ALL Protocols with status 2(returns array of records in array, not just single ass array);
         $this->initiateProtocol();
-        $entity_record  = $this->getProtocols()->getEntityRecord();
-        $result         = !empty($entity_record) ? $entity_record : array();
+        $entity_records  = $this->getProtocols()->getEntityRecord();
+        $result          = array();
+        if(!empty($entity_records)){
+            if($this->isAssoc($entity_records)){
+                $entity_records = array($entity_records);
+            }
+        }
+        foreach($entity_records as $oncore_integration){
+            $result[$oncore_integration["oncore_protocol_id"]] = array("entity_record_id" => $oncore_integration["id"], "last_scanned" => date("Y-m-d H:i", $oncore_integration["last_date_scanned"]) );
+        }
         return $result;
     }
 

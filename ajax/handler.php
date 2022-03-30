@@ -21,8 +21,12 @@ try {
                 break;
 
             case "integrateOnCore":
+
+
                 //integrate oncore project(s)!!
-                $result = $module->integrateOnCoreProject();
+                $entity_record_id   = !empty($_POST["entity_record_id"]) ? filter_var($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
+                $integrate          = !empty($_POST["integrate"]) ? filter_var($_POST["integrate"], FILTER_SANITIZE_NUMBER_INT) : null;
+                $result             = $module->integrateOnCoreProject($entity_record_id, $integrate);
                 break;
 
             case "syncDiff":
