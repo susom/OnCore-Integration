@@ -1001,6 +1001,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $id = $project['project_id'];
                 $irb = $project['project_irb_number'];
 
+                if (!$irb) {
+                    continue;
+                }
                 $protocols = $this->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
 
                 if (!empty($protocols)) {
@@ -1017,10 +1020,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                                 'last_date_scanned' => time()
                             );
 
-                            $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
+                            $entity = (new Entities)->create(self::ONCORE_PROTOCOLS, $data);
 
                             if ($entity) {
                                 Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
+                                $this->getProtocols()->setEntityRecord($data);
+                                $this->getProtocols()->prepareProtocolSubjects();
                             } else {
                                 throw new \Exception(implode(',', $this->getProtocols()->errors));
                             }
