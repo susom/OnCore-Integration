@@ -157,6 +157,8 @@ class Protocols
         //TODO update entity table when redcap record or Oncore protocol subject is deleted.
     }
 
+    //TODO add function to Calculate Field Mapping is correct for records (when saving field mappings UI)
+
     /**
      * @return array
      */
