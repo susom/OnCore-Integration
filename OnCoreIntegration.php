@@ -501,10 +501,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function redcap_module_link_check_display($project_id, $link)
     {
-        //RACE CONDITIONs THIS FIRES BEFORE redcap_every_page_top
-        $entity_record = $this->hasOnCoreIntegration();
-        if(!empty($entity_record)){
-            return $link;
+        global $Proj;
+        // only project context
+        if ($Proj) {
+            //RACE CONDITIONs THIS FIRES BEFORE redcap_every_page_top
+            $entity_record = $this->hasOnCoreIntegration();
+            if (!empty($entity_record)) {
+                return $link;
+            }
         }
     }
 
