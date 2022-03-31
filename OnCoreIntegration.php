@@ -4,7 +4,10 @@ namespace Stanford\OnCoreIntegration;
 
 require_once "emLoggerTrait.php";
 require_once 'classes/Users.php';
-require_once 'classes/Entities.php';
+if (class_exists('\REDCapEntity\EntityFactory')) {
+    require_once 'classes/Entities.php';
+}
+
 require_once 'classes/Protocols.php';
 require_once 'classes/Subjects.php';
 require_once 'classes/Projects.php';
@@ -498,10 +501,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function redcap_module_link_check_display($project_id, $link)
     {
-        //RACE CONDITIONs THIS FIRES BEFORE redcap_every_page_top
-        $entity_record = $this->hasOnCoreIntegration();
-        if(!empty($entity_record)){
-            return $link;
+        global $Proj;
+        // only project context
+        if ($Proj) {
+            //RACE CONDITIONs THIS FIRES BEFORE redcap_every_page_top
+            $entity_record = $this->hasOnCoreIntegration();
+            if (!empty($entity_record)) {
+                return $link;
+            }
         }
     }
 
@@ -749,7 +756,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function setProjectFieldMappings($mappings=array())
     {
         $this->initiateProtocol();
-        return $this->getProtocols()->setFieldsMap($mappings);
+        $this->getProtocols()->setFieldsMap($mappings);
     }
 
     /**
@@ -1152,6 +1159,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $id = $project['project_id'];
                 $irb = $project['project_irb_number'];
 
+                if (!$irb) {
+                    continue;
+                }
                 $protocols = $this->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
 
                 if (!empty($protocols)) {
@@ -1168,10 +1178,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                                 'last_date_scanned' => time()
                             );
 
-                            $entity = $this->getProtocols()->create(self::ONCORE_PROTOCOLS, $data);
+                            $entity = (new Entities)->create(self::ONCORE_PROTOCOLS, $data);
 
                             if ($entity) {
                                 Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
+                                $this->getProtocols()->setEntityRecord($data);
+                                $this->getProtocols()->prepareProtocolSubjects();
                             } else {
                                 throw new \Exception(implode(',', $this->getProtocols()->errors));
                             }
