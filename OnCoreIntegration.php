@@ -764,25 +764,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getOnCoreFields()
     {
-        $field_list = self::$ONCORE_DEMOGRAPHICS_FIELDS;
+        $field_list = json_decode(trim($this->getSystemSetting("oncore-field-definition")),true);
         return $field_list;
-    }
-
-    /**
-     * @return array
-     */
-    public function getRequiredOncoreFields(){
-        //TODO WILL THIS BE A GLOBAL EM SETTING JSON ARRAY?
-        return ["subjectSource",
-            "subjectDemographicsId",
-            "mrn",
-            "gender",
-            "ethnicity",
-            "race",
-            "birthDate",
-            "lastName",
-            "firstName",
-            "middleName"];
     }
 
     /**
@@ -790,24 +773,195 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getProjectFields()
     {
+        global $Proj;
+
         $event_fields   = array();
         $events         = \REDCap::getEventNames(true);
+        $dict           = \REDCap::getDataDictionary(PROJECT_ID, "array");
+
         if(!empty($events)){
             foreach($events as $event_id => $event){
                 $temp = \REDCap::getValidFieldsByEvents(PROJECT_ID, array($event));
                 $temp = array_filter($temp, function($v){
                     return !strpos($v, "_complete");
                 });
-                $event_fields[$event] = $temp;
+
+                foreach($temp as $field_name){
+                    $event_fields[$event][] = array(
+                                                 "name" => $field_name
+                                                ,"field_type" => $dict[$field_name]["field_type"]
+                                                ,"select_choices" => $dict[$field_name]["select_choices_or_calculations"]
+                                            );
+                }
             }
         } else {
-            global $Proj;
-            $dict = \REDCap::getDataDictionary(PROJECT_ID, "array");
-            $event_fields[$Proj->getUniqueEventNames($this->getFirstEventId())] = array_keys($dict);
+            $temp = array();
+            foreach($dict as $field_name => $field_details){
+                $temp[] = array(
+                    "name" => $field_name
+                    ,"field_type" => $field_details["field_type"]
+                    ,"select_choices" => $field_details["select_choices_or_calculations"]
+                );
+            }
+            $event_fields[$Proj->getUniqueEventNames($this->getFirstEventId())] = $temp;
         }
-
+//        $this->emDebug($event_fields);
         return $event_fields;
     }
+
+    /**
+     * @return array
+     */
+    public function makeFieldMappingUI(){
+        $project_fields     = $this->getProjectFields();
+        $oncore_fields      = $this->getOnCoreFields();
+        $project_mappings   = $this->getProjectFieldMappings();
+        $redcap_fields      = array();
+
+        //REDCap Data Dictionary Fields w/ generic 'xxx'name
+        $select     = "<select class='form-select form-select-sm mrn_field redcap_field' name='[ONCORE_FIELD]'>\r\n";
+        $select    .= "<option value=-99>-Map REDCap Field-</option>";
+        foreach ($project_fields as $event_name => $fields) {
+            $select .= "<optgroup label='$event_name'>\r\n";
+            foreach ($fields as $field) {
+                $redcap_fields[$field["name"]] = $field;
+                $field_choices = array();
+                if(!empty($field["select_choices"])){
+                    $temp = explode("|", $field["select_choices"]);
+                    foreach($temp as $temp2){
+                        $temp3  = explode(",",$temp2);
+                        $rc_i   = trim($temp3[0]);
+                        $rc_v   = trim($temp3[1]);
+                        $field_choices[$rc_i] = $rc_v;
+                    }
+                }
+
+                $select .= "<option data-eventname='$event_name' data-value_set='".json_encode($field_choices)."' data-type='{$field["field_type"]}' value='{$field["name"]}'>{$field["name"]}</option>\r\n";
+            }
+            $select .= "</optgroup>\r\n";
+        }
+        $select .= "</select>\r\n";
+
+        //OnCore Static Field names need mapping to REDCap fields
+        $required_html  = "";
+        $not_required   = "";
+        $not_shown      = 0;
+        foreach ($oncore_fields as $field => $field_details) {
+            //each select will have different input['name']
+            $map_select     = str_replace("[ONCORE_FIELD]", $field, $select);
+            $pull_status    = "";
+            $push_status    = "";
+
+            $required       = null;
+            $event_name     = null;
+
+            $rc_field       = $project_mappings[$field];
+            $ftype          = $rc_field["field_type"];
+            $oncore_type    = current($field_details["oncore_field_type"]);
+            $oncore_vset    = $field_details["oncore_valid_values"];
+
+            if( $field_details["required"] == "true" ){
+                $required = "required";
+            }
+
+            $special_oncore = $oncore_type != "text" || !empty($oncore_vset) ;
+
+            $value_map_html = "";
+
+            if (array_key_exists($field, $project_mappings) && 1==2) {
+                $selected       = "selected";
+                $rc             = $rc_field["redcap_field"];
+                $event_name     = $rc_field["event"];
+                $redcap_vset    = explode(" | ", $redcap_fields[$rc]["select_choices"]);
+
+                if($ftype == "text"){
+                    $pull_icon      = "fa-check-circle";
+                }
+                if($oncore_type == "text"){
+                    $push_icon      = "fa-check-circle";
+                }
+
+                //MAP REDCAP VALUES
+                $v_select = "";
+                $rc_vset  = array();
+                if(!empty($redcap_vset)){
+                    $v_select     = "<select class='form-select form-select-sm redcap_value' name='[ONCORE_FIELD_VALUE]'>\r\n";
+                    $v_select    .= "<option value=-99>-Map REDCap Value-</option>";
+                    foreach ($redcap_vset as $rc_value) {
+                        $temp       = explode(",",$rc_value);
+                        $rc_idx     = trim($temp[0]);
+                        $v_select .= "<option value='$rc_idx'>$rc_value</option>\r\n";
+                        $rc_vset[$rc_idx] = $rc_value;
+                    }
+                    $v_select .= "</select>\r\n";
+                }
+
+                $vmapping = array();
+                if($special_oncore){
+                    $vmaps      = $rc_field["value_mapping"];
+                    if(!empty($vmaps)){
+                        foreach($vmaps as $map){
+                            $vmapping[$map["oc"]] = $map["rc"];
+                        }
+                    }
+
+                    // IF OVER LAPPING MAPPING OF VALUES THEN PULL AND PUSH IS POSSIBLE
+                    $push_icon = empty(array_diff($oncore_vset, array_keys($vmapping)) ) ? "fa-check-circle" : "fa-times-circle"  ;
+                    $pull_icon = empty(array_diff(array_keys($rc_vset) , array_values($vmapping)) ) ? "fa-check-circle" : "fa-times-circle" ;
+
+                    $value_map_html .= "<tr class='$field more'><td colspan='4'>\r\n<table class='value_map'>";
+                    $value_map_html .= "<tr><th class='td_oc_vset'>Oncore Value Set</th><th class='td_rc_vset'>Redcap Value Set</th><th class='centered td_map_status'>Map Status</th></tr>\r\n";
+                    foreach($oncore_vset as $idx=> $oc_value){
+                        $value_map_status = "fa-times-circle"; //"fa-check-circle";
+
+                        $value_select     = str_replace("[ONCORE_FIELD_VALUE]", $field."_$idx", $v_select);
+                        if(array_key_exists($oc_value, $vmapping)){
+                            $rc_val         = $vmapping[$oc_value];
+                            $value_select   = str_replace("'$rc_val'", "'$rc_val' selected", $value_select);
+                            $value_map_status = "fa-check-circle";
+                        }
+                        $value_map_html .= "<tr>\r\n";
+                        $value_map_html .= "<td>$oc_value</td>\r\n";
+                        $value_map_html .= "<td>$value_select</td>\r\n";
+                        $value_map_html .= "<td class='centered'><i class='fa $value_map_status'></i></td>\r\n";
+                        $value_map_html .= "</tr>\r\n";
+                    }
+                    $value_map_html .= "</table>\r\n</td><td colspan='2'></td></tr>\r\n";
+                }
+                $map_select     = str_replace("'$rc'", "'$rc' $selected", $map_select);
+            }
+
+            if(!$required){
+                $not_shown++;
+                $not_required .= "<tr class='$field notrequired'>\r\n";
+                $not_required .= "<td class='oc_field'>$field</td>";
+                $not_required .= "<td class='oc_type'>$oncore_type</td>";
+                $not_required .= "<td class='rc_selects'>$map_select</td>";
+                $not_required .= "<td class='rc_event'>$event_name</td>";
+                $not_required .= "<td class='centered status pull $pull_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
+                $not_required .= "<td class='centered status push $push_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
+                $not_required .= "</tr>\r\n";
+                if(!empty($value_map_html)){
+                    $not_required .= $value_map_html;
+                }
+            }else{
+                $required_html .= "<tr class='$field $required'>\r\n";
+                $required_html .= "<td class='oc_field'>$field</td>";
+                $required_html .= "<td class='oc_type'>$oncore_type</td>";
+                $required_html .= "<td class='rc_selects'>$map_select</td>";
+                $required_html .= "<td class='rc_event'>$event_name</td>";
+                $required_html .= "<td class='centered status pull $pull_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
+                $required_html .= "<td class='centered status push $push_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
+                $required_html .= "</tr>\r\n";
+                if(!empty($value_map_html)){
+                    $required_html .= $value_map_html;
+                }
+            }
+        }
+
+        return array("required" => $required_html, "not_required" => $not_required, "project_mappings" => $project_mappings, "oncore_fields" => $oncore_fields);
+    }
+
 
     /**
      * @return sync_diff

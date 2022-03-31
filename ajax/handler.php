@@ -15,14 +15,24 @@ try {
         switch ($action) {
             case "saveMapping":
                 //Saves to em project settings
-                //expected format = array("oncore_field1" => ["redcap_field" => "redcap_field1" , "event" => "baseline_arm_1"]);
-                $result = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
+                /*
+                 *expected structure
+    //                 "oncore_field": {
+//                      "redcap_field": "",
+//                      "event":"",
+//                      "field_type" : ""
+//                      value_mapping : [{"oc" :  oncore_value , "rc" : redcap_value }]
+//               }
+                */
+
+                $result = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"],FILTER_SANITIZE_STRING) : null;
+                $module->emDebug("what the fuck now", $result);
                 $module->setProjectFieldMappings($result);
+
+
                 break;
 
             case "integrateOnCore":
-
-
                 //integrate oncore project(s)!!
                 $entity_record_id   = !empty($_POST["entity_record_id"]) ? filter_var($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
                 $integrate          = !empty($_POST["integrate"]) ? filter_var($_POST["integrate"], FILTER_SANITIZE_NUMBER_INT) : null;
