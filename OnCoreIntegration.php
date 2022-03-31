@@ -809,6 +809,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         $this->initiateProtocol();
         $this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
+
         $records        = $this->getProtocols()->getSyncedRecords();
         $mapped_fields  = $this->getProjectFieldMappings();
 
@@ -822,6 +823,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         foreach($records as $record){
             $link_status    = $record["status"];
             $entity_id      = $record["entity_id"];
+
             $excluded       = $record["excluded"] ?? 0;
             $oncore         = null;
             $redcap         = null;
