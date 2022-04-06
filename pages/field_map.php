@@ -6,7 +6,6 @@ namespace Stanford\OnCoreIntegration;
 
 $ajax_endpoint = $module->getUrl("ajax/handler.php");
 $mapping = $module->getMapping();
-//$mapping->fuckyou();
 //exit;
 
 $field_map_ui = $module->getMapping()->makeFieldMappingUI();
