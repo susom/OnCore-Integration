@@ -5,7 +5,6 @@ namespace Stanford\OnCoreIntegration;
 use \Exception;
 use \GuzzleHttp;
 
-require_once 'classes/Entities.php';
 require_once 'classes/SubjectDemographics.php';
 
 class Subjects extends SubjectDemographics
