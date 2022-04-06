@@ -6,10 +6,8 @@ namespace Stanford\OnCoreIntegration;
 
 $ajax_endpoint  = $module->getUrl("ajax/handler.php");
 $mapping        = $module->getMapping();
-$mapping->fuckyou();
-exit;
 
-$field_map_ui       = $module->makeFieldMappingUI();
+$field_map_ui       = $mapping->makeFieldMappingUI();
 $required_html      = $field_map_ui["required"];
 $not_required       = $field_map_ui["not_required"];
 $oncore_fields      = $field_map_ui["oncore_fields"];
