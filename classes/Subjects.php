@@ -417,4 +417,73 @@ class Subjects extends SubjectDemographics
         }
         $this->syncedRecords = $result;
     }
+
+    /**
+     * @param string $protocolId
+     * @param string $studySite
+     * @param int $subjectDemographicsId
+     * @param array $subjectDemographics
+     * @return array
+     * @throws Exception
+     */
+    public function createOnCoreProtocolSubject($protocolId, $studySite, $subjectDemographicsId = null, $subjectDemographics = null): array
+    {
+        if (!$protocolId) {
+            throw new \Exception('Protocol is missing');
+        }
+
+        if (!$studySite) {
+            throw new \Exception('Study site is missing');
+        }
+        if (!$subjectDemographicsId && !$subjectDemographics) {
+            throw new \Exception('You must have either Subject demographic ID or Subject Demographics Object');
+        }
+
+
+        if ($subjectDemographics) {
+            $keys = array_keys($subjectDemographics);
+            $intersect = array_intersect($keys, OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS);
+            /**
+             * make sure all required fields exists
+             */
+            if ($intersect != OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS) {
+                if (count($intersect) > count(OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS)) {
+                    $diff = array_diff($intersect, OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS);
+                } else {
+                    $diff = array_diff(OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS, $intersect);
+                }
+                throw new \Exception("Following field/s are missing: " . implode(',', $diff));
+            }
+
+            /**
+             * make sure all required fields have values
+             */
+            $errors = [];
+            foreach (OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS as $field) {
+                if ($subjectDemographics[$field] == '') {
+                    $errors[] = $field;
+                }
+            }
+
+            if (!empty($errors)) {
+                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
+            }
+        }
+
+        $jwt = $this->getUser()->getAccessToken();
+        $response = $this->getUser()->getGuzzleClient()->post($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolSubjects', [
+            'debug' => false,
+            'form_params' => ['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographicsId' => $subjectDemographicsId, 'subjectDemographics' => $subjectDemographics],
+            'headers' => [
+                'Authorization' => "Bearer {$jwt}",
+            ]
+        ]);
+
+        if ($response->getStatusCode() == 201) {
+            return array('status' => 'success');
+        } else {
+            $data = json_decode($response->getBody(), true);
+            return $data;
+        }
+    }
 }
