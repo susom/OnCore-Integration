@@ -536,4 +536,34 @@ class Mapping
 
         return array("required" => $required_html, "not_required" => $not_required, "project_mappings" => $project_mappings, "oncore_fields" => $oncore_fields);
     }
+
+    /**
+     * @param $OnCoreValue
+     * @param $mappedValues
+     * @return array|mixed
+     */
+    public static function getOnCoreMappedValue($OnCoreValue, $mappedValues)
+    {
+        foreach ($mappedValues as $mappedValue) {
+            if ($OnCoreValue == $mappedValue['oc']) {
+                return $mappedValue;
+            }
+        }
+        return [];
+    }
+
+    /**
+     * @param $REDCapValue
+     * @param $mappedValues
+     * @return array|mixed
+     */
+    public static function getREDCapMappedValue($REDCapValue, $mappedValues)
+    {
+        foreach ($mappedValues as $mappedValue) {
+            if ($REDCapValue == $mappedValue['rc']) {
+                return $mappedValue;
+            }
+        }
+        return [];
+    }
 }

@@ -171,8 +171,42 @@ class Subjects extends SubjectDemographics
     public function determineSyncedRecordMatch($onCoreSubject, $redcapRecord, $fields)
     {
         foreach ($fields as $key => $field) {
-            if ($onCoreSubject['demographics'][$key] != $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']]) {
-                return OnCoreIntegration::PARTIAL_MATCH;
+            // has mapped values
+            if (isset($field['value_mapping'])) {
+                // oncore is array of text ie. race
+                $parsed = json_decode($onCoreSubject['demographics'][$key], true);
+                if (is_array($parsed)) {
+                    // if redcap field is checkbox
+                    if ($field['field_type'] == 'checkbox') {
+                        // get array of 0/1 from redcap for checkboxes
+                        $rc = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                        foreach ($parsed as $item) {
+                            $map = Mapping::getOnCoreMappedValue($item, $field['value_mapping']);
+                            // if the oncore value mapped redcap checkbox is not check then partial match
+                            if (!$rc[$map['rc']]) {
+                                return OnCoreIntegration::PARTIAL_MATCH;
+                            }
+                        }
+                    } else {
+                        // if redcap is text or radio then every race must match the redcap value
+                        foreach ($onCoreSubject['demographics'][$key] as $item) {
+                            $map = Mapping::getOnCoreMappedValue($item, $field['value_mapping']);
+                            // if the oncore value mapped redcap checkbox is not check then partial match
+                            if ($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']] != $map['rc']) {
+                                return OnCoreIntegration::PARTIAL_MATCH;
+                            }
+                        }
+                    }
+                } else {
+                    $map = Mapping::getOnCoreMappedValue($onCoreSubject['demographics'][$key], $field['value_mapping']);
+                    if ($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']] != $map['rc']) {
+                        return OnCoreIntegration::PARTIAL_MATCH;
+                    }
+                }
+            } else {
+                if ($onCoreSubject['demographics'][$key] != $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']]) {
+                    return OnCoreIntegration::PARTIAL_MATCH;
+                }
             }
         }
         return OnCoreIntegration::FULL_MATCH;

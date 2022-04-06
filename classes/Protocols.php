@@ -423,9 +423,9 @@ class Protocols
             throw new \Exception('REDCap project ID can not be null');
         }
         if ($irbNum != '') {
-            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where irb_number = " . $irbNum . " AND redcap_project_id = " . $redcapProjectId . " ");
+            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where irb_number = " . $irbNum . " AND redcap_project_id = " . $redcapProjectId . " AND status = " . OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES . " ");
         } else {
-            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where redcap_project_id = " . $redcapProjectId . " ");
+            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where redcap_project_id = " . $redcapProjectId . " AND status = " . OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES . " ");
         }
         if ($record->num_rows == 0) {
             return [];
