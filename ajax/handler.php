@@ -26,9 +26,9 @@ try {
                 */
 
                 $result = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"],FILTER_SANITIZE_STRING) : null;
-                $module->emDebug("what the fuck now", $result);
-                $module->setProjectFieldMappings($result);
+                $module->getMapping()->setProjectFieldMappings($result);
 
+                //TODO SAVE ON EVERY CHANGE?  THEN SEND BACK AND UPDATE UI?
 
                 break;
 

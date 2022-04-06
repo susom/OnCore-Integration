@@ -5,14 +5,20 @@ namespace Stanford\OnCoreIntegration;
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
 $ajax_endpoint  = $module->getUrl("ajax/handler.php");
+$mapping        = $module->getMapping();
+$mapping->fuckyou();
+exit;
 
-$field_map_ui   = $module->makeFieldMappingUI();
-$required_html  = $field_map_ui["required"];
-$not_required   = $field_map_ui["not_required"];
-$oncore_fields  = $field_map_ui["oncore_fields"];
-$project_mappings = $field_map_ui["project_mappings"];
+$field_map_ui       = $module->makeFieldMappingUI();
+$required_html      = $field_map_ui["required"];
+$not_required       = $field_map_ui["not_required"];
+$oncore_fields      = $field_map_ui["oncore_fields"];
+$project_mappings   = $field_map_ui["project_mappings"];
 
-$module->emDebug("project_mappings", $project_mappings);
+
+
+
+//$module->emDebug("project_mappings", $project_mappings);
 ?>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
@@ -134,8 +140,6 @@ $module->emDebug("project_mappings", $project_mappings);
                 if(rc_props.hasOwnProperty("value_mapping") && rc_props["value_mapping"].length){
                     var value_mapping = rc_props["value_mapping"];
                     makeValueMappingRow(oc_field, oc_vset, rc_vset, value_mapping);
-
-                    //fuck this is redundant
                     $("tr.more."+oc_field).find("select.redcap_value").each(function(){
                         if($(this).find("option:selected")){
                             var _opt    = $(this).find("option:selected");
@@ -161,6 +165,10 @@ $module->emDebug("project_mappings", $project_mappings);
                         }
                     });
                 }
+
+
+
+
 
                 var pull_status = "";
                 var push_status = "";
@@ -314,8 +322,29 @@ $module->emDebug("project_mappings", $project_mappings);
         });
     });
 
-    function changeStatus(_el){
+    function changeStatus(_el, rc_type, oc_vset, rc_vset, value_mapping){
+        var pull_status = "";
+        var push_status = "";
 
+        var vmap_format = formatVMAP(value_mapping);
+        if(Object.keys(vmap_format).length){
+            let redcap_coverage = Object.keys(rc_vset).filter(x => !Object.values(vmap_format).includes(x));
+            let oncore_coverage = oc_vset.filter(x => !Object.keys(vmap_format).includes(x));
+
+            if(!redcap_coverage.length){
+                push_status = "ok";
+            }
+
+            if(!oncore_coverage.length){
+                pull_status = "ok";
+            }
+        }else if(rc_type == "text"){
+            pull_status = "ok";
+            push_status = "ok";
+        }
+
+        _el.closest("tr").find("td.status.pull").addClass(pull_status);
+        _el.closest("tr").find("td.status.push").addClass(push_status);
     }
 
     function formatVMAP(value_mapping){
