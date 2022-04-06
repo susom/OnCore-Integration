@@ -57,8 +57,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const NO = 0;
 
+    const ONCORE_SUBJECT_SOURCE_TYPE_ONCORE = 'OnCore';
+
+    const ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE = 'OnStage';
+
     public static $ONCORE_DEMOGRAPHICS_FIELDS = array(
-        "subjectSource",
         "subjectDemographicsId",
         "mrn",
         "gender",
@@ -87,6 +90,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         "phoneNo",
         "alternatePhoneNo",
         "email");
+
+
+    public static $ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS = array(
+        "subjectSource",
+        "mrn",
+        "gender",
+        "ethnicity",
+        "race",
+        "birthDate",
+        "lastName",
+        "firstName",
+    );
     /**
      * @var Users
      */
@@ -518,31 +533,29 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     }
 
 
-
-
     //ONCORE INTEGRATION/STATUS METHODS
     public function injectIntegrationUI()
     {
         $field_map_url = $this->getUrl("pages/field_map.php");
         $ajax_endpoint = $this->getUrl("ajax/handler.php");
 
-        $available_oncore_projects  = $this->hasOnCoreProject();
-        $oncore_integrations        = $this->hasOnCoreIntegration();
+        $available_oncore_projects = $this->hasOnCoreProject();
+        $oncore_integrations = $this->hasOnCoreIntegration();
         ?>
         <script>
             var has_oncore_projects = <?=json_encode($available_oncore_projects); ?>;
-            var oncore_integrated   = <?=json_encode($oncore_integrations); ?>;
-            var has_field_mappings  = <?=json_encode(!empty($this->getMapping()->getProjectFieldMappings())); ?>;
-            var last_adjudication   = <?=json_encode($this->getSyncDiffSummary()); ?>;
+            var oncore_integrated = <?=json_encode($oncore_integrations); ?>;
+            var has_field_mappings = <?=json_encode(!empty($this->getMapping()->getProjectFieldMappings())); ?>;
+            var last_adjudication = <?=json_encode($this->getSyncDiffSummary()); ?>;
 
-            var ajax_endpoint       = "<?=$ajax_endpoint?>";
-            var field_map_url       = "<?=$field_map_url?>";
+            var ajax_endpoint = "<?=$ajax_endpoint?>";
+            var field_map_url = "<?=$field_map_url?>";
 
-            var make_oncore_module  = function(){
-                if($("#setupChklist-modify_project").length){
+            var make_oncore_module = function () {
+                if ($("#setupChklist-modify_project").length) {
                     //BORROW HTML FROM EXISTING UI ON SET UP PAGE
                     var new_section = $("#setupChklist-modules").clone();
-                    new_section.attr("id","integrateOnCore-modules");
+                    new_section.attr("id", "integrateOnCore-modules");
                     new_section.find(".chklist_comp").remove();
                     new_section.find(".chklisthdr span").text("OnCore Project Integration");
                     new_section.find(".chklisttext").empty();
@@ -726,19 +739,19 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         */
         //TODO VERIFY THAT getEntityRecord THAT WILL RETURN ALL Protocols with status 2(returns array of records in array, not just single ass array);
         $this->initiateProtocol();
-        $entity_records  = $this->getProtocols()->getEntityRecord();
-        $result          = array();
-        if(!empty($entity_records)){
-            if($this->isAssoc($entity_records)){
+        $entity_records = $this->getProtocols()->getEntityRecord();
+        $result = array();
+        if (!empty($entity_records)) {
+            if ($this->isAssoc($entity_records)) {
                 $entity_records = array($entity_records);
             }
         }
-        foreach($entity_records as $oncore_integration){
-            $result[$oncore_integration["oncore_protocol_id"]] = array("entity_record_id" => $oncore_integration["id"], "last_scanned" => date("Y-m-d H:i", $oncore_integration["last_date_scanned"]) );
+        foreach ($entity_records as $oncore_integration) {
+            $result[$oncore_integration["oncore_protocol_id"]] = array("entity_record_id" => $oncore_integration["id"], "last_scanned" => date("Y-m-d H:i", $oncore_integration["last_date_scanned"]));
         }
 
         //Instantiate Mapping Class
-        $this->setMapping(new Mapping($this) );
+        $this->setMapping(new Mapping($this));
         return $result;
     }
 
@@ -752,8 +765,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $this->initiateProtocol();
         $this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
 
-        $records        = $this->getProtocols()->getSyncedRecords();
-        $mapped_fields  = $this->getMapping()->getProjectFieldMappings();
+        $records = $this->getProtocols()->getSyncedRecords();
+        $mapped_fields = $this->getMapping()->getProjectFieldMappings();
 
         $sync_diff  = array();
         $bin_match  = array("excluded" => array(), "included" => array());
@@ -878,7 +891,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     /**
      * @return null
      */
-    public function updateLinkage($entity_record_id, $data){
+    public function updateLinkage($entity_record_id, $data)
+    {
         $this->initiateProtocol();
         $this->getProtocols()->getSubjects()->updateLinkageRecord($entity_record_id, $data);
         return;
@@ -888,10 +902,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
 
     //REFERENCES TO HELPER CLASSES
+
     /**
      * @param Mapping $mapping
      */
-    public function setMapping(Mapping $mapping): void{
+    public function setMapping(Mapping $mapping): void
+    {
         $this->mapping = $mapping;
     }
 
@@ -901,7 +917,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function getMapping(): Mapping
     {
         if (!$this->mapping) {
-            $this->setFieldMapping(new Mapping($this));
+            $this->setMapping(new Mapping($this));
         }
         return $this->mapping;
     }

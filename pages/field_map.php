@@ -4,16 +4,14 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-$ajax_endpoint  = $module->getUrl("ajax/handler.php");
-$mapping        = $module->getMapping();
+$ajax_endpoint = $module->getUrl("ajax/handler.php");
+$mapping = $module->getMapping();
 
-$field_map_ui       = $mapping->makeFieldMappingUI();
-$required_html      = $field_map_ui["required"];
-$not_required       = $field_map_ui["not_required"];
-$oncore_fields      = $field_map_ui["oncore_fields"];
-$project_mappings   = $field_map_ui["project_mappings"];
-
-
+$field_map_ui = $mapping->makeFieldMappingUI();
+$required_html = $field_map_ui["required"];
+$not_required = $field_map_ui["not_required"];
+$oncore_fields = $field_map_ui["oncore_fields"];
+$project_mappings = $field_map_ui["project_mappings"];
 
 
 //$module->emDebug("project_mappings", $project_mappings);
@@ -148,42 +146,39 @@ $project_mappings   = $field_map_ui["project_mappings"];
 
                             var temp    = $(this).attr("name").split("_");
                             var oc_field    = temp[0];
-                            var oc_val_i    = temp[1];
+                            var oc_val_i = temp[1];
 
-                            if($("select[name='"+oc_field+"']").find("option:selected").length){
-                                var val_mapping = $("select[name='"+oc_field+"']").find("option:selected").data("val_mapping");
-                                if(!val_mapping){
+                            if ($("select[name='" + oc_field + "']").find("option:selected").length) {
+                                var val_mapping = $("select[name='" + oc_field + "']").find("option:selected").data("val_mapping");
+                                if (!val_mapping) {
                                     val_mapping = {};
                                 }
                                 var oset = oncore_fields[oc_field]["oncore_valid_values"];
                                 val_mapping[oset[oc_val_i]] = rc_val;
 
-                                $("select[name='"+oc_field+"']").find("option:selected").data("val_mapping", val_mapping);
+                                $("select[name='" + oc_field + "']").find("option:selected").data("val_mapping", val_mapping);
                             }
                         }
                     });
                 }
 
 
-
-
-
                 var pull_status = "";
                 var push_status = "";
 
                 var vmap_format = formatVMAP(value_mapping);
-                if(Object.keys(vmap_format).length){
+                if (Object.keys(vmap_format).length) {
                     let redcap_coverage = Object.keys(rc_vset).filter(x => !Object.values(vmap_format).includes(x));
                     let oncore_coverage = oc_vset.filter(x => !Object.keys(vmap_format).includes(x));
 
-                    if(!redcap_coverage.length){
+                    if (!redcap_coverage.length) {
                         push_status = "ok";
                     }
 
-                    if(!oncore_coverage.length){
+                    if (!oncore_coverage.length) {
                         pull_status = "ok";
                     }
-                }else if(rc_type == "text"){
+                } else if (rc_type == "text") {
                     pull_status = "ok";
                     push_status = "ok";
                 }
@@ -301,42 +296,42 @@ $project_mappings   = $field_map_ui["project_mappings"];
 
                 var temp    = $(this).attr("name").split("_");
                 var oc_field    = temp[0];
-                var oc_val_i    = temp[1];
+                var oc_val_i = temp[1];
 
-                if($("select[name='"+oc_field+"']").find("option:selected").length){
-                    var val_mapping = $("select[name='"+oc_field+"']").find("option:selected").data("val_mapping");
-                    if(!val_mapping){
+                if ($("select[name='" + oc_field + "']").find("option:selected").length) {
+                    var val_mapping = $("select[name='" + oc_field + "']").find("option:selected").data("val_mapping");
+                    if (!val_mapping) {
                         val_mapping = {};
                     }
                     var oset = oncore_fields[oc_field]["oncore_valid_values"];
-                    if(rc_val == -99 && val_mapping.hasOwnProperty(oset[oc_val_i])){
+                    if (rc_val == -99 && val_mapping.hasOwnProperty(oset[oc_val_i])) {
                         delete val_mapping[oset[oc_val_i]];
-                    }else{
+                    } else {
                         val_mapping[oset[oc_val_i]] = rc_val;
                     }
-                    $("select[name='"+oc_field+"']").find("option:selected").data("val_mapping", val_mapping);
+                    $("select[name='" + oc_field + "']").find("option:selected").data("val_mapping", val_mapping);
                 }
             }
         });
     });
 
-    function changeStatus(_el, rc_type, oc_vset, rc_vset, value_mapping){
+    function changeStatus(_el, rc_type, oc_vset, rc_vset, value_mapping) {
         var pull_status = "";
         var push_status = "";
 
         var vmap_format = formatVMAP(value_mapping);
-        if(Object.keys(vmap_format).length){
+        if (Object.keys(vmap_format).length) {
             let redcap_coverage = Object.keys(rc_vset).filter(x => !Object.values(vmap_format).includes(x));
             let oncore_coverage = oc_vset.filter(x => !Object.keys(vmap_format).includes(x));
 
-            if(!redcap_coverage.length){
+            if (!redcap_coverage.length) {
                 push_status = "ok";
             }
 
-            if(!oncore_coverage.length){
+            if (!oncore_coverage.length) {
                 pull_status = "ok";
             }
-        }else if(rc_type == "text"){
+        } else if (rc_type == "text") {
             pull_status = "ok";
             push_status = "ok";
         }
@@ -345,19 +340,19 @@ $project_mappings   = $field_map_ui["project_mappings"];
         _el.closest("tr").find("td.status.push").addClass(push_status);
     }
 
-    function formatVMAP(value_mapping){
+    function formatVMAP(value_mapping) {
         var val_mapping = {};
-        for(var i in value_mapping){
+        for (var i in value_mapping) {
             var map = value_mapping[i];
             val_mapping[map["oc"]] = map["rc"];
         }
         return val_mapping;
     }
 
-    function makeValueMappingRow(oncore_field, oncore_vset, redcap_vset, value_mapping){
+    function makeValueMappingRow(oncore_field, oncore_vset, redcap_vset, value_mapping) {
         var val_mapping = formatVMAP(value_mapping);
-        var main_tr     = $("<tr>").addClass("more").addClass(oncore_field);
-        var main_td     = $("<td>").attr("colspan",4);
+        var main_tr = $("<tr>").addClass("more").addClass(oncore_field);
+        var main_td = $("<td>").attr("colspan", 4);
         var junk_td     = $("<td>").attr("colspan",2);
         var row_table   = $("<table>").addClass("value_map");
         var table_bdy   = $("<tbody>");

@@ -171,8 +171,42 @@ class Subjects extends SubjectDemographics
     public function determineSyncedRecordMatch($onCoreSubject, $redcapRecord, $fields)
     {
         foreach ($fields as $key => $field) {
-            if ($onCoreSubject['demographics'][$key] != $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']]) {
-                return OnCoreIntegration::PARTIAL_MATCH;
+            // has mapped values
+            if (isset($field['value_mapping'])) {
+                // oncore is array of text ie. race
+                $parsed = json_decode($onCoreSubject['demographics'][$key], true);
+                if (is_array($parsed)) {
+                    // if redcap field is checkbox
+                    if ($field['field_type'] == 'checkbox') {
+                        // get array of 0/1 from redcap for checkboxes
+                        $rc = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                        foreach ($parsed as $item) {
+                            $map = Mapping::getOnCoreMappedValue($item, $field['value_mapping']);
+                            // if the oncore value mapped redcap checkbox is not check then partial match
+                            if (!$rc[$map['rc']]) {
+                                return OnCoreIntegration::PARTIAL_MATCH;
+                            }
+                        }
+                    } else {
+                        // if redcap is text or radio then every race must match the redcap value
+                        foreach ($onCoreSubject['demographics'][$key] as $item) {
+                            $map = Mapping::getOnCoreMappedValue($item, $field['value_mapping']);
+                            // if the oncore value mapped redcap checkbox is not check then partial match
+                            if ($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']] != $map['rc']) {
+                                return OnCoreIntegration::PARTIAL_MATCH;
+                            }
+                        }
+                    }
+                } else {
+                    $map = Mapping::getOnCoreMappedValue($onCoreSubject['demographics'][$key], $field['value_mapping']);
+                    if ($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']] != $map['rc']) {
+                        return OnCoreIntegration::PARTIAL_MATCH;
+                    }
+                }
+            } else {
+                if ($onCoreSubject['demographics'][$key] != $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']]) {
+                    return OnCoreIntegration::PARTIAL_MATCH;
+                }
             }
         }
         return OnCoreIntegration::FULL_MATCH;
@@ -416,5 +450,131 @@ class Subjects extends SubjectDemographics
             }
         }
         $this->syncedRecords = $result;
+    }
+
+    /**
+     * @param string $protocolId
+     * @param string $studySite
+     * @param int $subjectDemographicsId
+     * @param array $subjectDemographics
+     * @return array
+     * @throws Exception
+     */
+    public function createOnCoreProtocolSubject($protocolId, $studySite, $subjectDemographicsId = null, $subjectDemographics = null): array
+    {
+        if (!$protocolId) {
+            throw new \Exception('Protocol is missing');
+        }
+
+        if (!$studySite) {
+            throw new \Exception('Study site is missing');
+        }
+        if (!$subjectDemographicsId && !$subjectDemographics) {
+            throw new \Exception('You must have either Subject demographic ID or Subject Demographics Object');
+        }
+
+
+        if ($subjectDemographics) {
+            $keys = array_keys($subjectDemographics);
+            $intersect = array_values(array_intersect($keys, OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS));
+            /**
+             * make sure all required fields exists
+             */
+            $required = OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS;
+            sort($required);
+            sort($intersect);
+            if ($intersect != $required) {
+                if (count($intersect) > count(OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS)) {
+                    $diff = array_diff($intersect, OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS);
+                } else {
+                    $diff = array_diff(OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS, $intersect);
+                }
+                throw new \Exception("Following field/s are missing: " . implode(',', $diff));
+            }
+
+            /**
+             * make sure all required fields have values
+             */
+            $errors = [];
+            foreach (OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS as $field) {
+                if ($subjectDemographics[$field] == '') {
+                    $errors[] = $field;
+                }
+            }
+
+            if (!empty($errors)) {
+                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
+            }
+        }
+        $jwt = $this->getUser()->getAccessToken();
+        $response = $this->getUser()->getGuzzleClient()->post($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolSubjects', [
+            'debug' => true,
+            'body' => json_encode(['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographics' => $subjectDemographics]),
+            'headers' => ['Authorization' => "Bearer {$jwt}", 'Content-Type' => 'application/json', 'Accept' => 'application/json'],
+        ]);
+
+        if ($response->getStatusCode() == 201) {
+            return array('status' => 'success');
+        } else {
+            $data = json_decode($response->getBody(), true);
+            return $data;
+        }
+    }
+
+    /**
+     * @param $redcapId
+     * @param $fields
+     * @return array
+     * @throws Exception
+     */
+    public function prepareREDCapRecordForOnCorePush($redcapId, $fields, $oncoreFieldsDef)
+    {
+        $record = $this->getRedcapProjectRecords()[$redcapId];
+        $data = [];
+        foreach ($fields as $key => $field) {
+            $redcapValue = $record[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+            if (!isset($field['value_mapping'])) {
+
+                $a = gettype($redcapValue);
+                if (!in_array($a, $oncoreFieldsDef[$key]['oncore_field_type'])) {
+                    throw new \Exception('datatype does not match');
+                }
+                $data[$key] = $redcapValue;
+            } else {
+                if (in_array('array', $oncoreFieldsDef[$key]['oncore_field_type'])) {
+                    $redcapValue = $record[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                    //redcap is checkbox
+                    $options = [];
+                    if (is_array($redcapValue)) {
+                        foreach ($redcapValue as $id => $value) {
+                            //checkbox not checked
+                            if (!$value) {
+                                continue;
+                            }
+                            $map = Mapping::getREDCapMappedValue($id, $field['value_mapping']);
+                            if (!$map) {
+                                throw new \Exception('cant find map for redcap value ' . $id);
+                            }
+                            $options[] = $map['oc'];
+                        }
+                        $data[$key] = $options;
+                    } else {
+                        $map = Mapping::getREDCapMappedValue($redcapValue, $field['value_mapping']);
+                        if (!$map) {
+                            throw new \Exception('cant find map for redcap value ' . $redcapValue);
+                        }
+                        $data[$key] = $map['oc'];
+                    }
+                } else {
+                    $map = Mapping::getREDCapMappedValue($redcapValue, $field['value_mapping']);
+                    if (!$map) {
+                        throw new \Exception('cant find map for redcap value ' . $redcapValue);
+                    }
+                    $data[$key] = $map['oc'];
+                }
+            }
+
+        }
+        return $data;
     }
 }
