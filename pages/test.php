@@ -22,9 +22,10 @@ namespace Stanford\OnCoreIntegration;
 
 try {
     $module->initiateProtocol();
+//    $demographics = $module->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush(6, $module->getProtocols()->getFieldsMap(), $module->getMapping()->getOnCoreFieldDefinitions());
+//    $records = $module->getProtocols()->getSubjects()->createOnCoreProtocolSubject( $module->getProtocols()->getEntityRecord()['oncore_protocol_id'], 'SHC Main Hosp, Welch Rd & campus/nearby clinics',  null, $demographics);
     $module->getProtocols()->processSyncedRecords();
-//    $records = $module->getProtocols()->getSyncedRecords();
-    $records = $module->getSyncDiffSummary();
+    $records = $module->getProtocols()->getSyncedRecords();
     echo '<pre>';
     print_r($records);
     echo '</pre>';
