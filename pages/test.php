@@ -34,7 +34,7 @@ namespace Stanford\OnCoreIntegration;
 //}
 try {
     $module->initiateProtocol();
-    $records = $module->getProtocols()->getUser()->getOnCoreContact();
+    $records = $module->getProtocols()->getUser()->getOnCoreAdmin();
     echo '<pre>';
     print_r($records);
     echo '</pre>';

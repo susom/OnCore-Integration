@@ -65,6 +65,9 @@ class Users extends Clients
      */
     public function isOnCoreContactAllowedToPush()
     {
+        if (empty($this->getRolesAllowedToPush())) {
+            return false;
+        }
         return in_array($this->getOnCoreContact()['role'], $this->getRolesAllowedToPush());
     }
 
