@@ -122,6 +122,12 @@
             "type": "textarea"
         },
         {
+            "key": "oncore-roles-allowed-to-push",
+            "name": "<b>JSON Object that defines OnCore Roles that are allowed to create Subjects in OnCore</b>",
+            "required": true,
+            "type": "textarea"
+        },
+        {
             "key": "enable-system-debug-logging",
             "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
             "required": false,
