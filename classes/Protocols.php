@@ -32,10 +32,6 @@ class Protocols
      */
     private $subjects;
 
-    /**
-     * @var array
-     */
-    private $fieldsMap = [];
 
     /**
      * @param $user
@@ -50,6 +46,11 @@ class Protocols
         // if protocol is initiated for specific REDCap project. then check if this ONCORE_PROTOCOL entity record exists and pull OnCore Protocol via  API
         if ($redcapProjectId) {
             $this->prepareProtocol($redcapProjectId);
+
+            // get all protocol staff and find current user OnCore contact
+            if ($this->getEntityRecord()) {
+                $this->getUser()->prepareUser($this->getEntityRecord()['id'], $this->getEntityRecord()['oncore_protocol_id']);
+            }
         }
     }
 

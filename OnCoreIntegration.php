@@ -257,15 +257,15 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     'type' => 'text',
                     'required' => true,
                 ],
-                'oncore_client_id' => [
-                    'name' => 'OnCore API Client id',
-                    'type' => 'text',
-                    'required' => false,
+                'redcap_entity_oncore_protocol_id' => [
+                    'name' => 'REDCap Entity OnCore Protocol Record Id(Foreign Key)',
+                    'type' => 'integer',
+                    'required' => true,
                 ],
-                'oncore_client_secret' => [
-                    'name' => 'OnCore API Client Secret',
+                'oncore_role' => [
+                    'name' => 'OnCore Role',
                     'type' => 'text',
-                    'required' => false,
+                    'required' => true,
                 ],
             ],
             'special_keys' => [
