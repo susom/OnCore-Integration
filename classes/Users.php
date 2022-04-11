@@ -238,8 +238,19 @@ class Users extends Clients
                     $this->protocolStaff = [];
                 } else {
                     foreach ($data as $staff) {
-                        $staff['contact'] = $this->getContactDetails($staff['contactId']);
-                        $this->protocolStaff[] = $staff;
+                        $contact = $this->getContactDetails($staff['contactId']);
+                        if (isset($contact['errorType'])) {
+                            Entities::createLog($contact['message']);
+                            \REDCap::logEvent($contact['message']);
+                            // TODO send an email to redcap project admins notify them about this
+                        } elseif (empty($contact)) {
+                            $message = 'System did not find demographic information for contact ID: ' . $staff['contactId'];
+                            Entities::createLog($message);
+                            \REDCap::logEvent($message);
+                        } else {
+                            $staff['contact'] = $contact;
+                            $this->protocolStaff[] = $staff;
+                        }
                     }
                 }
             }
