@@ -159,9 +159,10 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null, $excluded=n
 
     if(!$excluded){
         if ($disabled) {
-            $html .= "<button type='submit' class='btn btn-warning download_partial_redcap_csv'>Download CSV</button>";
+//            $html .= "<button type='submit' class='btn btn-warning download_partial_redcap_csv'>Download CSV</button>";
         } else {
-            $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button> <button type='submit' class='btn btn-warning download_partial_oncore_csv'>Download CSV</button>";
+//            $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button> <button type='submit' class='btn btn-warning download_partial_oncore_csv'>Download CSV</button>";
+            $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button>";
         }
     }
 
