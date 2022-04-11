@@ -59,6 +59,18 @@ try {
                     $module->updateLinkage($result, array("excluded" => 0));
                 }
                 break;
+
+            case "checkPushPullStatus":
+                $oncore_field   = !empty($_POST["oncore_field"]) ? filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) : null;
+                $result         = $module->getMapping()->calculatePushPullStatus($oncore_field);
+                break;
+
+            case "getValueMappingUI":
+                $redcap_field   = !empty($_POST["redcap_field"]) ? filter_var($_POST["redcap_field"], FILTER_SANITIZE_STRING) : null;
+                $oncore_field   = !empty($_POST["oncore_field"]) ? filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) : null;
+                $result         = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
+                $result         = $result["html"];
+                break;
         }
         echo json_encode($result);
     }
