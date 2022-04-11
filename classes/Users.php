@@ -2,6 +2,7 @@
 
 namespace Stanford\OnCoreIntegration;
 use ExternalModules\User;
+use GuzzleHttp\Exception\GuzzleException;
 
 require_once 'Clients.php';
 
@@ -30,6 +31,16 @@ class Users extends Clients
     private $redcapUser;
 
     /**
+     * @var array
+     */
+    private $protocolStaff = [];
+
+    /**
+     * @var int
+     */
+    private $redcapEntityProtocolRecordId;
+
+    /**
      * @param $prefix
      */
     public function __construct($prefix, $user, $redcapCSFRToken)
@@ -50,18 +61,48 @@ class Users extends Clients
     }
 
     /**
+     * @return bool
+     */
+    public function isOnCoreContactAllowedToPush()
+    {
+        if (empty($this->getRolesAllowedToPush())) {
+            return false;
+        }
+        return in_array($this->getOnCoreContact()['role'], $this->getRolesAllowedToPush());
+    }
+
+    /**
      * @return void
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function prepareUser()
+    public function prepareUser($redcapEntityProtocolRecordId, $protocolId)
     {
-
-        $admin = $this->getOnCoreAdmin($this->getRedcapUser()->getUsername());
-        $this->setOnCoreContact($this->searchOnCoreContactsViaEmail($this->getRedcapUser()->getEmail()));
-        if (!$admin) {
-            $this->createOnCoreAdminEntityRecord($this->getOnCoreContact()['contactId'], $this->getRedcapUser()->getUsername());
-            $this->setOnCoreAdmin($this->getRedcapUser()->getUsername());
+        $this->setRedcapEntityProtocolRecordId($redcapEntityProtocolRecordId);
+        $this->setProtocolStaff($protocolId);
+        $admin = $this->getOnCoreAdmin();
+        $this->setOnCoreContact($this->searchProtocolStaff($this->getRedcapUser()->getUsername()));
+        if (!$admin && $this->isOnCoreContactAllowedToPush()) {
+            $this->createOnCoreAdminEntityRecord();
+            $this->setOnCoreAdmin();
         }
+    }
+
+    /**
+     * @param $redcapUsername
+     * @return array|mixed
+     */
+    public function searchProtocolStaff($redcapUsername)
+    {
+        foreach ($this->getProtocolStaff() as $staff) {
+            if (!empty($staff['contact']['additionalIdentifiers'])) {
+                foreach ($staff['contact']['additionalIdentifiers'] as $identifier) {
+                    if ($redcapUsername == $identifier['id']) {
+                        return $staff;
+                    }
+                }
+            }
+        }
+        return [];
     }
 
     /**
@@ -71,18 +112,18 @@ class Users extends Clients
      * @param $clientSecret
      * @return string|void|array
      */
-    public function createOnCoreAdminEntityRecord($oncoreContactId, $redcapUsername, $clientId = '', $clientSecret = '')
+    public function createOnCoreAdminEntityRecord()
     {
         try {
             $data = array(
-                'oncore_contact_id' => (string)$oncoreContactId,
-                'redcap_username' => (string)$redcapUsername,
-                'oncore_client_id' => (string)$clientId,
-                'oncore_client_secret' => (string)$clientSecret
+                'oncore_contact_id' => (string)$this->getOnCoreContact()['contactId'],
+                'redcap_username' => (string)$this->getRedcapUser()->getUsername(),
+                'redcap_entity_oncore_protocol_id' => (int)$this->getRedcapEntityProtocolRecordId(),
+                'oncore_role' => (string)$this->getOnCoreContact()['role']
             );
             $entity = (new Entities)->create(OnCoreIntegration::ONCORE_ADMINS, $data);
             if ($entity) {
-                Entities::createLog(' : OnCore Admin Entity record created for redcap username: ' . $redcapUsername . '.');
+                Entities::createLog(' : OnCore Admin Entity record created for redcap username: ' . $this->getRedcapUser()->getUsername() . '.');
                 return $entity->getData();
             }
         } catch (\Exception $e) {
@@ -92,56 +133,28 @@ class Users extends Clients
 
 
     /**
-     * search oncore API for a contact using email address.
-     * @param $email
-     * @return array|mixed|string|void
-     * @throws \GuzzleHttp\Exception\GuzzleException
-     */
-    public function searchOnCoreContactsViaEmail($email)
-    {
-        try {
-            $jwt = $this->getAccessToken();
-            $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . 'contacts?email=' . $email, [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
-
-            if ($response->getStatusCode() < 300) {
-                $data = json_decode($response->getBody(), true);
-                if (empty($data)) {
-                    return [];
-                } else {
-                    return $data[0];
-                }
-            }
-        } catch (\Exception $e) {
-            return $e->getMessage();
-        }
-    }
-
-    /**
      * @param string $onCoreAdmin
      * @return array
      */
-    public function getOnCoreAdmin(string $username = ''): array
+    public function getOnCoreAdmin(): array
     {
-        if (!$this->onCoreAdmin && $username) {
-            $this->setOnCoreAdmin($username);
+        if (!$this->onCoreAdmin) {
+            $this->setOnCoreAdmin();
         }
         return $this->onCoreAdmin;
     }
 
     /**
-     * @param string $onCoreAdmin
+     * @return void
+     * @throws \Exception
      */
-    public function setOnCoreAdmin(string $username): void
+    public function setOnCoreAdmin(): void
     {
+        $username = $this->getRedcapUser()->getUsername();
         if ($username == '') {
             throw new \Exception('REDCap username ID can not be null');
         }
-        $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_ADMINS . " where  redcap_username = '" . $username . "' ");
+        $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_ADMINS . " where  redcap_username = '" . $username . "' AND redcap_entity_oncore_protocol_id = '" . $this->getRedcapEntityProtocolRecordId() . "' ");
         if ($record->num_rows == 0) {
             $this->onCoreAdmin = [];
         } else {
@@ -188,12 +201,99 @@ class Users extends Clients
      * @param string $username
      * @return string
      */
-    public function getMrnValidationUrl(string $username): string {
+    public function getMrnValidationUrl(): string
+    {
         if ($this->onCoreAdmin) {
-            return $this->getSystemSetting('mrn-verification-url');
+            return $this->getMrnVerificationURL();
         } else {
             return '';
         }
     }
+
+    /**
+     * @return array
+     */
+    public function getProtocolStaff(): array
+    {
+        return $this->protocolStaff;
+    }
+
+    /**
+     * @param int $protocolId
+     */
+    public function setProtocolStaff(int $protocolId): void
+    {
+        try {
+            $jwt = $this->getAccessToken();
+            $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . 'protocolStaff?protocolId=' . $protocolId, [
+                'debug' => false,
+                'headers' => [
+                    'Authorization' => "Bearer {$jwt}",
+                ]
+            ]);
+
+            if ($response->getStatusCode() < 300) {
+                $data = json_decode($response->getBody(), true);
+                if (empty($data)) {
+                    $this->protocolStaff = [];
+                } else {
+                    foreach ($data as $staff) {
+                        $staff['contact'] = $this->getContactDetails($staff['contactId']);
+                        $this->protocolStaff[] = $staff;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Entities::createException($e->getMessage());
+        } catch (GuzzleException $e) {
+            Entities::createException($e->getMessage());
+        }
+    }
+
+    /**
+     * @param $contactId
+     * @return array|mixed|void
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    private function getContactDetails($contactId)
+    {
+        try {
+            $jwt = $this->getAccessToken();
+            $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . 'contacts/' . $contactId, [
+                'debug' => false,
+                'headers' => [
+                    'Authorization' => "Bearer {$jwt}",
+                ]
+            ]);
+
+            if ($response->getStatusCode() < 300) {
+                $data = json_decode($response->getBody(), true);
+                if (empty($data)) {
+                    return [];
+                } else {
+                    return $data;
+                }
+            }
+        } catch (\Exception $e) {
+            Entities::createException($e->getMessage());
+        }
+    }
+
+    /**
+     * @return int
+     */
+    public function getRedcapEntityProtocolRecordId(): int
+    {
+        return $this->redcapEntityProtocolRecordId;
+    }
+
+    /**
+     * @param int $redcapEntityProtocolRecordId
+     */
+    public function setRedcapEntityProtocolRecordId(int $redcapEntityProtocolRecordId): void
+    {
+        $this->redcapEntityProtocolRecordId = $redcapEntityProtocolRecordId;
+    }
+
 
 }
