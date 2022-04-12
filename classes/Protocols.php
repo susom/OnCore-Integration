@@ -411,6 +411,15 @@ class Protocols
         }
     }
 
+    public function pullOnCoreRecordsIntoREDCap($records)
+    {
+        try {
+            $this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $records, $this->getFieldsMap());
+        } catch (\Exception $e) {
+            Entities::createException($e->getMessage());
+        }
+    }
+
     /**
      * pull redcap entity record.
      * @param $redcapProjectId

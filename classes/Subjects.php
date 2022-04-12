@@ -612,15 +612,27 @@ class Subjects extends SubjectDemographics
     }
 
     /**
-     *
+     * @param $projectId
+     * @param $protocolId
      * @param array $records will be array(array('oncore' => [ONCORE-PROTOCOL-SUBJECT-ID), 'redcap' =>[REDCAP-ID or can
      *     be empty])
+     * @param $fields
      * @return void
+     * @throws Exception
      */
     public function pullOnCoreRecordsIntoREDCap($projectId, $protocolId, $records, $fields)
     {
         foreach ($records as $record) {
+            if (!is_array($record)) {
+                throw new \Exception('Records array is not correct');
+            }
+            if (!isset($record['oncore'])) {
+                throw new \Exception('No OnCore Protocol Subject is passed');
+            }
             $subject = $this->getOnCoreProtocolSubject($protocolId, $record['oncore']);
+            if (empty($subject)) {
+                throw new \Exception('No Subject record found for ' . $record['oncore']);
+            }
             $id = $record['redcap'];
             $data = $this->prepareOnCoreSubjectForREDCapPull($subject['demographics'], $fields);
             // loop over every event defined in the field mapping.
