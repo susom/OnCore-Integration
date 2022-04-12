@@ -577,4 +577,72 @@ class Subjects extends SubjectDemographics
         }
         return $data;
     }
+
+    /**
+     * @param $protocolId
+     * @param $onCoreSubjectId
+     * @param $fields
+     * @return array
+     */
+    public function prepareOnCoreSubjectForREDCapPull($OnCoreSubject, $fields)
+    {
+        $data = [];
+        foreach ($fields as $key => $field) {
+            $onCoreValue = $OnCoreSubject[$key];
+            if (!isset($field['value_mapping'])) {
+                $data[$field['event']][$field['redcap_field']] = $onCoreValue;
+            } else {
+                $parsed = json_decode($onCoreValue, true);
+                if (is_array($parsed)) {
+                    foreach ($parsed as $item) {
+                        $map = Mapping::getOnCoreMappedValue($item, $field['value_mapping']);
+                        if ($field['field_type'] == 'checkbox') {
+                            $data[$field['event']][$field['redcap_field'] . '___' . $map['rc']] = 1;
+                        } else {
+                            $data[$field['event']][$field['redcap_field']] = $map['rc'];
+                        }
+                    }
+                } else {
+                    $map = Mapping::getOnCoreMappedValue($onCoreValue, $field['value_mapping']);
+                    $data[$field['event']][$field['redcap_field']] = $map['rc'];
+                }
+            }
+        }
+        return $data;
+    }
+
+    /**
+     *
+     * @param array $records will be array(array('oncore' => [ONCORE-PROTOCOL-SUBJECT-ID), 'redcap' =>[REDCAP-ID or can
+     *     be empty])
+     * @return void
+     */
+    public function pullOnCoreRecordsIntoREDCap($projectId, $protocolId, $records, $fields)
+    {
+        foreach ($records as $record) {
+            $subject = $this->getOnCoreProtocolSubject($protocolId, $record['oncore']);
+            $id = $record['redcap'];
+            $data = $this->prepareOnCoreSubjectForREDCapPull($subject['demographics'], $fields);
+            // loop over every event defined in the field mapping.
+            foreach ($data as $event => $array) {
+                if (is_null($id)) {
+                    $array[\REDCap::getRecordIdField()] = \REDCap::reserveNewRecordId($projectId);
+                } else {
+                    $array[\REDCap::getRecordIdField()] = $id;
+                }
+                $array['redcap_event_name'] = $event;
+                $response = \REDCap::saveData($projectId, 'json', json_encode(array($array)), 'overwrite');
+                if (!empty($response['errors'])) {
+                    if (is_array($response['errors'])) {
+                        throw new \Exception(implode(",", $response['errors']));
+                    } else {
+                        throw new \Exception($response['errors']);
+                    }
+                } else {
+                    $id = end($response['ids']);
+                }
+            }
+        }
+    }
+
 }

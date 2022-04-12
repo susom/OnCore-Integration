@@ -32,12 +32,51 @@ namespace Stanford\OnCoreIntegration;
 //} catch (\Exception $e) {
 //    echo $e->getMessage();
 //}
+//try {
+//    $module->initiateProtocol();
+//    $records = $module->getProtocols()->getUser()->getOnCoreAdmin();
+//    echo '<pre>';
+//    print_r($records);
+//    echo '</pre>';
+//} catch (\Exception $e) {
+//    echo $e->getMessage();
+//}
 try {
     $module->initiateProtocol();
-    $records = $module->getProtocols()->getUser()->getOnCoreAdmin();
+    $records = $module->getProtocols()->getSubjects()->getOnCoreProtocolSubject($module->getProtocols()->getEntityRecord()['oncore_protocol_id'], 138991);
     echo '<pre>';
     print_r($records);
     echo '</pre>';
 } catch (\Exception $e) {
     echo $e->getMessage();
 }
+// pull oncore record into redcap
+//try {
+//    $module->initiateProtocol();
+//    $records = $module->getProtocols()->getSyncedRecords();
+//    $data = $module->getProtocols()->getSubjects()->prepareOnCoreSubjectForREDCapPull($records[5]['oncore']['demographics'], $module->getProtocols()->getFieldsMap());
+//    $id = 7;
+//    foreach ($data as $event => $array){
+//        if(is_null($id)){
+//            $array[\REDCap::getRecordIdField()] = \REDCap::reserveNewRecordId($module->getProjectId());
+//        }else{
+//            $array[\REDCap::getRecordIdField()] = $id;
+//        }
+//        $array['redcap_event_name'] = $event;
+//        $response = \REDCap::saveData($module->getProjectId(), 'json', json_encode(array($array)), 'overwrite');
+//        if (!empty($response['errors'])) {
+//            if (is_array($response['errors'])) {
+//                throw new \Exception(implode(",", $response['errors']));
+//            } else {
+//                throw new \Exception($response['errors']);
+//            }
+//        }else{
+//            $id = end($response['ids']);
+//        }
+//    }
+//    echo '<pre>';
+//    print_r($data);
+//    echo '</pre>';
+//} catch (\Exception $e) {
+//    echo $e->getMessage();
+//}
