@@ -122,7 +122,11 @@ class SubjectDemographics
             if ($response->getStatusCode() < 300) {
                 $data = json_decode($response->getBody(), true);
                 if (empty($data)) {
-                    return [];
+                    if ($subjectSource == 'OnCore') {
+                        $this->searchOnCoreSubjectViaMRN($mrn, 'OnStage');
+                    } else {
+                        return [];
+                    }
                 } else {
                     return $data[0];
                 }
