@@ -414,7 +414,12 @@ class Protocols
     public function pullOnCoreRecordsIntoREDCap($records)
     {
         try {
-            $this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $records, $this->getFieldsMap());
+            if ($this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $records, $this->getFieldsMap())) {
+                // update linkage entity table with redcap record and new status
+                $this->processSyncedRecords();
+            } else {
+                throw new \Exception('Cound not pull OnCore record into REDCap');
+            }
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
         }

@@ -617,7 +617,7 @@ class Subjects extends SubjectDemographics
      * @param array $records will be array(array('oncore' => [ONCORE-PROTOCOL-SUBJECT-ID), 'redcap' =>[REDCAP-ID or can
      *     be empty])
      * @param $fields
-     * @return void
+     * @return bool
      * @throws Exception
      */
     public function pullOnCoreRecordsIntoREDCap($projectId, $protocolId, $records, $fields)
@@ -653,9 +653,11 @@ class Subjects extends SubjectDemographics
                     }
                 } else {
                     $id = end($response['ids']);
+                    Entities::createLog('OnCore Subject ' . $record['oncore'] . ' got pull into REDCap record ' . $id);
                 }
             }
         }
+        return true;
     }
 
 }
