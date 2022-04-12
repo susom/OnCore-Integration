@@ -631,6 +631,7 @@ class Subjects extends SubjectDemographics
                     $array[\REDCap::getRecordIdField()] = $id;
                 }
                 $array['redcap_event_name'] = $event;
+                // TODO uncheck current checkboxes.
                 $response = \REDCap::saveData($projectId, 'json', json_encode(array($array)), 'overwrite');
                 if (!empty($response['errors'])) {
                     if (is_array($response['errors'])) {
