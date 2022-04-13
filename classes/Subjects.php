@@ -357,7 +357,7 @@ class Subjects extends SubjectDemographics
      * set all redcap records
      * @param mixed $redcapProjectRecords
      */
-    public function setRedcapProjectRecords($redcapProjectId, $redcapEventId): void
+    public function setRedcapProjectRecords($redcapProjectId): void
     {
         $param = array(
             'project_id' => $redcapProjectId,
