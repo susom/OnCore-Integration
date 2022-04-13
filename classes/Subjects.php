@@ -532,6 +532,59 @@ class Subjects extends SubjectDemographics
         }
     }
 
+    public function pushToOnCore($protocolId, $studySite, $redcapId, $fields, $oncoreFieldsDef)
+    {
+        $record = $this->getRedcapProjectRecords()[$redcapId];
+        $data = [];
+        $redcapMRN = $record[$fields['mrn']['event']][$fields['mrn']['redcap_field']];
+        $onCoreRecord = $this->searchOnCoreSubjectUsingMRN($redcapMRN);
+        if (empty($onCoreRecord)) {
+            $demographics = $this->prepareREDCapRecordForOnCorePush($redcapId, $fields, $oncoreFieldsDef);
+            return $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
+        } else {
+            // if subject is in different protocol then just add subject to protocol
+            if ($onCoreRecord['subjectSource'] == 'OnCore') {
+                return $this->createOnCoreProtocolSubject($protocolId, $studySite, $onCoreRecord['subjectDemographicsId'], null);
+            }
+            // if subject is in OnStage this mean not part of any protocol
+            // OnStage data has priority except null
+            elseif ($onCoreRecord['subjectSource'] == 'OnStage') {
+                // fill onstage missing data from redcap record.
+                $demographics = $this->fillMissingData($record, $onCoreRecord, $fields);
+                return $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
+            } else {
+                throw new \Exception('Source is unknown');
+            }
+        }
+    }
+
+    public function fillMissingData($redcapRecord, $onCoreRecord, $fields)
+    {
+        foreach ($fields as $key => $field) {
+            // if oncore race array is empty
+            if (is_array($onCoreRecord[$key]) && empty($onCoreRecord[$key])) {
+                $redcapValue = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                if (is_array($redcapValue)) {
+                    foreach ($redcapValue as $id => $value) {
+                        //checkbox not checked
+                        if (!$value) {
+                            continue;
+                        }
+                        $map = Mapping::getREDCapMappedValue($id, $field['value_mapping']);
+                        if (!$map) {
+                            throw new \Exception('cant find map for redcap value ' . $id);
+                        }
+                        $options[] = $map['oc'];
+                    }
+                    $onCoreRecord[$key] = $options;
+                }
+            } elseif ($onCoreRecord[$key] == '' || is_null($onCoreRecord[$key])) {
+                $onCoreRecord[$key] = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+            }
+        }
+        return $onCoreRecord;
+    }
+
     /**
      * @param $redcapId
      * @param $fields
@@ -648,7 +701,7 @@ class Subjects extends SubjectDemographics
             $data = $this->prepareOnCoreSubjectForREDCapPull($subject['demographics'], $fields);
             // loop over every event defined in the field mapping.
             foreach ($data as $event => $array) {
-                if (is_null($id)) {
+                if (!$id) {
                     $array[\REDCap::getRecordIdField()] = \REDCap::reserveNewRecordId($projectId);
                 } else {
                     $array[\REDCap::getRecordIdField()] = $id;

@@ -108,7 +108,7 @@ class SubjectDemographics
      * @return array|mixed|void
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function searchOnCoreSubjectViaMRN($mrn, $subjectSource = 'OnCore')
+    public function searchOnCoreSubjectUsingMRN($mrn, $subjectSource = 'OnCore')
     {
         try {
             $jwt = $this->getUser()->getAccessToken();
@@ -123,7 +123,7 @@ class SubjectDemographics
                 $data = json_decode($response->getBody(), true);
                 if (empty($data)) {
                     if ($subjectSource == 'OnCore') {
-                        $this->searchOnCoreSubjectViaMRN($mrn, 'OnStage');
+                        $this->searchOnCoreSubjectUsingMRN($mrn, 'OnStage');
                     } else {
                         return [];
                     }
