@@ -37,7 +37,12 @@ class Subjects extends SubjectDemographics
      */
     private $syncedRecords;
 
-    /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
+
+    /**
+     * @var bool
+     */
+    private $canPush = false;
+
 
     /**
      * The top functions can be used to query and verify MRNs in the home institution's Electronic
@@ -46,13 +51,16 @@ class Subjects extends SubjectDemographics
      * The bottom functions can be used to query OnCore to determine if an MRN is already entered
      * into the system.
      * @param Users $user
+     * @param $canPush
      * @param $reset
      */
-    public function __construct($user, $reset = false)
+    public function __construct($user, $canPush = false, $reset = false)
     {
         parent::__construct($reset);
 
         $this->setUser($user);
+
+        $this->setCanPush($canPush);
 
         $this->PRIFIX = $this->getUser()->getPREFIX();
     }
@@ -473,6 +481,9 @@ class Subjects extends SubjectDemographics
             throw new \Exception('You must have either Subject demographic ID or Subject Demographics Object');
         }
 
+        if (!$this->isCanPush()) {
+            throw new \Exception('You cant push REDCap records to this Protocol. Because Protocol is not approved or its status is not valid.');
+        }
 
         if ($subjectDemographics) {
             $keys = array_keys($subjectDemographics);
@@ -660,4 +671,19 @@ class Subjects extends SubjectDemographics
         return true;
     }
 
+    /**
+     * @return bool
+     */
+    public function isCanPush(): bool
+    {
+        return $this->canPush;
+    }
+
+    /**
+     * @param bool $canPush
+     */
+    public function setCanPush(bool $canPush): void
+    {
+        $this->canPush = $canPush;
+    }
 }

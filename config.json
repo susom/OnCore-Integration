@@ -128,6 +128,12 @@
             "type": "textarea"
         },
         {
+            "key": "oncore-statuses-allowed-to-push",
+            "name": "<b>JSON Object that defines of OnCore Protocol Statuses that can accept new Subject via API. </b>",
+            "required": true,
+            "type": "textarea"
+        },
+        {
             "key": "enable-system-debug-logging",
             "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
             "required": false,

@@ -134,8 +134,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function initiateProtocol()
     {
-        $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
-        if(!$this->protocols){
+        if (!$this->users) {
+            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+        }
+        if (!$this->protocols) {
             $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
         }
     }
@@ -997,7 +999,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                                 'irb_number' => $irb,
                                 'oncore_protocol_id' => $protocol['protocolId'],
                                 // cron will save the first event. and when connect is approved the redcap user has to confirm the event id.
-                                'redcap_event_id' => $this->getFirstEventId(),
+                                'redcap_event_id' => 0,
                                 'status' => '0',
                                 'last_date_scanned' => time()
                             );
