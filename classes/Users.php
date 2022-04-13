@@ -68,7 +68,7 @@ class Users extends Clients
         if (empty($this->getRolesAllowedToPush())) {
             return false;
         }
-        return in_array($this->getOnCoreContact()['role'], $this->getRolesAllowedToPush());
+        return in_array(strtolower($this->getOnCoreContact()['role']), $this->getRolesAllowedToPush());
     }
 
     /**

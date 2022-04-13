@@ -388,7 +388,7 @@ abstract class Clients
      */
     public function setRolesAllowedToPush(array $rolesAllowedToPush): void
     {
-        $this->rolesAllowedToPush = $rolesAllowedToPush;
+        $this->rolesAllowedToPush = OnCoreIntegration::nestedLowercase($rolesAllowedToPush);
     }
 
     /**
@@ -404,7 +404,7 @@ abstract class Clients
      */
     public function setStatusesAllowedToPush(array $statusesAllowedToPush): void
     {
-        $this->statusesAllowedToPush = $statusesAllowedToPush;
+        $this->statusesAllowedToPush = OnCoreIntegration::nestedLowercase($statusesAllowedToPush);
     }
 
 

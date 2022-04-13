@@ -277,7 +277,7 @@ class Protocols
             $protocol = $this->getOnCoreProtocol();
 
             // now check if protocol status in statuses allowed to push
-            return in_array($protocol['protocolStatus'], $this->getUser()->getStatusesAllowedToPush()) && $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES;
+            return in_array(strtolower($protocol['protocolStatus']), $this->getUser()->getStatusesAllowedToPush()) && $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES;
         }
 
     }
