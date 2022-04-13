@@ -277,7 +277,7 @@ class Protocols
             $protocol = $this->getOnCoreProtocol();
 
             // now check if protocol status in statuses allowed to push
-            return in_array($protocol['protocolStatus'], $this->getUser()->getStatusesAllowedToPush()) && $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES;
+            return in_array(strtolower($protocol['protocolStatus']), $this->getUser()->getStatusesAllowedToPush()) && $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES;
         }
 
     }
@@ -434,6 +434,7 @@ class Protocols
         try {
             if ($this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $records, $this->getFieldsMap())) {
                 // update linkage entity table with redcap record and new status
+                $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id']);
                 $this->processSyncedRecords();
             } else {
                 throw new \Exception('Cound not pull OnCore record into REDCap');

@@ -157,6 +157,19 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         }
     }
 
+    public static function nestedLowercase($array)
+    {
+        $result = array();
+        foreach ($array as $key => $item) {
+            if (is_array($item)) {
+                return self::nestedLowercase($item);
+            } else {
+                $result[$key] = strtolower($item);
+            }
+        }
+        return $result;
+    }
+
     public function redcap_entity_types()
     {
         $types = [];
