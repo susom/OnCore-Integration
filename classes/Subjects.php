@@ -37,7 +37,12 @@ class Subjects extends SubjectDemographics
      */
     private $syncedRecords;
 
-    /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
+
+    /**
+     * @var bool
+     */
+    private $canPush = false;
+
 
     /**
      * The top functions can be used to query and verify MRNs in the home institution's Electronic
@@ -46,13 +51,16 @@ class Subjects extends SubjectDemographics
      * The bottom functions can be used to query OnCore to determine if an MRN is already entered
      * into the system.
      * @param Users $user
+     * @param $canPush
      * @param $reset
      */
-    public function __construct($user, $reset = false)
+    public function __construct($user, $canPush = false, $reset = false)
     {
         parent::__construct($reset);
 
         $this->setUser($user);
+
+        $this->setCanPush($canPush);
 
         $this->PRIFIX = $this->getUser()->getPREFIX();
     }
@@ -473,6 +481,9 @@ class Subjects extends SubjectDemographics
             throw new \Exception('You must have either Subject demographic ID or Subject Demographics Object');
         }
 
+        if (!$this->isCanPush()) {
+            throw new \Exception('You cant push REDCap records to this Protocol. Because Protocol is not approved or its status is not valid.');
+        }
 
         if ($subjectDemographics) {
             $keys = array_keys($subjectDemographics);
@@ -612,15 +623,27 @@ class Subjects extends SubjectDemographics
     }
 
     /**
-     *
+     * @param $projectId
+     * @param $protocolId
      * @param array $records will be array(array('oncore' => [ONCORE-PROTOCOL-SUBJECT-ID), 'redcap' =>[REDCAP-ID or can
      *     be empty])
-     * @return void
+     * @param $fields
+     * @return bool
+     * @throws Exception
      */
     public function pullOnCoreRecordsIntoREDCap($projectId, $protocolId, $records, $fields)
     {
         foreach ($records as $record) {
+            if (!is_array($record)) {
+                throw new \Exception('Records array is not correct');
+            }
+            if (!isset($record['oncore'])) {
+                throw new \Exception('No OnCore Protocol Subject is passed');
+            }
             $subject = $this->getOnCoreProtocolSubject($protocolId, $record['oncore']);
+            if (empty($subject)) {
+                throw new \Exception('No Subject record found for ' . $record['oncore']);
+            }
             $id = $record['redcap'];
             $data = $this->prepareOnCoreSubjectForREDCapPull($subject['demographics'], $fields);
             // loop over every event defined in the field mapping.
@@ -631,6 +654,7 @@ class Subjects extends SubjectDemographics
                     $array[\REDCap::getRecordIdField()] = $id;
                 }
                 $array['redcap_event_name'] = $event;
+                // TODO uncheck current checkboxes.
                 $response = \REDCap::saveData($projectId, 'json', json_encode(array($array)), 'overwrite');
                 if (!empty($response['errors'])) {
                     if (is_array($response['errors'])) {
@@ -640,9 +664,26 @@ class Subjects extends SubjectDemographics
                     }
                 } else {
                     $id = end($response['ids']);
+                    Entities::createLog('OnCore Subject ' . $record['oncore'] . ' got pull into REDCap record ' . $id);
                 }
             }
         }
+        return true;
     }
 
+    /**
+     * @return bool
+     */
+    public function isCanPush(): bool
+    {
+        return $this->canPush;
+    }
+
+    /**
+     * @param bool $canPush
+     */
+    public function setCanPush(bool $canPush): void
+    {
+        $this->canPush = $canPush;
+    }
 }

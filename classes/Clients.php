@@ -86,6 +86,11 @@ abstract class Clients
     private $rolesAllowedToPush = [];
 
     /**
+     * @var array
+     */
+    private $statusesAllowedToPush = [];
+
+    /**
      * @param $PREFIX
      */
     public function __construct($PREFIX, $redcapCSFRToken)
@@ -111,7 +116,9 @@ abstract class Clients
 
         $this->setGlobalClientSecret(ExternalModules::getSystemSetting($this->getPrefix(), 'global-client-secret'));
 
-        $this->setRolesAllowedToPush(json_decode(ExternalModules::getSystemSetting($this->getPrefix(), 'oncore-roles-allowed-to-push')));
+        $this->setRolesAllowedToPush(json_decode(ExternalModules::getSystemSetting($this->getPrefix(), 'oncore-roles-allowed-to-push')) ?: []);
+
+        $this->setStatusesAllowedToPush(json_decode(ExternalModules::getSystemSetting($this->getPrefix(), 'oncore-statuses-allowed-to-push')) ?: []);
 
         $this->setRedcapCSFRToken($redcapCSFRToken);
 
@@ -383,5 +390,22 @@ abstract class Clients
     {
         $this->rolesAllowedToPush = $rolesAllowedToPush;
     }
+
+    /**
+     * @return array
+     */
+    public function getStatusesAllowedToPush(): array
+    {
+        return $this->statusesAllowedToPush;
+    }
+
+    /**
+     * @param array $statusesAllowedToPush
+     */
+    public function setStatusesAllowedToPush(array $statusesAllowedToPush): void
+    {
+        $this->statusesAllowedToPush = $statusesAllowedToPush;
+    }
+
 
 }

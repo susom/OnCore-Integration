@@ -257,11 +257,29 @@ class Protocols
     public function prepareProtocolSubjects()
     {
         try {
-            $this->setSubjects(new Subjects($this->getUser()));
+            $this->setSubjects(new Subjects($this->getUser(), $this->canPushToProtocol()));
             $this->getSubjects()->setOnCoreProtocolSubjects($this->getEntityRecord()['oncore_protocol_id']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
         }
+    }
+
+    /**
+     * determine if we can push from REDCap to create protocol subjects
+     * @return bool
+     */
+    private function canPushToProtocol()
+    {
+        if (!$this->getEntityRecord()) {
+            return false;
+        } else {
+            // get oncore protocol object
+            $protocol = $this->getOnCoreProtocol();
+
+            // now check if protocol status in statuses allowed to push
+            return in_array($protocol['protocolStatus'], $this->getUser()->getStatusesAllowedToPush()) && $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES;
+        }
+
     }
 
     /**
@@ -411,6 +429,20 @@ class Protocols
         }
     }
 
+    public function pullOnCoreRecordsIntoREDCap($records)
+    {
+        try {
+            if ($this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $records, $this->getFieldsMap())) {
+                // update linkage entity table with redcap record and new status
+                $this->processSyncedRecords();
+            } else {
+                throw new \Exception('Cound not pull OnCore record into REDCap');
+            }
+        } catch (\Exception $e) {
+            Entities::createException($e->getMessage());
+        }
+    }
+
     /**
      * pull redcap entity record.
      * @param $redcapProjectId
@@ -424,9 +456,9 @@ class Protocols
             throw new \Exception('REDCap project ID can not be null');
         }
         if ($irbNum != '') {
-            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where irb_number = " . $irbNum . " AND redcap_project_id = " . $redcapProjectId . " AND status = " . OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES . " ");
+            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where irb_number = " . $irbNum . " AND redcap_project_id = " . $redcapProjectId . " ");
         } else {
-            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where redcap_project_id = " . $redcapProjectId . " AND status = " . OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES . " ");
+            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where redcap_project_id = " . $redcapProjectId . " ");
         }
         if ($record->num_rows == 0) {
             return [];
