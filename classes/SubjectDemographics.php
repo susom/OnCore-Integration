@@ -1,6 +1,8 @@
 <?php
 
 namespace Stanford\OnCoreIntegration;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\GuzzleException;
 
 require_once 'Subjects.php';
 
@@ -75,13 +77,7 @@ class SubjectDemographics
             // check if entity table already has that subject otherwise go to API to get info
             $demo = $this->getOnCoreSubjectDemographicsEntityRecord($subjectDemographicsId);
             if (empty($demo)) {
-                $jwt = $this->getUser()->getAccessToken();
-                $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'subjectDemographics/' . $subjectDemographicsId, [
-                    'debug' => false,
-                    'headers' => [
-                        'Authorization' => "Bearer {$jwt}",
-                    ]
-                ]);
+                $response = $this->getUser()->get('subjectDemographics/' . $subjectDemographicsId);
 
                 if ($response->getStatusCode() < 300) {
                     $data = json_decode($response->getBody(), true);
@@ -96,9 +92,13 @@ class SubjectDemographics
             } else {
                 return $demo;
             }
+        } catch (GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            throw new \Exception($e->getMessage());
+            echo $e->getMessage();
         }
     }
 
@@ -111,13 +111,7 @@ class SubjectDemographics
     public function searchOnCoreSubjectUsingMRN($mrn, $subjectSource = 'OnCore')
     {
         try {
-            $jwt = $this->getUser()->getAccessToken();
-            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'subjectDemographics?mrn=' . $mrn . '&subjectSource=' . $subjectSource, [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+            $response = $this->getUser()->get('subjectDemographics?mrn=' . $mrn . '&subjectSource=' . $subjectSource);
 
             if ($response->getStatusCode() < 300) {
                 $data = json_decode($response->getBody(), true);
@@ -131,9 +125,13 @@ class SubjectDemographics
                     return $data[0];
                 }
             }
+        } catch (GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            throw new \Exception($e->getMessage());
+            echo $e->getMessage();
         }
     }
 
@@ -166,6 +164,7 @@ class SubjectDemographics
             $this->mrn = $mrn;
         }
     }
+
     public function setLastName($lastName)
     {
         if ($this->validateFields) {
@@ -174,6 +173,7 @@ class SubjectDemographics
             $this->lastName = $lastName;
         }
     }
+
     public function setFirstName($firstName)
     {
         if ($this->validateFields) {
@@ -182,6 +182,7 @@ class SubjectDemographics
             $this->firstName = $firstName;
         }
     }
+
     public function setMiddleName($middleName)
     {
         if ($this->validateFields) {
@@ -190,6 +191,7 @@ class SubjectDemographics
             $this->middleName = $middleName;
         }
     }
+
     public function setSuffix($suffix) {
         if ($this->validateFields) {
             $this->suffix = (strlen($suffix) <= 20 ? $suffix : null);
@@ -197,8 +199,9 @@ class SubjectDemographics
             $this->suffix = $suffix;
         }
     }
-   public function setBirthDate($birthDate)
-   {
+
+    public function setBirthDate($birthDate)
+    {
         if ($this->validateFields) {
             $date = date('m/d/Y', strtotime($birthDate));
             $this->birthDate = ($date <> false ? $date : null);
@@ -206,6 +209,7 @@ class SubjectDemographics
             $this->birthDate = $birthDate;
         }
     }
+
     public function setApproximateBirthDate($approximateBirthDate)
     {
         if ($this->validateFields) {
@@ -214,6 +218,7 @@ class SubjectDemographics
             $this->approximateBirthDate = $approximateBirthDate;
         }
     }
+
     public function setBirthDateNotAvailable($birthDateNotAvailable)
     {
         if ($this->validateFields) {
@@ -222,6 +227,7 @@ class SubjectDemographics
             $this->birthDateNotAvailable = $birthDateNotAvailable;
         }
     }
+
     public function setExpiredDate($expiredDate)
     {
         if ($this->validateFields) {
@@ -231,6 +237,7 @@ class SubjectDemographics
             $this->expiredDate = $expiredDate;
         }
     }
+
     public function setApproximateExpiredDate($approximateExpiredDate)
     {
         if ($this->validateFields) {
@@ -239,15 +246,17 @@ class SubjectDemographics
             $this->approximateExpiredDate = $approximateExpiredDate;
         }
     }
+
     public function setLastDateKnownAlive($lastDateKnownAlive)
     {
-       if ($this->validateFields) {
+        if ($this->validateFields) {
             $date = date('m/d/Y', strtotime($lastDateKnownAlive));
             $this->lastDateKnownAlive = ($date <> false ? $date : null);
         } else {
             $this->lastDateKnownAlive = $lastDateKnownAlive;
         }
     }
+
     public function setSsn($ssn)
     {
         if ($this->validateFields) {
@@ -257,8 +266,9 @@ class SubjectDemographics
             $this->ssn = $ssn;
         }
     }
-   public function setGender($gender)
-   {
+
+    public function setGender($gender)
+    {
         if ($this->validateFields) {
             $allowed_genders = array('Male', 'Female', 'Unknown');
             $valid = in_array($gender, $allowed_genders);
@@ -267,6 +277,7 @@ class SubjectDemographics
             $this->gender = $gender;
         }
     }
+
     public function setEthnicity($ethnicity)
     {
         if ($this->validateFields) {
@@ -278,18 +289,20 @@ class SubjectDemographics
             $this->ethnicity = $ethnicity;
         }
     }
+
     public function setRace($race)
     {
         if ($this->validateFields) {
             // TODO: Need Race List
             $allowed_race = array('White', 'Black or African American', 'Native Hawaiian or Other Pacific Islander',
-                                   'Asian', 'American Indian or Alaska Native', 'Not Reported', 'Unknown');
+                'Asian', 'American Indian or Alaska Native', 'Not Reported', 'Unknown');
             $valid = in_array($race, $allowed_race);
             $this->race = ($valid ? $race : null);
         } else {
             $this->race = $race;
         }
     }
+
     public function setSubjectComments($subjectComments)
     {
         if ($this->validateFields) {
@@ -298,6 +311,7 @@ class SubjectDemographics
             $this->subjectComments = $subjectComments;
         }
     }
+
     public function setAdditionalSubjectids($additionalSubjectids)
     {
         // TODO: Is the Identifier Type, Identifier and Identifier Owner?
@@ -309,6 +323,7 @@ class SubjectDemographics
             $this->$additionalSubjectids = $additionalSubjectids;
         }
     }
+
     public function setStreetAddress($streetAddress)
     {
         if ($this->validateFields) {
@@ -317,6 +332,7 @@ class SubjectDemographics
             $this->streetAddress = $streetAddress;
         }
     }
+
     public function setAddressLine2($addressLine2)
     {
         if ($this->validateFields) {
@@ -325,6 +341,7 @@ class SubjectDemographics
             $this->addressLine2 = $addressLine2;
         }
     }
+
     public function setCity($city)
     {
         if ($this->validateFields) {
@@ -333,6 +350,7 @@ class SubjectDemographics
             $this->city = $city;
         }
     }
+
     public function setState($state)
     {
         if ($this->validateFields) {
@@ -343,6 +361,7 @@ class SubjectDemographics
             $this->state = $state;
         }
     }
+
     public function setZip($zip)
     {
         if ($this->validateFields) {
@@ -351,8 +370,9 @@ class SubjectDemographics
             $this->zip = $zip;
         }
     }
-   public function setCounty($county)
-   {
+
+    public function setCounty($county)
+    {
         if ($this->validateFields) {
             // TODO: Need allowed counties - will create it if not already created
             $allowed_county = array();
@@ -361,6 +381,7 @@ class SubjectDemographics
             $this->county = $county;
         }
     }
+
     public function setCountry($country)
     {
         if ($this->validateFields) {
@@ -371,6 +392,7 @@ class SubjectDemographics
             $this->country = $country;
         }
     }
+
     public function setPhoneNo($phoneNo)
     {
         if ($this->validateFields) {
@@ -379,6 +401,7 @@ class SubjectDemographics
             $this->phoneNo = $phoneNo;
         }
     }
+
     public function setAlternatePhoneNo($alternatePhoneNo)
     {
         if ($this->validateFields) {
@@ -387,6 +410,7 @@ class SubjectDemographics
             $this->alternatePhoneNo = $alternatePhoneNo;
         }
     }
+
     public function setEmail($email)
     {
         if ($this->validateFields) {
@@ -411,6 +435,7 @@ class SubjectDemographics
     {
         return $this->subjectDemographicsid;
     }
+
     public function getSubjectSource()
     {
         return $this->subjectSource;
@@ -420,72 +445,95 @@ class SubjectDemographics
     {
         return $this->mrn;
     }
+
     public function getLastName() {
         return $this->lastName;
     }
+
     public function getFirstName() {
         return $this->firstName;
     }
+
     public function getMiddleName() {
         return $this->middleName;
     }
+
     public function getSuffix($suffix) {
         return $this->suffix;
     }
+
     public function getBirthDate() {
         return $this->birthDate;
     }
+
     public function getApproximateBirthDate() {
         return $this->approximateBirthDate;
     }
+
     public function getBirthDateNotAvailable() {
         return $this->birthDateNotAvailable;
     }
+
     public function getExpiredDate() {
         return $this->expiredDate;
     }
+
     public function getApproximateExpiredDate() {
         return $this->approximateExpiredDate;
     }
+
     public function getLastDateKnownAlive() {
         return $this->lastDateKnownAlive;
     }
+
     public function getSsn() {
         return $this->ssn;
     }
+
     public function getGender() {
         return $this->gender;
     }
+
     public function getEthnicity() {
         return $this->ethnicity;
     }
+
     public function getRace() {
         return $this->race;
     }
+
     public function getSubjectComments() {
         return $this->subjectComments;
     }
+
     public function getAdditionalSubjectids() {
         return $this->additionalSubjectids;
     }
+
     public function getStreetAddress() {
         return $this->streetAddress;
     }
+
     public function getAddressLine2() {
         return $this->addressLine2;
     }
+
     public function getCity() {
         return $this->city;
     }
+
     public function getState() {
         return $this->state;
     }
+
     public function getZip() {
         return $this->zip;
     }
+
     public function getCounty() {
         return $this->county;
     }
+
     public function getCountry() {
 
         return $this->country;
@@ -495,9 +543,11 @@ class SubjectDemographics
     {
         return $this->phoneNo;
     }
+
     public function getAlternatePhoneNo() {
         return $this->alternatePhoneNo;
     }
+
     public function getEmail() {
         return $this->email;
     }

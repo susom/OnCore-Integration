@@ -3,6 +3,7 @@
 namespace Stanford\OnCoreIntegration;
 
 use ExternalModules\ExternalModules;
+use GuzzleHttp\Exception\GuzzleException;
 
 /**
  * Class Protocols
@@ -158,7 +159,19 @@ class Protocols
         //TODO update entity table when redcap record or Oncore protocol subject is deleted.
     }
 
-    //TODO add function to Calculate Field Mapping is correct for records (when saving field mappings UI)
+
+    public function pushREDCapRecordToOnCore($redcapRecordId, $studySite, $oncoreFieldsDef)
+    {
+        $result = $this->getSubjects()->pushToOnCore($this->getEntityRecord()['oncore_protocol_id'], $studySite, $redcapRecordId, $this->getFieldsMap(), $oncoreFieldsDef);
+        // reset loaded subjects for protocol so we can pull them after creating new one.
+        $this->getSubjects()->setOnCoreProtocolSubjects(null, true);
+
+        // now sync redcap with oncore
+        $this->processSyncedRecords();
+
+        Entities::createLog("REDCap Record Id#$redcapRecordId was pushed succesfully to OnCore Protocol .");
+        return $result;
+    }
 
     /**
      * @return array
@@ -343,13 +356,8 @@ class Protocols
             if (empty($this->getOnCoreProtocol())) {
                 throw new \Exception("No protocol found for current REDCap project.");
             }
-            $jwt = $this->getUser()->getAccessToken();
-            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolStaff?protocolId=' . $this->getOnCoreProtocol()['protocolId'], [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+
+            $response = $this->getUser()->get('protocolStaff?protocolId=' . $this->getOnCoreProtocol()['protocolId']);
 
             if ($response->getStatusCode() < 300) {
                 $staffs = json_decode($response->getBody(), true);
@@ -361,10 +369,13 @@ class Protocols
                 return false;
             }
             return false;
+        } catch (GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            throw new \Exception($e->getMessage());
-
+            echo $e->getMessage();
         }
     }
 
@@ -377,13 +388,7 @@ class Protocols
     public function getOnCoreProtocolsViaID($protocolID)
     {
         try {
-            $jwt = $this->getUser()->getAccessToken();
-            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocols/' . $protocolID, [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+            $response = $this->getUser()->get('protocols/' . $protocolID);
 
             if ($response->getStatusCode() < 300) {
                 $data = json_decode($response->getBody(), true);
@@ -392,9 +397,13 @@ class Protocols
                     return $data;
                 }
             }
+        } catch (GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            throw new \Exception($e->getMessage());
+            echo $e->getMessage();
         }
     }
 
@@ -407,13 +416,7 @@ class Protocols
     public function searchOnCoreProtocolsViaIRB($irbNum)
     {
         try {
-            $jwt = $this->getUser()->getAccessToken();
-            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolManagementDetails?irbNo=' . $irbNum, [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+            $response = $this->getUser()->get('protocolManagementDetails?irbNo=' . $irbNum);
 
             if ($response->getStatusCode() < 300) {
                 $data = json_decode($response->getBody(), true);
@@ -423,9 +426,13 @@ class Protocols
                     return $data;
                 }
             }
+        } catch (GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            throw new \Exception($e->getMessage());
+            echo $e->getMessage();
         }
     }
 
@@ -448,21 +455,24 @@ class Protocols
      * pull redcap entity record.
      * @param $redcapProjectId
      * @param $irbNum
+     * @param int $status default YES
      * @return array|false|mixed|string[]|null
      * @throws \Exception
      */
-    public function getProtocolEntityRecord($redcapProjectId, $irbNum = '')
+    public function getProtocolEntityRecord($redcapProjectId, $irbNum = '', $status = 2)
     {
         if ($redcapProjectId == '') {
             throw new \Exception('REDCap project ID can not be null');
         }
         if ($irbNum != '') {
-            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where irb_number = " . $irbNum . " AND redcap_project_id = " . $redcapProjectId . " ");
+            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where irb_number = " . $irbNum . " AND redcap_project_id = " . $redcapProjectId . " AND status = " . $status . " ");
         } else {
-            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where redcap_project_id = " . $redcapProjectId . " ");
+            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where redcap_project_id = " . $redcapProjectId . "  AND status = " . $status . "  ");
         }
-        if ($record->num_rows == 0) {
+        if ($record->num_rows == 0 && $status == 0) {
             return [];
+        } elseif ($record->num_rows == 0 && $status == 2) {
+            $this->getProtocolEntityRecord($redcapProjectId, $irbNum, 0);
         } else {
             return db_fetch_assoc($record);
         }

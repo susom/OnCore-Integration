@@ -224,13 +224,7 @@ class Users extends Clients
     public function setProtocolStaff(int $protocolId): void
     {
         try {
-            $jwt = $this->getAccessToken();
-            $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . 'protocolStaff?protocolId=' . $protocolId, [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+            $response = $this->get('protocolStaff?protocolId=' . $protocolId);
 
             if ($response->getStatusCode() < 300) {
                 $data = json_decode($response->getBody(), true);
@@ -269,13 +263,7 @@ class Users extends Clients
     private function getContactDetails($contactId)
     {
         try {
-            $jwt = $this->getAccessToken();
-            $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . 'contacts/' . $contactId, [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+            $response = $this->get('contacts/' . $contactId);
 
             if ($response->getStatusCode() < 300) {
                 $data = json_decode($response->getBody(), true);

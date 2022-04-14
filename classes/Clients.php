@@ -3,6 +3,7 @@
 namespace Stanford\OnCoreIntegration;
 
 use ExternalModules\ExternalModules;
+use GuzzleHttp\Exception\GuzzleException;
 use stdClass;
 
 /**
@@ -137,6 +138,40 @@ abstract class Clients
         }
 
 
+    }
+
+    /**
+     * @param $path
+     * @return \Psr\Http\Message\ResponseInterface|void
+     * @throws \Exception
+     */
+    public function get($path)
+    {
+        $jwt = $this->getAccessToken();
+        $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . $path, [
+            'debug' => false,
+            'headers' => [
+                'Authorization' => "Bearer {$jwt}",
+            ]
+        ]);
+        return $response;
+    }
+
+    /**
+     * @param string $path
+     * @param array $data
+     * @return \Psr\Http\Message\ResponseInterface|void
+     * @throws \Exception
+     */
+    public function post(string $path, array $data)
+    {
+        $jwt = $this->getAccessToken();
+        $response = $this->getGuzzleClient()->post($this->getApiURL() . $this->getApiURN() . $path, [
+            'debug' => false,
+            'body' => json_encode($data),
+            'headers' => ['Authorization' => "Bearer {$jwt}", 'Content-Type' => 'application/json', 'Accept' => 'application/json'],
+        ]);
+        return $response;
     }
 
     /**
