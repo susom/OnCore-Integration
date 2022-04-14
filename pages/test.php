@@ -2,6 +2,8 @@
 
 namespace Stanford\OnCoreIntegration;
 
+use GuzzleHttp\Exception\GuzzleException;
+
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
 
@@ -29,6 +31,10 @@ try {
     echo '<pre>';
     print_r($records);
     echo '</pre>';
+} catch (GuzzleException $e) {
+    $response = $e->getResponse();
+    $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+    echo($responseBodyAsString['message']);
 } catch (\Exception $e) {
     Entities::createException($e->getMessage());
     echo $e->getMessage();
