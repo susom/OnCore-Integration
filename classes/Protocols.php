@@ -158,8 +158,6 @@ class Protocols
         //TODO update entity table when redcap record or Oncore protocol subject is deleted.
     }
 
-    //TODO add function to Calculate Field Mapping is correct for records (when saving field mappings UI)
-
     /**
      * @return array
      */
@@ -448,21 +446,24 @@ class Protocols
      * pull redcap entity record.
      * @param $redcapProjectId
      * @param $irbNum
+     * @param int $status default YES
      * @return array|false|mixed|string[]|null
      * @throws \Exception
      */
-    public function getProtocolEntityRecord($redcapProjectId, $irbNum = '')
+    public function getProtocolEntityRecord($redcapProjectId, $irbNum = '', $status = 2)
     {
         if ($redcapProjectId == '') {
             throw new \Exception('REDCap project ID can not be null');
         }
         if ($irbNum != '') {
-            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where irb_number = " . $irbNum . " AND redcap_project_id = " . $redcapProjectId . " ");
+            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where irb_number = " . $irbNum . " AND redcap_project_id = " . $redcapProjectId . " AND status = " . $status . " ");
         } else {
-            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where redcap_project_id = " . $redcapProjectId . " ");
+            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where redcap_project_id = " . $redcapProjectId . "  AND status = " . $status . "  ");
         }
-        if ($record->num_rows == 0) {
+        if ($record->num_rows == 0 && $status == 0) {
             return [];
+        } elseif ($record->num_rows == 0 && $status == 2) {
+            $this->getProtocolEntityRecord($redcapProjectId, $irbNum, 0);
         } else {
             return db_fetch_assoc($record);
         }
