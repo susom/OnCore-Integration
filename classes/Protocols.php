@@ -158,6 +158,18 @@ class Protocols
         //TODO update entity table when redcap record or Oncore protocol subject is deleted.
     }
 
+
+    public function pushREDCapRecordToOnCore($redcapRecordId, $studySite, $oncoreFieldsDef)
+    {
+        $result = $this->getSubjects()->pushToOnCore($this->getEntityRecord()['oncore_protocol_id'], $studySite, $redcapRecordId, $this->getFieldsMap(), $oncoreFieldsDef);
+        // reset loaded subjects for protocol so we can pull them after creating new one.
+        $this->getSubjects()->setOnCoreProtocolSubjects(null, true);
+
+        // now sync redcap with oncore
+        $this->processSyncedRecords();
+        return $result;
+    }
+
     /**
      * @return array
      */

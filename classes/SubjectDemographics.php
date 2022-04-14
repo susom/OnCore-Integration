@@ -131,6 +131,11 @@ class SubjectDemographics
                     return $data[0];
                 }
             }
+        } catch (\LogicException|ClientException|GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            Entities::createException($responseBodyAsString['message']);
+            throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
             throw new \Exception($e->getMessage());

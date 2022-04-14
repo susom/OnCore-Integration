@@ -307,36 +307,41 @@ class Subjects extends SubjectDemographics
      * set each protocol subject along its demographics.
      * @param mixed $onCoreProtocolSubjects
      */
-    public function setOnCoreProtocolSubjects($protocolId): void
+    public function setOnCoreProtocolSubjects($protocolId = '', $resetSubjects = false): void
     {
 //        $this->onCoreProtocolSubjects = $onCoreProtocolSubjects;
         try {
-            if (!$protocolId) {
-                throw new \Exception("No Protocol Provided");
-            }
+            // if we want to reset subject
+            if ($resetSubjects) {
+                $this->onCoreProtocolSubjects = [];
+            } else {
+                if (!$protocolId || $protocolId == '') {
+                    throw new \Exception("No Protocol Provided");
+                }
 
-            $jwt = $this->getUser()->getAccessToken();
-            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolSubjects?protocolId=' . $protocolId, [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+                $jwt = $this->getUser()->getAccessToken();
+                $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolSubjects?protocolId=' . $protocolId, [
+                    'debug' => false,
+                    'headers' => [
+                        'Authorization' => "Bearer {$jwt}",
+                    ]
+                ]);
 
-            if ($response->getStatusCode() < 300) {
-                $subjects = json_decode($response->getBody(), true);
-                if (empty($subjects)) {
-                    $this->onCoreProtocolSubjects = [];
-                } else {
+                if ($response->getStatusCode() < 300) {
+                    $subjects = json_decode($response->getBody(), true);
+                    if (empty($subjects)) {
+                        $this->onCoreProtocolSubjects = [];
+                    } else {
 
-                    foreach ($subjects as $key => $subject) {
-                        try {
-                            $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId']);
-                        } catch (\Exception $e) {
-                            Entities::createException($e->getMessage());
+                        foreach ($subjects as $key => $subject) {
+                            try {
+                                $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId']);
+                            } catch (\Exception $e) {
+                                Entities::createException($e->getMessage());
+                            }
                         }
+                        $this->onCoreProtocolSubjects = $subjects;
                     }
-                    $this->onCoreProtocolSubjects = $subjects;
                 }
             }
         } catch (\Exception $e) {
@@ -517,12 +522,18 @@ class Subjects extends SubjectDemographics
                 throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
             }
         }
-        $jwt = $this->getUser()->getAccessToken();
-        $response = $this->getUser()->getGuzzleClient()->post($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolSubjects', [
-            'debug' => true,
-            'body' => json_encode(['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographics' => $subjectDemographics]),
-            'headers' => ['Authorization' => "Bearer {$jwt}", 'Content-Type' => 'application/json', 'Accept' => 'application/json'],
-        ]);
+        try {
+            $jwt = $this->getUser()->getAccessToken();
+            $response = $this->getUser()->getGuzzleClient()->post($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolSubjects', [
+                'debug' => false,
+                'body' => json_encode(['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographics' => $subjectDemographics, 'subjectDemographicsId' => $subjectDemographicsId]),
+                'headers' => ['Authorization' => "Bearer {$jwt}", 'Content-Type' => 'application/json', 'Accept' => 'application/json'],
+            ]);
+        } catch (GuzzleHttp\Exception\GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($responseBodyAsString['message']);
+        }
 
         if ($response->getStatusCode() == 201) {
             return array('status' => 'success');
@@ -536,7 +547,7 @@ class Subjects extends SubjectDemographics
     {
         $record = $this->getRedcapProjectRecords()[$redcapId];
         $data = [];
-        $redcapMRN = $record[$fields['mrn']['event']][$fields['mrn']['redcap_field']];
+        $redcapMRN = $record[OnCoreIntegration::getEventNameUniqueId($fields['mrn']['event'])][$fields['mrn']['redcap_field']];
         $onCoreRecord = $this->searchOnCoreSubjectUsingMRN($redcapMRN);
         if (empty($onCoreRecord)) {
             $demographics = $this->prepareREDCapRecordForOnCorePush($redcapId, $fields, $oncoreFieldsDef);

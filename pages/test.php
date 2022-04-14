@@ -20,18 +20,19 @@ namespace Stanford\OnCoreIntegration;
 //    echo '</pre>';
 //}
 
-//try {
-//    $module->initiateProtocol();
-////    $demographics = $module->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush(6, $module->getProtocols()->getFieldsMap(), $module->getMapping()->getOnCoreFieldDefinitions());
-////    $records = $module->getProtocols()->getSubjects()->createOnCoreProtocolSubject( $module->getProtocols()->getEntityRecord()['oncore_protocol_id'], 'SHC Main Hosp, Welch Rd & campus/nearby clinics',  null, $demographics);
-//    $module->getProtocols()->processSyncedRecords();
-//    $records = $module->getProtocols()->getSyncedRecords();
-//    echo '<pre>';
-//    print_r($records);
-//    echo '</pre>';
-//} catch (\Exception $e) {
-//    echo $e->getMessage();
-//}
+try {
+    $module->initiateProtocol();
+//    $demographics = $module->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush(6, $module->getProtocols()->getFieldsMap(), $module->getMapping()->getOnCoreFieldDefinitions());
+//    $records = $module->getProtocols()->getSubjects()->createOnCoreProtocolSubject( $module->getProtocols()->getEntityRecord()['oncore_protocol_id'], 'SHC Main Hosp, Welch Rd & campus/nearby clinics',  null, $demographics);
+    $records = $module->getProtocols()->pushREDCapRecordToOnCore(10, 'SHC Main Hosp, Pasteur, Welch & campus/nearby clinics', $module->getMapping()->getOnCoreFieldDefinitions());
+
+    echo '<pre>';
+    print_r($records);
+    echo '</pre>';
+} catch (\Exception $e) {
+    Entities::createException($e->getMessage());
+    echo $e->getMessage();
+}
 //try {
 //    $module->initiateProtocol();
 //    $records = $module->getProtocols()->getUser()->getOnCoreAdmin();
@@ -52,39 +53,39 @@ namespace Stanford\OnCoreIntegration;
 //}
 
 // pull oncore to redcap
-try {
-    $module->initiateProtocol();
-    $oncore = array(array('oncore' => 82020, 'redcap' => ''),
-        array('oncore' => 82011, 'redcap' => ''),
-        array('oncore' => 82026, 'redcap' => ''),
-        array('oncore' => 82028, 'redcap' => ''),
-        array('oncore' => 82030, 'redcap' => ''),
-        array('oncore' => 82023, 'redcap' => ''),
-        array('oncore' => 82016, 'redcap' => ''),
-        array('oncore' => 82038, 'redcap' => ''),
-        array('oncore' => 82031, 'redcap' => ''),
-        array('oncore' => 82014, 'redcap' => ''),
-        array('oncore' => 82019, 'redcap' => ''),
-        array('oncore' => 82018, 'redcap' => ''),
-        array('oncore' => 82022, 'redcap' => ''),
-        array('oncore' => 82015, 'redcap' => ''),
-        array('oncore' => 82039, 'redcap' => ''),
-        array('oncore' => 82035, 'redcap' => ''),
-        array('oncore' => 82017, 'redcap' => ''),
-        array('oncore' => 82013, 'redcap' => ''),
-        array('oncore' => 82032, 'redcap' => ''),
-        array('oncore' => 82033, 'redcap' => ''),
-        array('oncore' => 82012, 'redcap' => ''),
-        array('oncore' => 82021, 'redcap' => ''),
-        array('oncore' => 82041, 'redcap' => ''),
-        array('oncore' => 82025, 'redcap' => ''));
-    $module->getProtocols()->pullOnCoreRecordsIntoREDCap($oncore);
-    echo '<pre>';
-    print_r($records);
-    echo '</pre>';
-} catch (\Exception $e) {
-    echo $e->getMessage();
-}
+//try {
+//    $module->initiateProtocol();
+//    $oncore = array(array('oncore' => 82020, 'redcap' => ''),
+//        array('oncore' => 82011, 'redcap' => ''),
+//        array('oncore' => 82026, 'redcap' => ''),
+//        array('oncore' => 82028, 'redcap' => ''),
+//        array('oncore' => 82030, 'redcap' => ''),
+//        array('oncore' => 82023, 'redcap' => ''),
+//        array('oncore' => 82016, 'redcap' => ''),
+//        array('oncore' => 82038, 'redcap' => ''),
+//        array('oncore' => 82031, 'redcap' => ''),
+//        array('oncore' => 82014, 'redcap' => ''),
+//        array('oncore' => 82019, 'redcap' => ''),
+//        array('oncore' => 82018, 'redcap' => ''),
+//        array('oncore' => 82022, 'redcap' => ''),
+//        array('oncore' => 82015, 'redcap' => ''),
+//        array('oncore' => 82039, 'redcap' => ''),
+//        array('oncore' => 82035, 'redcap' => ''),
+//        array('oncore' => 82017, 'redcap' => ''),
+//        array('oncore' => 82013, 'redcap' => ''),
+//        array('oncore' => 82032, 'redcap' => ''),
+//        array('oncore' => 82033, 'redcap' => ''),
+//        array('oncore' => 82012, 'redcap' => ''),
+//        array('oncore' => 82021, 'redcap' => ''),
+//        array('oncore' => 82041, 'redcap' => ''),
+//        array('oncore' => 82025, 'redcap' => ''));
+//    $module->getProtocols()->pullOnCoreRecordsIntoREDCap($oncore);
+//    echo '<pre>';
+//    print_r($records);
+//    echo '</pre>';
+//} catch (\Exception $e) {
+//    echo $e->getMessage();
+//}
 // pull oncore record into redcap
 //try {
 //    $module->initiateProtocol();

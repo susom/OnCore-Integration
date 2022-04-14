@@ -72,7 +72,9 @@ try {
         echo json_encode($result);
     }
 } catch (\LogicException|ClientException|GuzzleException $e) {
-    Entities::createException($e->getMessage());
+    $response = $e->getResponse();
+    $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+    Entities::createException($responseBodyAsString['message']);
     header("Content-type: application/json");
     http_response_code(404);
     $result['data'] = [];
