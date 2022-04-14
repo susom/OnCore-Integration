@@ -3,6 +3,7 @@
 namespace Stanford\OnCoreIntegration;
 
 use ExternalModules\ExternalModules;
+use GuzzleHttp\Exception\GuzzleException;
 
 /**
  * Class Protocols
@@ -355,13 +356,8 @@ class Protocols
             if (empty($this->getOnCoreProtocol())) {
                 throw new \Exception("No protocol found for current REDCap project.");
             }
-            $jwt = $this->getUser()->getAccessToken();
-            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolStaff?protocolId=' . $this->getOnCoreProtocol()['protocolId'], [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+
+            $response = $this->getUser()->get('protocolStaff?protocolId=' . $this->getOnCoreProtocol()['protocolId']);
 
             if ($response->getStatusCode() < 300) {
                 $staffs = json_decode($response->getBody(), true);
@@ -373,10 +369,13 @@ class Protocols
                 return false;
             }
             return false;
+        } catch (GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            throw new \Exception($e->getMessage());
-
+            echo $e->getMessage();
         }
     }
 
@@ -389,13 +388,7 @@ class Protocols
     public function getOnCoreProtocolsViaID($protocolID)
     {
         try {
-            $jwt = $this->getUser()->getAccessToken();
-            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocols/' . $protocolID, [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+            $response = $this->getUser()->get('protocols/' . $protocolID);
 
             if ($response->getStatusCode() < 300) {
                 $data = json_decode($response->getBody(), true);
@@ -404,9 +397,13 @@ class Protocols
                     return $data;
                 }
             }
+        } catch (GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            throw new \Exception($e->getMessage());
+            echo $e->getMessage();
         }
     }
 
@@ -419,13 +416,7 @@ class Protocols
     public function searchOnCoreProtocolsViaIRB($irbNum)
     {
         try {
-            $jwt = $this->getUser()->getAccessToken();
-            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolManagementDetails?irbNo=' . $irbNum, [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+            $response = $this->getUser()->get('protocolManagementDetails?irbNo=' . $irbNum);
 
             if ($response->getStatusCode() < 300) {
                 $data = json_decode($response->getBody(), true);
@@ -435,9 +426,13 @@ class Protocols
                     return $data;
                 }
             }
+        } catch (GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            throw new \Exception($e->getMessage());
+            echo $e->getMessage();
         }
     }
 

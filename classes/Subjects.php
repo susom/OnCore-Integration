@@ -4,7 +4,7 @@ namespace Stanford\OnCoreIntegration;
 
 use \Exception;
 use \GuzzleHttp;
-
+use GuzzleHttp\Exception\GuzzleException;
 require_once 'classes/SubjectDemographics.php';
 
 class Subjects extends SubjectDemographics
@@ -319,13 +319,7 @@ class Subjects extends SubjectDemographics
                     throw new \Exception("No Protocol Provided");
                 }
 
-                $jwt = $this->getUser()->getAccessToken();
-                $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolSubjects?protocolId=' . $protocolId, [
-                    'debug' => false,
-                    'headers' => [
-                        'Authorization' => "Bearer {$jwt}",
-                    ]
-                ]);
+                $response = $this->getUser()->get('protocolSubjects?protocolId=' . $protocolId);
 
                 if ($response->getStatusCode() < 300) {
                     $subjects = json_decode($response->getBody(), true);
@@ -344,9 +338,13 @@ class Subjects extends SubjectDemographics
                     }
                 }
             }
+        } catch (GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            throw new \Exception($e->getMessage());
+            echo $e->getMessage();
         }
     }
 
@@ -522,18 +520,9 @@ class Subjects extends SubjectDemographics
                 throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
             }
         }
-        try {
-            $jwt = $this->getUser()->getAccessToken();
-            $response = $this->getUser()->getGuzzleClient()->post($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'protocolSubjects', [
-                'debug' => false,
-                'body' => json_encode(['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographics' => $subjectDemographics, 'subjectDemographicsId' => $subjectDemographicsId]),
-                'headers' => ['Authorization' => "Bearer {$jwt}", 'Content-Type' => 'application/json', 'Accept' => 'application/json'],
-            ]);
-        } catch (GuzzleHttp\Exception\GuzzleException $e) {
-            $response = $e->getResponse();
-            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-            throw new \Exception($responseBodyAsString['message']);
-        }
+
+        $response = $this->getUser()->post('protocolSubjects', ['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographics' => $subjectDemographics, 'subjectDemographicsId' => $subjectDemographicsId]);
+
 
         if ($response->getStatusCode() == 201) {
             return array('status' => 'success');
@@ -546,7 +535,6 @@ class Subjects extends SubjectDemographics
     public function pushToOnCore($protocolId, $studySite, $redcapId, $fields, $oncoreFieldsDef)
     {
         $record = $this->getRedcapProjectRecords()[$redcapId];
-        $data = [];
         $redcapMRN = $record[OnCoreIntegration::getEventNameUniqueId($fields['mrn']['event'])][$fields['mrn']['redcap_field']];
         $onCoreRecord = $this->searchOnCoreSubjectUsingMRN($redcapMRN);
         if (empty($onCoreRecord)) {

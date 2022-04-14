@@ -77,13 +77,7 @@ class SubjectDemographics
             // check if entity table already has that subject otherwise go to API to get info
             $demo = $this->getOnCoreSubjectDemographicsEntityRecord($subjectDemographicsId);
             if (empty($demo)) {
-                $jwt = $this->getUser()->getAccessToken();
-                $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'subjectDemographics/' . $subjectDemographicsId, [
-                    'debug' => false,
-                    'headers' => [
-                        'Authorization' => "Bearer {$jwt}",
-                    ]
-                ]);
+                $response = $this->getUser()->get('subjectDemographics/' . $subjectDemographicsId);
 
                 if ($response->getStatusCode() < 300) {
                     $data = json_decode($response->getBody(), true);
@@ -98,9 +92,13 @@ class SubjectDemographics
             } else {
                 return $demo;
             }
+        } catch (GuzzleException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            throw new \Exception($e->getMessage());
+            echo $e->getMessage();
         }
     }
 
@@ -113,13 +111,7 @@ class SubjectDemographics
     public function searchOnCoreSubjectUsingMRN($mrn, $subjectSource = 'OnCore')
     {
         try {
-            $jwt = $this->getUser()->getAccessToken();
-            $response = $this->getUser()->getGuzzleClient()->get($this->getUser()->getApiURL() . $this->getUser()->getApiURN() . 'subjectDemographics?mrn=' . $mrn . '&subjectSource=' . $subjectSource, [
-                'debug' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$jwt}",
-                ]
-            ]);
+            $response = $this->getUser()->get('subjectDemographics?mrn=' . $mrn . '&subjectSource=' . $subjectSource);
 
             if ($response->getStatusCode() < 300) {
                 $data = json_decode($response->getBody(), true);
@@ -133,13 +125,13 @@ class SubjectDemographics
                     return $data[0];
                 }
             }
-        } catch (\LogicException|ClientException|GuzzleException $e) {
+        } catch (GuzzleException $e) {
             $response = $e->getResponse();
             $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
             throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            throw new \Exception($e->getMessage());
+            echo $e->getMessage();
         }
     }
 
