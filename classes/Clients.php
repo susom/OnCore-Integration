@@ -163,7 +163,7 @@ abstract class Clients
      * @return \Psr\Http\Message\ResponseInterface|void
      * @throws \Exception
      */
-    public function post($path, $data)
+    public function post(string $path, array $data)
     {
         $jwt = $this->getAccessToken();
         $response = $this->getGuzzleClient()->post($this->getApiURL() . $this->getApiURN() . $path, [
