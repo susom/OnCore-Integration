@@ -167,6 +167,8 @@ class Protocols
 
         // now sync redcap with oncore
         $this->processSyncedRecords();
+
+        Entities::createLog("REDCap Record Id#$redcapRecordId was pushed succesfully to OnCore Protocol .");
         return $result;
     }
 
