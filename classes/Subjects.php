@@ -545,10 +545,10 @@ class Subjects extends SubjectDemographics
             if ($onCoreRecord['subjectSource'] == 'OnCore') {
                 return $this->createOnCoreProtocolSubject($protocolId, $studySite, $onCoreRecord['subjectDemographicsId'], null);
             }
-            // if subject is in OnStage this mean not part of any protocol
-            // OnStage data has priority except null
-            elseif ($onCoreRecord['subjectSource'] == 'OnStage') {
-                // fill onstage missing data from redcap record.
+            // if subject is in Onstage this mean not part of any protocol
+            // Onstage data has priority except null
+            elseif ($onCoreRecord['subjectSource'] == 'Onstage') {
+                // fill Onstage missing data from redcap record.
                 $demographics = $this->fillMissingData($record, $onCoreRecord, $fields);
                 return $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
             } else {
