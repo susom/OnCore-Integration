@@ -26,7 +26,7 @@ try {
     $module->initiateProtocol();
 //    $demographics = $module->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush(6, $module->getProtocols()->getFieldsMap(), $module->getMapping()->getOnCoreFieldDefinitions());
 //    $records = $module->getProtocols()->getSubjects()->createOnCoreProtocolSubject( $module->getProtocols()->getEntityRecord()['oncore_protocol_id'], 'SHC Main Hosp, Welch Rd & campus/nearby clinics',  null, $demographics);
-    $records = $module->getProtocols()->pushREDCapRecordToOnCore(10, 'SHC Main Hosp, Pasteur, Welch & campus/nearby clinics', $module->getMapping()->getOnCoreFieldDefinitions());
+    $records = $module->getProtocols()->pushREDCapRecordToOnCore(11, 'SHC Main Hosp, Pasteur, Welch & campus/nearby clinics', $module->getMapping()->getOnCoreFieldDefinitions());
 
     echo '<pre>';
     print_r($records);

@@ -59,7 +59,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const ONCORE_SUBJECT_SOURCE_TYPE_ONCORE = 'OnCore';
 
-    const ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE = 'OnStage';
+    const ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE = 'Onstage';
 
     public static $ONCORE_DEMOGRAPHICS_FIELDS = array(
         "subjectDemographicsId",
