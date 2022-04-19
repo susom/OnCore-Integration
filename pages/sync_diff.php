@@ -275,7 +275,6 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 <script>
     $(document).ready(function () {
         var ajax_endpoint   = "<?=$ajax_endpoint?>";
-        var mrn_fields      = <?=json_encode($oncore_fields)?>;
         var last_scan_ts    = "<?=$sample_ts?>";
         if(last_scan_ts){
             $("#summ_last_ts").html(last_scan_ts);
@@ -400,6 +399,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 console.log("failed to save", e);
             });
         });
+
+
     });
 </script>
 <?php

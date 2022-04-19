@@ -41,6 +41,11 @@ try {
                 $result = $module->pullSync();
                 break;
 
+            case "approveSync":
+                $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_NUMBER_INT) : null;
+                $module->getMapping()->setProjectFieldMappings($result);
+                break;
+
             case "excludeSubject":
                 //flips excludes flag on entitry record
                 $result = !empty($_POST["entity_record_id"]) ? filter_var($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
@@ -57,6 +62,12 @@ try {
                 }
                 break;
 
+            case "checkOverallStatus":
+                $pull   = $module->getMapping()->getOverallPullStatus();
+                $push   = $module->getMapping()->getOverallPushStatus();
+                $result = array("overallPull" => $pull, "overallPush" => $push);
+                break;
+
             case "checkPushPullStatus":
                 $oncore_field   = !empty($_POST["oncore_field"]) ? filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) : null;
                 $result         = $module->getMapping()->calculatePushPullStatus($oncore_field);
@@ -65,7 +76,13 @@ try {
             case "getValueMappingUI":
                 $redcap_field   = !empty($_POST["redcap_field"]) ? filter_var($_POST["redcap_field"], FILTER_SANITIZE_STRING) : null;
                 $oncore_field   = !empty($_POST["oncore_field"]) ? filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) : null;
-                $result         = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
+
+                if(1){
+                    $result         = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
+                }else{
+                    $result         = $module->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
+                }
+
                 $result         = $result["html"];
                 break;
         }
