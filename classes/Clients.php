@@ -92,6 +92,11 @@ abstract class Clients
     private $statusesAllowedToPush = [];
 
     /**
+     * @var array
+     */
+    private $onCoreStudySites = [];
+
+    /**
      * @param $PREFIX
      */
     public function __construct($PREFIX, $redcapCSFRToken)
@@ -117,9 +122,11 @@ abstract class Clients
 
         $this->setGlobalClientSecret(ExternalModules::getSystemSetting($this->getPrefix(), 'global-client-secret'));
 
-        $this->setRolesAllowedToPush(json_decode(ExternalModules::getSystemSetting($this->getPrefix(), 'oncore-roles-allowed-to-push')) ?: []);
+        $this->setRolesAllowedToPush(ExternalModules::getSystemSetting($this->getPrefix(), 'staff-role') ?: []);
 
-        $this->setStatusesAllowedToPush(json_decode(ExternalModules::getSystemSetting($this->getPrefix(), 'oncore-statuses-allowed-to-push')) ?: []);
+        $this->setStatusesAllowedToPush(ExternalModules::getSystemSetting($this->getPrefix(), 'protocol-status') ?: []);
+
+        $this->setOnCoreStudySites(ExternalModules::getSystemSetting($this->getPrefix(), 'study-site') ?: []);
 
         $this->setRedcapCSFRToken($redcapCSFRToken);
 
@@ -440,6 +447,22 @@ abstract class Clients
     public function setStatusesAllowedToPush(array $statusesAllowedToPush): void
     {
         $this->statusesAllowedToPush = OnCoreIntegration::nestedLowercase($statusesAllowedToPush);
+    }
+
+    /**
+     * @return array
+     */
+    public function getOnCoreStudySites(): array
+    {
+        return $this->onCoreStudySites;
+    }
+
+    /**
+     * @param array $onCoreStudySites
+     */
+    public function setOnCoreStudySites(array $onCoreStudySites): void
+    {
+        $this->onCoreStudySites = $onCoreStudySites;
     }
 
 

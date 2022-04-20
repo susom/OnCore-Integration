@@ -122,16 +122,59 @@
             "type": "textarea"
         },
         {
-            "key": "oncore-roles-allowed-to-push",
-            "name": "<b>JSON Object that defines OnCore Roles that are allowed to create Subjects in OnCore</b>",
+            "key": "oncore-staff-roles",
+            "name": "<b>OnCore Protocol`s Roles that are allowed to create Subjects in OnCore</b>",
             "required": true,
-            "type": "textarea"
+            "type": "sub_settings",
+            "repeatable": true,
+            "sub_settings": [
+                {
+                    "key": "staff-role",
+                    "name": "<b>Staff Role <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
+                    "type": "text",
+                    "required": true
+                }
+            ]
         },
         {
-            "key": "oncore-statuses-allowed-to-push",
-            "name": "<b>JSON Object that defines of OnCore Protocol Statuses that can accept new Subject via API. </b>",
+            "key": "description",
+            "name": "<hr>",
+            "type": "descriptive"
+        },
+        {
+            "key": "oncore-protocol-statuses",
+            "name": "<b>OnCore Protocol Statuses that can accept new Subjects via API. </b>",
             "required": true,
-            "type": "textarea"
+            "type": "sub_settings",
+            "repeatable": true,
+            "sub_settings": [
+                {
+                    "key": "protocol-status",
+                    "name": "<b>Protocol Status <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
+                    "type": "text",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "key": "description-2",
+            "name": "<hr>",
+            "type": "descriptive"
+        },
+        {
+            "key": "oncore-study-sites",
+            "name": "<b>Add all study sites defined on your OnCore instance. REDCap users will pick the site participated in their protocol.</b>",
+            "required": true,
+            "type": "sub_settings",
+            "repeatable": true,
+            "sub_settings": [
+                {
+                    "key": "study-site",
+                    "name": "<b>OnCore Study site <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
+                    "type": "text",
+                    "required": true
+                }
+            ]
         },
         {
             "key": "enable-system-debug-logging",
