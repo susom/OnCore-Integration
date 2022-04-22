@@ -19,8 +19,18 @@ $not_req_pull       = $field_map_ui_pull["not_required"];
 
 $req_push           = $field_map_ui_push["required"];
 $not_req_push       = $field_map_ui_push["not_required"];
-$overall_pull_status = $module->getMapping()->getOverallPullStatus() ? "ok" : "";
-$overall_push_status = $module->getMapping()->getOverallPushStatus() ? "ok" : "";
+$overall_pull_status    = $module->getMapping()->getOverallPullStatus() ? "ok" : "";
+$overall_push_status    = $module->getMapping()->getOverallPushStatus() ? "ok" : "";
+
+$study_sites            = $module->getUsers()->getOnCoreStudySites();
+$project_study_sites    = $module->getMapping()->getProjectSiteStudies();
+$site_selection         = array();
+$site_selection[]       = "<ul>\r\n";
+foreach($study_sites as $site){
+    $checked            = in_array($site, $project_study_sites) ? "checked" : "";
+    $site_selection[]   = "<li><label><input type='checkbox' $checked name='site_study_subset' value='$site'><span>$site</span></label></li>\r\n";
+}
+$site_selection[]       = "</ul>\r\n";
 ?>
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
@@ -31,17 +41,19 @@ $overall_push_status = $module->getMapping()->getOverallPushStatus() ? "ok" : ""
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
 
 <div id="field_mapping">
+    <h1>REDCap/OnCore Field Mapping</h1>
+    <p class="lead">Map REDCap Variables to OnCore Properties and vice versa to ensure that data can be pulled and pushed between projects.  Once the requisite mapping coverage is acheived the icon in the tabs will show a "green checkmark"</p>
     <ul class="nav nav-tabs">
-        <li class="active"><a data-toggle="tab" href="#pull_mapping" class="pull_mapping <?=$overall_pull_status?>">Pull Data From OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
-        <li><a data-toggle="tab" href="#push_mapping" class="push_mapping <?=$overall_push_status?>">Push Data To OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
+        <li class=""><a data-toggle="tab" href="#pull_mapping" class="pull_mapping <?=$overall_pull_status?>">Pull Data From OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
+        <li class="active"><a data-toggle="tab" href="#push_mapping" class="push_mapping <?=$overall_push_status?>">Push Data To OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
     </ul>
     <div class="tab-content">
-        <div class="tab-pane active" id="pull_mapping">
+        <div class="tab-pane" id="pull_mapping">
             <form id="oncore_mapping" class="container">
-                <h2>Map OnCore Fields to REDCap project variables</h2>
+                <h2>Map OnCore Fields to REDCap project variables to PULL</h2>
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
                     project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
-                    Settings.</p>
+                    Settings to be able to PULL.</p>
                 <table class="table table-striped">
                     <thead>
                     <tr>
@@ -64,12 +76,18 @@ $overall_push_status = $module->getMapping()->getOverallPushStatus() ? "ok" : ""
             </form>
         </div>
 
-        <div class="tab-pane" id="push_mapping">
+        <div class="tab-pane active" id="push_mapping">
+            <form id="study_sites" class="container">
+                <h2>Select subset of study sites for this project</h2>
+                <p class="lead">Data pushed from REDCap to OnCore will require a matching study site. Click to choose which study site will be available to this project.</p>
+                <?=implode("", $site_selection) ?>
+            </form>
+
             <form id="redcap_mapping" class="container">
-                <h2>Map REDCap fields to Oncore properties</h2>
+                <h2>Map REDCap fields to Oncore properties to PUSH</h2>
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
                     project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
-                    Settings.</p>
+                    Settings to be able to PUSH.</p>
                 <table class="table table-striped">
                     <thead>
                     <tr>
@@ -88,6 +106,53 @@ $overall_push_status = $module->getMapping()->getOverallPushStatus() ? "ok" : ""
     </div>
 </div>
 <style>
+    #study_sites{
+        margin-bottom:50px;
+    }
+    #study_sites ul {
+        margin:0;
+        padding:10px;
+        list-style:none;
+        box-shadow: 0 0 3px 1px #ccc;
+        border-radius: 3px;
+    }
+
+    #study_sites li {
+        display:inline-block;
+        width:33%;
+        position:relative;
+        padding:0;
+        margin:0 0 10px 0;
+        vertical-align: top;
+    }
+
+    #study_sites li label{}
+
+    #study_sites li input{
+        position:absolute;
+        top:50%; left:15px;
+        transform: translateY(-30%)
+    }
+
+    #study_sites li span{
+        display: flex;
+        justify-content:center;
+        flex-direction: column;
+
+        width:95%;
+        min-height:54px;
+        line-height:100%;
+        border-radius: 3px;
+        padding:10px 10px 10px 35px;
+        font-size:120%;
+        color:#aaa;
+        background:#F7F7FA;
+    }
+
+    #study_sites input:checked + span{
+        background:#E9F4F4;
+        color:#1B2E2E;
+    }
 
     .nav-tabs i.fa-check-circle {
         color: #5cb85c;
@@ -309,6 +374,11 @@ $overall_push_status = $module->getMapping()->getOverallPushStatus() ? "ok" : ""
             }
         });
 
+
+
+
+
+
         //SAVING THE ACTUAL MAPPINGS - DO ON EVERY CHANGE?
         $("#oncore_mapping").submit(function (e) {
             e.preventDefault();
@@ -404,6 +474,35 @@ $overall_push_status = $module->getMapping()->getOverallPushStatus() ? "ok" : ""
             }).done(function (result) {
                 //do all the tedious crap, or just refresh page
                 // location.href = location.href;
+            }).fail(function (e) {
+                console.log("failed to save", e);
+            });
+        });
+
+        //SAVE SITE STUDIES SUB SET
+        $("#study_sites").on("change", "input[name='site_study_subset']",function(){
+            $("#study_sites").submit();
+        });
+
+        $("#study_sites").submit(function(e){
+            e.preventDefault();
+            var site_study_subset = $(this).find("input:checked").serializeArray();
+
+            var sss = [];
+            $(this).find("input:checked").each(function(){
+                sss.push($(this).val());
+            });
+
+            $.ajax({
+                url: ajax_endpoint,
+                method: 'POST',
+                data: {
+                    "action": "saveSiteStudies",
+                    "site_studies_subset" : sss
+                },
+                dataType: 'json'
+            }).done(function (result) {
+                //done
             }).fail(function (e) {
                 console.log("failed to save", e);
             });

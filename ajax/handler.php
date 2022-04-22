@@ -29,6 +29,11 @@ try {
                 $module->getMapping()->setProjectFieldMappings($result);
                 break;
 
+            case "saveSiteStudies":
+                $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : null;
+                $module->getMapping()->setProjectSiteStudies($result);
+                break;
+
             case "integrateOnCore":
                 //integrate oncore project(s)!!
                 $entity_record_id   = !empty($_POST["entity_record_id"]) ? filter_var($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
