@@ -2,12 +2,15 @@
 namespace Stanford\OnCoreIntegration;
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
+use ExternalModules\ExternalModules;
+
 class Mapping
 {
     private $module;
     private $oncore_fields;
     private $redcap_fields;
     private $project_mapping;
+    private $site_studies_subset;
 
     public function __construct($module)
     {
@@ -431,6 +434,27 @@ class Mapping
         $status         = $this->getPushStatus($oncore_field);
         return $status;
     }
+
+
+    //SITE STUDIES
+    public function setProjectSiteStudies(array $site_studies_subset): void
+    {
+        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, json_encode($site_studies_subset));
+        $this->site_studies_subset = $site_studies_subset;
+    }
+
+    public function getProjectSiteStudies()
+    {
+        if(empty($this->site_studies_subset)){
+            $arr = json_decode(ExternalModules::getProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES), true);
+            $this->site_studies_subset = $arr ?: [];
+        }
+        return $this->site_studies_subset;
+    }
+
+
+
+
 
 
     //DRAW UI
