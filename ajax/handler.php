@@ -54,9 +54,11 @@ try {
             case "pushToOncore":
                 $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_NUMBER_INT) : null;
                 $module->emDebug("push to oncore approved ids(redcap?)", $result);
-
-                //TODO NEED METHOD TO PASS redcap_id + study_site TO PUSH TO ONCORE
-//                $module->getProtocols()->pullOnCoreRecordsIntoREDCap($result);
+                foreach($result as $record){
+                    $rc_id      = $record["redcap_id"];
+                    $study_site = $record["study_site"];
+                    $records    = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $study_site, $module->getMapping()->getOnCoreFieldDefinitions());
+                }
                 break;
 
             case "excludeSubject":
