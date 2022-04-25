@@ -14,10 +14,10 @@ class Mapping
 
     public function __construct($module)
     {
-        $this->module = $module;
-        $this->oncore_fields = $this->getOnCoreFieldDefinitions();
-        $this->redcap_fields = $this->getProjectFieldDictionary();
-        $this->project_mapping = $this->getProjectFieldMappings();
+        $this->module           = $module;
+        $this->oncore_fields    = $this->getOnCoreFieldDefinitions();
+        $this->redcap_fields    = $this->getProjectFieldDictionary();
+        $this->project_mapping  = $this->getProjectFieldMappings();
     }
 
     //GATHER THE REQUISITE DATAs INTO ARRAYS (Oncore, Redcap, FieldMappings)
@@ -210,7 +210,7 @@ class Mapping
     public function getOncoreAlias($oncore_field)
     {
         $field = $this->getOncoreField($oncore_field);
-        $alias = array_key_exists("alias", $field) ? $field["alias"] : "";
+        $alias = array_key_exists("alias", $field) && !empty($field["alias"]) ? $field["alias"] : $oncore_field;
         return $alias;
     }
 
@@ -223,6 +223,7 @@ class Mapping
         $desc = array_key_exists("description", $field) ? $field["description"] : "";
         return $desc;
     }
+
 
     /**
      * @return array
@@ -497,7 +498,7 @@ class Mapping
             //CREATE ONCORE MAPPING FOR REDCAP TO ONCORE MAPPING
             $required       = $field_details["required"] == "true" ? "required" : null;
             $field_choices  = !empty($field_details["oncore_valid_values"]) ? $field_details["oncore_valid_values"] : array();
-            $temp_option    = "<option data-value_set='" . json_encode($field_choices) . "' value='$field'>$field</option>\r\n";
+            $temp_option    = "<option data-value_set='" . json_encode($field_choices) . "' value='$field' 'vmap-$field'>$field</option>\r\n";
             if($required){
                 $req_options[]      = $temp_option;
             }else{
@@ -521,7 +522,6 @@ class Mapping
                 $map_select         = str_replace("'$rc_field_name'", "'$rc_field_name' selected ", $map_select);
                 $map_select         = str_replace("'vmap-$rc_field_name'", $data_value_mapping, $map_select);
 
-                $this->module->emDebug("mapped $field", $this->getMappedRedcapValueSet($field));
                 $value_map_html = $this->makeValueMappingUI($field, $rc_field_name);
                 $pull_status    = $this->getPullStatus($field) ? "ok" : "";
             }
@@ -560,15 +560,17 @@ class Mapping
             $map_select     = str_replace("[REDCAP_FIELD]", $rc_field_name, $oc_select);
             $oncore_field   = $this->getMappedOncoreField($rc_field_name);
             $event_name     = $this->getRedcapEventName($rc_field_name);
+            $rc_type        = $this->getRedcapType($rc_field_name);
             $push_status    = "";
 
-            $value_map_html = "";
             $value_map_html = $this->makeValueMappingUI_RC($oncore_field, $rc_field_name);
-
-
+            $map_select     = str_replace("'$rc_field_name'", "'$rc_field_name' data-eventname='$event_name' data-type='$rc_type' ", $map_select);
             if (array_key_exists($oncore_field, $project_mappings)) {
+                $json_vmapping      = json_encode($this->getMappedRedcapValueSet($oncore_field));
+                $data_value_mapping = "data-val_mapping='{$json_vmapping}'";
 
-                $map_select     = str_replace("'$oncore_field'", "'$oncore_field' selected", $map_select);
+                $map_select     = str_replace("'$oncore_field'", "'$oncore_field' selected ", $map_select);
+                $map_select     = str_replace("'vmap-$rc_field_name'", $data_value_mapping, $map_select);
                 $push_status    = $this->getPushStatus($oncore_field) ? "ok" : "";
             }
 
@@ -623,8 +625,6 @@ class Mapping
 
         //IF ONCORE FIELD IS NOT TEXT or HAS FIXED VALUE SET THEN NEED TO MAP
         if ($special_oncore) {
-//            $this->module->emDebug($oncore_field,$special_oncore);
-
             // IF OVER LAPPING MAPPING OF VALUES THEN PULL AND PUSH IS POSSIBLE
             $value_map_html .= "<tr class='$oncore_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
             $value_map_html .= "<tr><th class='td_oc_vset'>Oncore Valid Values</th><th class='td_rc_vset'>Redcap Valid Values</th><th class='centered td_map_status'>Map Status</th><th class='td_vset_spacer'></th></tr>\r\n";
@@ -674,12 +674,12 @@ class Mapping
 
         if ($special_redcap) {
             // IF OVER LAPPING MAPPING OF VALUES THEN PULL AND PUSH IS POSSIBLE
-            $value_map_html .= "<tr class='$oncore_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
+            $value_map_html .= "<tr class='$redcap_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
             $value_map_html .= "<tr><th class='td_oc_vset'>Oncore Valid Values</th><th class='td_rc_vset'>Redcap Valid Values</th><th class='centered td_map_status'>Map Status</th><th class='td_vset_spacer'></th></tr>\r\n";
 
             foreach ($rc_values as $idx => $rc_value) {
                 $value_map_status   = "";
-                $value_select       = str_replace("[REDCAP_FIELD_VALUE]", $redcap_field . "_$idx", $v_select);
+                $value_select       = str_replace("'[REDCAP_FIELD_VALUE]'", "'$redcap_field"."_"."$idx' data-oc_field='$oncore_field'", $v_select);
 
                 if (array_search($idx, $value_mapping)) {
                     $oc_val         = array_search($idx, $value_mapping);
