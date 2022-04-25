@@ -6,6 +6,9 @@ use ExternalModules\ExternalModules;
 
 class Mapping
 {
+    /**
+     * @var \Stanford\OnCoreIntegration\OnCoreIntegration
+     */
     private $module;
     private $oncore_fields;
     private $redcap_fields;
@@ -14,8 +17,8 @@ class Mapping
 
     public function __construct($module)
     {
-        $this->module           = $module;
-        $this->oncore_fields    = $this->getOnCoreFieldDefinitions();
+        $this->module = $module;
+        $this->oncore_fields = $this->getOnCoreFieldDefinitions();
         $this->redcap_fields    = $this->getProjectFieldDictionary();
         $this->project_mapping  = $this->getProjectFieldMappings();
     }
@@ -106,9 +109,12 @@ class Mapping
      */
     public function getProjectFieldMappings()
     {
-        $this->module->initiateProtocol();
-        $results = $this->module->getProtocols()->getFieldsMap();
-        return $results;
+        if ($this->project_mapping) {
+            return $this->project_mapping;
+        } else {
+            $this->project_mapping = json_decode(ExternalModules::getProjectSetting($this->module->PREFIX, $this->module->getProjectId(), OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
+            return $this->project_mapping ?: [];
+        }
     }
 
     /**
@@ -116,9 +122,9 @@ class Mapping
      */
     public function setProjectFieldMappings($mappings = array())
     {
-        $this->module->initiateProtocol();
         $mappings = is_null($mappings) ? array() : $mappings;
-        return $this->module->getProtocols()->setFieldsMap($mappings);
+        ExternalModules::setProjectSetting($this->module->PREFIX, $this->module->getProjectId(), OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, json_encode($mappings));
+        $this->project_mapping = $mappings;
     }
 
 
@@ -705,8 +711,9 @@ class Mapping
      * @param $mappedValues
      * @return array|mixed
      */
-    public static function getOnCoreMappedValue($OnCoreValue, $mappedValues)
+    public function getOnCoreMappedValue($OnCoreValue, $mappedValues)
     {
+        $mappedValues = $mappedValues['value_mapping_pull'];
         foreach ($mappedValues as $mappedValue) {
             if ($OnCoreValue == $mappedValue['oc']) {
                 return $mappedValue;
@@ -720,8 +727,9 @@ class Mapping
      * @param $mappedValues
      * @return array|mixed
      */
-    public static function getREDCapMappedValue($REDCapValue, $mappedValues)
+    public function getREDCapMappedValue($REDCapValue, $mappedValues)
     {
+        $mappedValues = $mappedValues['value_mapping_push'];
         foreach ($mappedValues as $mappedValue) {
             if ($REDCapValue == $mappedValue['rc']) {
                 return $mappedValue;

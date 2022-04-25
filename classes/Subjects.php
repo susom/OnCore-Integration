@@ -45,6 +45,11 @@ class Subjects extends SubjectDemographics
 
 
     /**
+     * @var Mapping
+     */
+    private $mapping;
+
+    /**
      * The top functions can be used to query and verify MRNs in the home institution's Electronic
      * Medical Record system.
      *
@@ -54,13 +59,15 @@ class Subjects extends SubjectDemographics
      * @param $canPush
      * @param $reset
      */
-    public function __construct($user, $canPush = false, $reset = false)
+    public function __construct($user, $mapping, $canPush = false, $reset = false)
     {
         parent::__construct($reset);
 
         $this->setUser($user);
 
         $this->setCanPush($canPush);
+
+        $this->setMapping($mapping);
 
         $this->PRIFIX = $this->getUser()->getPREFIX();
     }
@@ -189,7 +196,7 @@ class Subjects extends SubjectDemographics
                         // get array of 0/1 from redcap for checkboxes
                         $rc = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
                         foreach ($parsed as $item) {
-                            $map = Mapping::getOnCoreMappedValue($item, $field['value_mapping']);
+                            $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
                             // if the oncore value mapped redcap checkbox is not check then partial match
                             if (!$rc[$map['rc']]) {
                                 return OnCoreIntegration::PARTIAL_MATCH;
@@ -198,7 +205,7 @@ class Subjects extends SubjectDemographics
                     } else {
                         // if redcap is text or radio then every race must match the redcap value
                         foreach ($onCoreSubject['demographics'][$key] as $item) {
-                            $map = Mapping::getOnCoreMappedValue($item, $field['value_mapping']);
+                            $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
                             // if the oncore value mapped redcap checkbox is not check then partial match
                             if ($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']] != $map['rc']) {
                                 return OnCoreIntegration::PARTIAL_MATCH;
@@ -206,7 +213,7 @@ class Subjects extends SubjectDemographics
                         }
                     }
                 } else {
-                    $map = Mapping::getOnCoreMappedValue($onCoreSubject['demographics'][$key], $field['value_mapping']);
+                    $map = $this->getMapping()->getOnCoreMappedValue($onCoreSubject['demographics'][$key], $field);
                     if ($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']] != $map['rc']) {
                         return OnCoreIntegration::PARTIAL_MATCH;
                     }
@@ -557,6 +564,14 @@ class Subjects extends SubjectDemographics
         }
     }
 
+    /**
+     * this method will fill empty field pulled from onStage with redcap data.
+     * @param $redcapRecord
+     * @param $onCoreRecord
+     * @param $fields
+     * @return mixed
+     * @throws Exception
+     */
     public function fillMissingData($redcapRecord, $onCoreRecord, $fields)
     {
         foreach ($fields as $key => $field) {
@@ -569,7 +584,7 @@ class Subjects extends SubjectDemographics
                         if (!$value) {
                             continue;
                         }
-                        $map = Mapping::getREDCapMappedValue($id, $field['value_mapping']);
+                        $map = $this->getMapping()->getREDCapMappedValue($id, $field);
                         if (!$map) {
                             throw new \Exception('cant find map for redcap value ' . $id);
                         }
@@ -614,7 +629,7 @@ class Subjects extends SubjectDemographics
                             if (!$value) {
                                 continue;
                             }
-                            $map = Mapping::getREDCapMappedValue($id, $field['value_mapping']);
+                            $map = $this->getMapping()->getREDCapMappedValue($id, $field);
                             if (!$map) {
                                 throw new \Exception('cant find map for redcap value ' . $id);
                             }
@@ -622,14 +637,14 @@ class Subjects extends SubjectDemographics
                         }
                         $data[$key] = $options;
                     } else {
-                        $map = Mapping::getREDCapMappedValue($redcapValue, $field['value_mapping']);
+                        $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
                         if (!$map) {
                             throw new \Exception('cant find map for redcap value ' . $redcapValue);
                         }
                         $data[$key] = $map['oc'];
                     }
                 } else {
-                    $map = Mapping::getREDCapMappedValue($redcapValue, $field['value_mapping']);
+                    $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
                     if (!$map) {
                         throw new \Exception('cant find map for redcap value ' . $redcapValue);
                     }
@@ -658,7 +673,7 @@ class Subjects extends SubjectDemographics
                 $parsed = json_decode($onCoreValue, true);
                 if (is_array($parsed)) {
                     foreach ($parsed as $item) {
-                        $map = Mapping::getOnCoreMappedValue($item, $field['value_mapping']);
+                        $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
                         if ($field['field_type'] == 'checkbox') {
                             $data[$field['event']][$field['redcap_field'] . '___' . $map['rc']] = 1;
                         } else {
@@ -666,7 +681,7 @@ class Subjects extends SubjectDemographics
                         }
                     }
                 } else {
-                    $map = Mapping::getOnCoreMappedValue($onCoreValue, $field['value_mapping']);
+                    $map = $this->getMapping()->getOnCoreMappedValue($onCoreValue, $field);
                     $data[$field['event']][$field['redcap_field']] = $map['rc'];
                 }
             }
@@ -738,4 +753,22 @@ class Subjects extends SubjectDemographics
     {
         $this->canPush = $canPush;
     }
+
+    /**
+     * @return Mapping
+     */
+    public function getMapping(): Mapping
+    {
+        return $this->mapping;
+    }
+
+    /**
+     * @param Mapping $mapping
+     */
+    public function setMapping(Mapping $mapping): void
+    {
+        $this->mapping = $mapping;
+    }
+
+
 }
