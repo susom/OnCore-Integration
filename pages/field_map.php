@@ -14,6 +14,8 @@ $field_map_ui_push  = $field_map_ui["push"];
 $project_mappings   = $field_map_ui["project_mappings"];
 $oncore_fields      = $field_map_ui["oncore_fields"];
 
+$module->emDebug("this is awful", $project_mappings);
+
 $req_pull           = $field_map_ui_pull["required"];
 $not_req_pull       = $field_map_ui_pull["not_required"];
 
@@ -269,8 +271,26 @@ $site_selection[]       = "</ul>\r\n";
                 //TODO HOW TO PASS CALLBACK INTO A BOUND SUBMIT EVENT? DO SHORT TIMEOUT THEN FOR NOW
                 setTimeout(function(){
                     //UPDATE PUSH PULL STATUS
-                    updatePushPullStatus(oncore_field);
-                    makeValueMappingRow(oncore_field, redcap_field);
+                    updatePushPullStatus(oncore_field, redcap_field);
+                    makeValueMappingRow(oncore_field, redcap_field, 0);
+                }, 150);
+            }
+        });
+
+        $("#redcap_mapping select.oncore_field").on("change",function(){
+            if($(this).find("option:selected")){
+                var _opt            = $(this).find("option:selected");
+                var oncore_field    = _opt.val();
+                var redcap_field    = $(this).attr("name");
+
+                //SAVE ENTIRE STATE
+                $("#redcap_mapping").submit();
+
+                //TODO HOW TO PASS CALLBACK INTO A BOUND SUBMIT EVENT? DO SHORT TIMEOUT THEN FOR NOW
+                setTimeout(function(){
+                    //UPDATE PUSH PULL STATUS
+                    updatePushPullStatus(oncore_field, redcap_field);
+                    makeValueMappingRow(oncore_field, redcap_field, 1);
                 }, 150);
             }
         });
@@ -304,7 +324,6 @@ $site_selection[]       = "</ul>\r\n";
                 }
 
                 //SAVE ENTIRE STATE
-                console.log("wtf is changing the pull status?");
                 $("#oncore_mapping").submit();
 
                 var _el = $(this).closest("tr").find(".value_map_status");
@@ -327,45 +346,47 @@ $site_selection[]       = "</ul>\r\n";
         });
 
         $("#redcap_mapping").on("change","select.oncore_value", function(){
-            if($(this).find("option:selected")){
+            if($(this).find("option:selected").length){
                 var _opt            = $(this).find("option:selected");
 
                 var temp            = $(this).attr("name").split("_");
-                var oncore_field    = temp[0];
-                var oncore_val_i    = temp[1];
-                var redcap_val_i    = _opt.val();
+                var rc_field        = temp[0];
+                var redcap_val_i    = temp[1];
+                var oncore_val      = _opt.val();
+                var oncore_field    = $(this).data("oc_field");
 
-                if ($("#oncore_mapping select[name='" + oncore_field + "']").find("option:selected").length) {
-                    var val_mapping = $("#oncore_mapping select[name='" + oncore_field + "']").find("option:selected").data("val_mapping");
+                if ($("#redcap_mapping select[name='" + rc_field + "']").find("option:selected").length) {
+                    var val_mapping = $("#redcap_mapping select[name='" + rc_field + "']").find("option:selected").data("val_mapping");
 
                     if (!val_mapping) {
                         val_mapping = {};
                     }
+
                     var oset = oncore_fields[oncore_field]["oncore_valid_values"];
-                    if (redcap_val_i == "-99") {
-                        if(val_mapping.hasOwnProperty(oset[oncore_val_i])){
-                            delete val_mapping[oset[oncore_val_i]];
+                    if (oncore_val == "-99") {
+                        if(val_mapping.hasOwnProperty(redcap_val_i)){
+                            delete val_mapping[redcap_val_i];
                         }
                     } else {
-                        val_mapping[oset[oncore_val_i]] = redcap_val_i;
+                        val_mapping[redcap_val_i] = oset[oncore_val];
                     }
 
-                    $("select[name='" + oncore_field + "']").find("option:selected").data("val_mapping", val_mapping);
+                    $("#redcap_mapping select[name='" + rc_field + "']").find("option:selected").data("val_mapping", val_mapping);
                 }
 
                 //SAVE ENTIRE STATE
-                $("#oncore_mapping").submit();
+                $("#redcap_mapping").submit();
 
                 var _el = $(this).closest("tr").find(".value_map_status");
                 //TODO HOW TO PASS CALLBACK INTO A BOUND SUBMIT EVENT? DO SHORT TIMEOUT THEN FOR NOW
                 setTimeout(function(){
                     //UPDATE PUSH PULL STATUS
-                    updatePushPullStatus(oncore_field);
+                    updatePushPullStatus(oncore_field, rc_field);
 
                     _el.removeClass("ok");
 
                     //IF -99, THEN CLEAR VALUES ADN THATS IT
-                    if(redcap_val_i == "-99"){
+                    if(oncore_val == "-99"){
                         return;
                     }
 
@@ -373,9 +394,6 @@ $site_selection[]       = "</ul>\r\n";
                 }, 250);
             }
         });
-
-
-
 
 
 
@@ -438,21 +456,44 @@ $site_selection[]       = "</ul>\r\n";
                 var el      = $(this);
                 var name    = el.attr("name");
                 var val     = el.val();
+
                 var opt     = el.find("option:selected");
-                var ev      = opt.data("eventname");
-                var ftype   = opt.data("type");
+                var ev      = el.data("eventname");
+                var ftype   = el.data("type");
                 var vmaps   = opt.data("val_mapping");
                 var value_mapping = [];
+
                 if(vmaps){
-                    for(var oncore_value in vmaps){
-                        var redcap_mapping = vmaps[oncore_value];
-                        value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
+                    if(Object.keys(vmaps).filter(onlyUnique).length !== Object.values(vmaps).filter(onlyUnique).length){
+                        //if many to 1 then we need to what, make this into an array?
+                        var temp = {};
+                        for(var redcap_mapping in vmaps){
+                            var oncore_value = vmaps[redcap_mapping];
+                            if(!temp.hasOwnProperty(oncore_value)){
+                                temp[oncore_value] = [];
+                            }
+                            temp[oncore_value].push(redcap_mapping);
+                        }
+
+                        //THIS IS JUST SO FREAKINGG AWFUL
+                        for(var oncore_value in temp){
+                            var redcap_mapping = temp[oncore_value];
+                            if(redcap_mapping.length == 1){
+                                redcap_mapping = redcap_mapping.pop();
+                            }
+                            value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
+                        }
+                    }else{
+                        for(var redcap_mapping in vmaps){
+                            var oncore_value = vmaps[redcap_mapping];
+                            value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
+                        }
                     }
                 }
 
                 if (val != "-99") {
-                    field_maps[name] = {
-                        "redcap_field": val
+                    field_maps[val] = {
+                        "redcap_field": name
                         , "event": ev
                         , "field_type" : ftype
                         , "value_mapping" : value_mapping
@@ -460,9 +501,6 @@ $site_selection[]       = "</ul>\r\n";
                 }
             });
 
-            console.log("save field mapping", field_maps);
-
-            return;
             $.ajax({
                 url: ajax_endpoint,
                 method: 'POST',
@@ -509,6 +547,10 @@ $site_selection[]       = "</ul>\r\n";
         });
     });
 
+    function onlyUnique(value, index, self) {
+        return self.indexOf(value) === index;
+    }
+
     function updateOverAllStatus(){
         $.ajax({
             url: ajax_endpoint,
@@ -535,12 +577,12 @@ $site_selection[]       = "</ul>\r\n";
         });
     }
 
-    function updatePushPullStatus(oncore_field){
-        console.log("updatePushPullStatus",oncore_field)
-        var _el = $("tr."+oncore_field);
-        _el.find("td.status.pull").removeClass("ok");
-        _el.find("td.status.push").removeClass("ok");
+    function updatePushPullStatus(oncore_field, redcap_field){
+        var _el     = $("tr."+oncore_field);
+        var _el2    = $("tr."+redcap_field);
 
+        _el.find("td.status.pull").removeClass("ok");
+        _el2.find("td.status.push").removeClass("ok");
         $.ajax({
             url: ajax_endpoint,
             method: 'POST',
@@ -553,13 +595,13 @@ $site_selection[]       = "</ul>\r\n";
             var pull_status = result["pull"] ? "ok" : "";
             var push_status = result["push"] ? "ok" : "";
             _el.find("td.status.pull").addClass(pull_status);
-            _el.find("td.status.push").addClass(push_status);
+            _el2.find("td.status.push").addClass(push_status);
         }).fail(function (e) {
             console.log("failed to get push pull status?", e);
         });
     }
 
-    function makeValueMappingRow(oncore_field, redcap_field) {
+    function makeValueMappingRow(oncore_field, redcap_field, rc_mapping) {
         $.ajax({
             url: ajax_endpoint,
             method: 'POST',
@@ -567,6 +609,7 @@ $site_selection[]       = "</ul>\r\n";
                 "action": "getValueMappingUI",
                 "oncore_field": oncore_field,
                 "redcap_field": redcap_field,
+                "rc_mapping"  : rc_mapping
             },
             dataType: 'json'
         }).done(function (result) {

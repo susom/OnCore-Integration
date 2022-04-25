@@ -48,7 +48,15 @@ try {
 
             case "approveSync":
                 $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_NUMBER_INT) : null;
-                $module->getMapping()->setProjectFieldMappings($result);
+                $module->getProtocols()->pullOnCoreRecordsIntoREDCap($result);
+                break;
+
+            case "pushToOncore":
+                $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_NUMBER_INT) : null;
+                $module->emDebug("push to oncore approved ids(redcap?)", $result);
+
+                //TODO NEED METHOD TO PASS redcap_id + study_site TO PUSH TO ONCORE
+//                $module->getProtocols()->pullOnCoreRecordsIntoREDCap($result);
                 break;
 
             case "excludeSubject":
@@ -81,11 +89,11 @@ try {
             case "getValueMappingUI":
                 $redcap_field   = !empty($_POST["redcap_field"]) ? filter_var($_POST["redcap_field"], FILTER_SANITIZE_STRING) : null;
                 $oncore_field   = !empty($_POST["oncore_field"]) ? filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) : null;
-
-                if(1){
-                    $result         = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
-                }else{
+                $rc_mapping     = !empty($_POST["rc_mapping"]) ? filter_var($_POST["rc_mapping"], FILTER_SANITIZE_NUMBER_INT) : null;
+                if($rc_mapping){
                     $result         = $module->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
+                }else{
+                    $result         = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
                 }
 
                 $result         = $result["html"];
