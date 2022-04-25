@@ -35,15 +35,22 @@ class Protocols
 
 
     /**
+     * @var Mapping
+     */
+    private $mapping;
+
+    /**
      * @param $user
+     * @param $mapping
      * @param $reset
      */
-    public function __construct($user, $redcapProjectId = '', $reset = false)
+    public function __construct($user, $mapping, $redcapProjectId = '', $reset = false)
     {
 //        parent::__construct($reset);
 
         $this->setUser($user);
 
+        $this->setMapping($mapping);
         // if protocol is initiated for specific REDCap project. then check if this ONCORE_PROTOCOL entity record exists and pull OnCore Protocol via  API
         if ($redcapProjectId) {
             $this->prepareProtocol($redcapProjectId);
@@ -78,7 +85,7 @@ class Protocols
 //            throw new \Exception('Cant find oncore subjects');
 //        }
 
-        $fields = $this->getFieldsMap();
+        $fields = $this->getMapping()->getProjectFieldMappings();
 
         if (!$fields) {
             throw new \Exception('Fields map is not defined.');
@@ -162,7 +169,7 @@ class Protocols
 
     public function pushREDCapRecordToOnCore($redcapRecordId, $studySite, $oncoreFieldsDef)
     {
-        $result = $this->getSubjects()->pushToOnCore($this->getEntityRecord()['oncore_protocol_id'], $studySite, $redcapRecordId, $this->getFieldsMap(), $oncoreFieldsDef);
+        $result = $this->getSubjects()->pushToOnCore($this->getEntityRecord()['oncore_protocol_id'], $studySite, $redcapRecordId, $this->getMapping()->getProjectFieldMappings(), $oncoreFieldsDef);
         // reset loaded subjects for protocol so we can pull them after creating new one.
         $this->getSubjects()->setOnCoreProtocolSubjects(null, true);
 
@@ -270,7 +277,7 @@ class Protocols
     public function prepareProtocolSubjects()
     {
         try {
-            $this->setSubjects(new Subjects($this->getUser(), $this->canPushToProtocol()));
+            $this->setSubjects(new Subjects($this->getUser(), $this->getMapping(), $this->canPushToProtocol()));
             $this->getSubjects()->setOnCoreProtocolSubjects($this->getEntityRecord()['oncore_protocol_id']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
@@ -439,7 +446,7 @@ class Protocols
     public function pullOnCoreRecordsIntoREDCap($records)
     {
         try {
-            if ($this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $records, $this->getFieldsMap())) {
+            if ($this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $records, $this->getMapping()->getProjectFieldMappings())) {
                 // update linkage entity table with redcap record and new status
                 $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id']);
                 $this->processSyncedRecords();
@@ -565,6 +572,22 @@ class Protocols
     public function setSubjects(Subjects $subjects): void
     {
         $this->subjects = $subjects;
+    }
+
+    /**
+     * @return Mapping
+     */
+    public function getMapping(): Mapping
+    {
+        return $this->mapping;
+    }
+
+    /**
+     * @param Mapping $mapping
+     */
+    public function setMapping(Mapping $mapping): void
+    {
+        $this->mapping = $mapping;
     }
 
 
