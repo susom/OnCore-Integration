@@ -11,10 +11,46 @@ $field_map_ui       = $mapping->makeFieldMappingUI();
 $field_map_ui_pull  = $field_map_ui["pull"];
 $field_map_ui_push  = $field_map_ui["push"];
 
-$project_mappings   = $field_map_ui["project_mappings"];
-$oncore_fields      = $field_map_ui["oncore_fields"];
+$project_mappings_sample = array(
+    "pull" => array(
+        "ethnicity" => array(
+            "redcap_field"  => "ethnic_background",
+            "event"         => "baseline_arm_1",
+            "field_type"    => "radio",
+            "value_mapping" => array(
+                array( "oc" => "Hispanic or Latino", "rc" => 1 ),
+                array( "oc" => "Non-Hispanic", "rc" => 2 ),
+                array( "oc" => "NOTE - Use Unknown For Not Reported", "rc" => 3 ),
+                array( "oc" => "Unknown", "rc" => 3 )
+            )
+        )
+    ),
+    "push" => array(
+        "ethnicity" => array(
+            "redcap_field"  => "ethnic_background",
+            "event"         => "baseline_arm_1",
+            "field_type"    => "radio",
+            "value_mapping" => array(
+                array( "oc" => "Hispanic or Latino", "rc" => 1 ),
+                array( "oc" => "Non-Hispanic", "rc" => 2 ),
+                array( "oc" => "Unknown", "rc" => 3 ),
+                array( "oc" => "Unknown", "rc" => 4 ),
+                array( "oc" => "Unknown", "rc" => 5 )
+            )
+        )
+    )
 
-$module->emDebug("this is awful", $project_mappings);
+);
+
+
+
+
+$current_mapping    = $module->getMapping()->getProjectMapping();
+//$module->emDebug($current_mapping["push"]);
+//$module->getMapping()->setProjectFieldMappings(array("pull"=>$current_mapping["pull"], "push" => array()));
+
+
+$oncore_fields      = $field_map_ui["oncore_fields"];
 
 $req_pull           = $field_map_ui_pull["required"];
 $not_req_pull       = $field_map_ui_pull["not_required"];
@@ -231,7 +267,6 @@ $site_selection[]       = "</ul>\r\n";
     $(document).ready(function () {
         var ajax_endpoint       = "<?=$ajax_endpoint?>";
         var oncore_fields       = <?=json_encode($oncore_fields)?>;
-        var project_mappings    = <?=json_encode($project_mappings)?>;
 
         //SUPERFICIAL UI
         //TAB BEHAVIOR
@@ -239,7 +274,6 @@ $site_selection[]       = "</ul>\r\n";
             $("li.active").removeClass("active");
             $(this).parent("li").addClass("active");
         });
-
         $(".show_optional a").on("click",function(e){
             e.preventDefault();
             if($("tr.notrequired td").is(":visible")){
@@ -251,6 +285,7 @@ $site_selection[]       = "</ul>\r\n";
             }
         });
 
+
         //SOME RESPONSIVE UI TO SEE
         //ON SELECT OF TOP LEVEL REDCAP FIELD
         $("#oncore_mapping select.redcap_field").on("change",function(){
@@ -259,41 +294,89 @@ $site_selection[]       = "</ul>\r\n";
                 var redcap_field    = _opt.val();
                 var oncore_field    = $(this).attr("name");
                 var event_name      = _opt.data("eventname");
+                var ftype           = _opt.data("type");
+                var vmaps           = _opt.data("val_mapping");
 
                 if($(this).closest("tr").find(".rc_event").length){
                     $(this).closest("tr").find(".rc_event").empty();
                     $(this).closest("tr").find(".rc_event").html(event_name);
                 }
 
-                //SAVE ENTIRE STATE
-                $("#oncore_mapping").submit();
+                var value_mapping   = [];
+                if(vmaps){
+                    for(var oncore_value in vmaps){
+                        var redcap_mapping = vmaps[oncore_value];
+                        value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
+                    }
+                }
+                var field_maps = {
+                      "mapping" : "pull"
+                    , "oncore_field": oncore_field
+                    , "redcap_field": redcap_field
+                    , "event": event_name
+                    , "field_type" : ftype
+                    , "value_mapping" : value_mapping
+                };
 
-                //TODO HOW TO PASS CALLBACK INTO A BOUND SUBMIT EVENT? DO SHORT TIMEOUT THEN FOR NOW
-                setTimeout(function(){
-                    //UPDATE PUSH PULL STATUS
+                $.ajax({
+                    url: ajax_endpoint,
+                    method: 'POST',
+                    data: {
+                        "action": "saveMapping",
+                        "field_mappings": field_maps,
+                    },
+                    dataType: 'json'
+                }).done(function (result) {
                     updatePushPullStatus(oncore_field, redcap_field);
                     makeValueMappingRow(oncore_field, redcap_field, 0);
-                }, 150);
+                }).fail(function (e) {
+                    console.log("failed to save", e);
+                });
             }
         });
-
         $("#redcap_mapping select.oncore_field").on("change",function(){
             if($(this).find("option:selected")){
                 var _opt            = $(this).find("option:selected");
                 var oncore_field    = _opt.val();
                 var redcap_field    = $(this).attr("name");
+                var ftype           = $(this).data("type");
+                var eventname       = $(this).data("eventname");
 
-                //SAVE ENTIRE STATE
-                $("#redcap_mapping").submit();
+                var vmaps           = _opt.data("val_mapping");
+                var value_mapping   = [];
+                if(vmaps){
+                    for(var redcap_mapping in vmaps){
+                        var oncore_value = vmaps[redcap_mapping];
+                        value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
+                    }
+                }
 
-                //TODO HOW TO PASS CALLBACK INTO A BOUND SUBMIT EVENT? DO SHORT TIMEOUT THEN FOR NOW
-                setTimeout(function(){
-                    //UPDATE PUSH PULL STATUS
+                var field_maps = {
+                      "mapping" : "push"
+                    , "oncore_field": oncore_field
+                    , "redcap_field": redcap_field
+                    , "event": eventname
+                    , "field_type" : ftype
+                    , "value_mapping" : value_mapping
+                };
+
+                $.ajax({
+                    url: ajax_endpoint,
+                    method: 'POST',
+                    data: {
+                        "action": "saveMapping",
+                        "field_mappings": field_maps,
+                    },
+                    dataType: 'json'
+                }).done(function (result) {
                     updatePushPullStatus(oncore_field, redcap_field);
                     makeValueMappingRow(oncore_field, redcap_field, 1);
-                }, 150);
+                }).fail(function (e) {
+                    console.log("failed to save", e);
+                });
             }
         });
+
 
         //ON SELECT OF FIXED VALUE REDCAP/ONCORE MAPPING
         $("#oncore_mapping").on("change","select.redcap_value", function(){
@@ -320,35 +403,14 @@ $site_selection[]       = "</ul>\r\n";
                         val_mapping[oset[oncore_val_i]] = redcap_val_i;
                     }
 
-                    $("select[name='" + oncore_field + "']").find("option:selected").data("val_mapping", val_mapping);
+                    $("#oncore_mapping select[name='" + oncore_field + "']").find("option:selected").data("val_mapping", val_mapping);
+                    $("#oncore_mapping select[name='" + oncore_field + "']").trigger("change");
                 }
-
-                //SAVE ENTIRE STATE
-                $("#oncore_mapping").submit();
-
-                var _el = $(this).closest("tr").find(".value_map_status");
-
-                //TODO HOW TO PASS CALLBACK INTO A BOUND SUBMIT EVENT? DO SHORT TIMEOUT THEN FOR NOW
-                setTimeout(function(){
-                    //UPDATE PUSH PULL STATUS
-                    updatePushPullStatus(oncore_field);
-
-                    _el.removeClass("ok");
-
-                    //IF -99, THEN CLEAR VALUES ADN THATS IT
-                    if(redcap_val_i == "-99"){
-                        return;
-                    }
-
-                    _el.addClass("ok");
-                }, 150);
             }
         });
-
         $("#redcap_mapping").on("change","select.oncore_value", function(){
             if($(this).find("option:selected").length){
                 var _opt            = $(this).find("option:selected");
-
                 var temp            = $(this).attr("name").split("_");
                 var rc_field        = temp[0];
                 var redcap_val_i    = temp[1];
@@ -372,156 +434,16 @@ $site_selection[]       = "</ul>\r\n";
                     }
 
                     $("#redcap_mapping select[name='" + rc_field + "']").find("option:selected").data("val_mapping", val_mapping);
+                    $("#redcap_mapping select[name='" + rc_field + "']").trigger("change");
                 }
-
-                //SAVE ENTIRE STATE
-                $("#redcap_mapping").submit();
-
-                var _el = $(this).closest("tr").find(".value_map_status");
-                //TODO HOW TO PASS CALLBACK INTO A BOUND SUBMIT EVENT? DO SHORT TIMEOUT THEN FOR NOW
-                setTimeout(function(){
-                    //UPDATE PUSH PULL STATUS
-                    updatePushPullStatus(oncore_field, rc_field);
-
-                    _el.removeClass("ok");
-
-                    //IF -99, THEN CLEAR VALUES ADN THATS IT
-                    if(oncore_val == "-99"){
-                        return;
-                    }
-
-                    _el.addClass("ok");
-                }, 250);
             }
         });
 
-
-
-        //SAVING THE ACTUAL MAPPINGS - DO ON EVERY CHANGE?
-        $("#oncore_mapping").submit(function (e) {
-            e.preventDefault();
-            var field_maps = {};
-            var all_fields = $(this).find("select.redcap_field"); //loop all the select fields
-
-            all_fields.each(function (idx) {
-                var el      = $(this);
-                var name    = el.attr("name");
-                var val     = el.val();
-                var opt     = el.find("option:selected");
-                var ev      = opt.data("eventname");
-                var ftype   = opt.data("type");
-                var vmaps   = opt.data("val_mapping");
-                var value_mapping = [];
-                if(vmaps){
-                    for(var oncore_value in vmaps){
-                        var redcap_mapping = vmaps[oncore_value];
-                        value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
-                    }
-                }
-
-                if (val != "-99") {
-                    field_maps[name] = {
-                        "redcap_field": val
-                        , "event": ev
-                        , "field_type" : ftype
-                        , "value_mapping" : value_mapping
-                    };
-                }
-            });
-
-            console.log("save field mapping", field_maps);
-
-            $.ajax({
-                url: ajax_endpoint,
-                method: 'POST',
-                data: {
-                    "action": "saveMapping",
-                    "field_mappings": field_maps,
-                },
-                dataType: 'json'
-            }).done(function (result) {
-                updateOverAllStatus();
-            }).fail(function (e) {
-                console.log("failed to save", e);
-            });
-        });
-
-        $("#redcap_mapping").submit(function (e) {
-            e.preventDefault();
-
-            var field_maps = {};
-            var all_fields = $(this).find("select.oncore_field"); //loop all the select fields
-
-            all_fields.each(function (idx) {
-                var el      = $(this);
-                var name    = el.attr("name");
-                var val     = el.val();
-
-                var opt     = el.find("option:selected");
-                var ev      = el.data("eventname");
-                var ftype   = el.data("type");
-                var vmaps   = opt.data("val_mapping");
-                var value_mapping = [];
-
-                if(vmaps){
-                    if(Object.keys(vmaps).filter(onlyUnique).length !== Object.values(vmaps).filter(onlyUnique).length){
-                        //if many to 1 then we need to what, make this into an array?
-                        var temp = {};
-                        for(var redcap_mapping in vmaps){
-                            var oncore_value = vmaps[redcap_mapping];
-                            if(!temp.hasOwnProperty(oncore_value)){
-                                temp[oncore_value] = [];
-                            }
-                            temp[oncore_value].push(redcap_mapping);
-                        }
-
-                        //THIS IS JUST SO FREAKINGG AWFUL
-                        for(var oncore_value in temp){
-                            var redcap_mapping = temp[oncore_value];
-                            if(redcap_mapping.length == 1){
-                                redcap_mapping = redcap_mapping.pop();
-                            }
-                            value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
-                        }
-                    }else{
-                        for(var redcap_mapping in vmaps){
-                            var oncore_value = vmaps[redcap_mapping];
-                            value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
-                        }
-                    }
-                }
-
-                if (val != "-99") {
-                    field_maps[val] = {
-                        "redcap_field": name
-                        , "event": ev
-                        , "field_type" : ftype
-                        , "value_mapping" : value_mapping
-                    };
-                }
-            });
-
-            $.ajax({
-                url: ajax_endpoint,
-                method: 'POST',
-                data: {
-                    "action": "saveMapping",
-                    "field_mappings": field_maps,
-                },
-                dataType: 'json'
-            }).done(function (result) {
-                //do all the tedious crap, or just refresh page
-                // location.href = location.href;
-            }).fail(function (e) {
-                console.log("failed to save", e);
-            });
-        });
 
         //SAVE SITE STUDIES SUB SET
         $("#study_sites").on("change", "input[name='site_study_subset']",function(){
             $("#study_sites").submit();
         });
-
         $("#study_sites").submit(function(e){
             e.preventDefault();
             var site_study_subset = $(this).find("input:checked").serializeArray();
@@ -613,7 +535,8 @@ $site_selection[]       = "</ul>\r\n";
             },
             dataType: 'json'
         }).done(function (result) {
-            if($("tr."+oncore_field).length){
+            var parent_id = rc_mapping ? "#redcap_mapping" : "#oncore_mapping";
+            if($(parent_id+ " tr."+oncore_field).length){
                 //CLEAR EXISTING ROW BEFORE BUILDING NEW UI
                 $("tr.more."+ oncore_field).remove();
                 $(result).insertAfter($("tr."+oncore_field));
