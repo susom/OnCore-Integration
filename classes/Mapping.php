@@ -17,7 +17,7 @@ class Mapping
         $this->module           = $module;
         $this->oncore_fields    = $this->getOnCoreFieldDefinitions();
         $this->redcap_fields    = $this->getProjectFieldDictionary();
-        $this->project_mapping  = $this->getProjectFieldMappings();
+        $this->project_mapping  = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull"=>array(),"push"=>array());
     }
 
     //GATHER THE REQUISITE DATAs INTO ARRAYS (Oncore, Redcap, FieldMappings)
@@ -228,19 +228,20 @@ class Mapping
     /**
      * @return array
      */
-    public function getMappedField($oncore_field)
+    public function getMappedField($field_key, $push=false)
     {
-        $field_set = $this->getProjectMapping();
-        $field = array_key_exists($oncore_field, $field_set) ? $field_set[$oncore_field] : array();
+        $mapping    = $this->getProjectMapping();
+        $field_set  = $push ? $mapping["push"] : $mapping["pull"];
+        $field      = array_key_exists($field_key, $field_set) ? $field_set[$field_key] : array();
         return $field;
     }
 
     /**
      * @return string
      */
-    public function getMappedRedcapField($oncore_field)
+    public function getMappedRedcapField($field_key, $push=false)
     {
-        $field = $this->getMappedField($oncore_field);
+        $field = $this->getMappedField($field_key, $push);
         $name = array_key_exists("redcap_field", $field) ? $field["redcap_field"] : "";
         return $name;
     }
@@ -248,9 +249,9 @@ class Mapping
     /**
      * @return string
      */
-    public function getMappedRedcapEvent($oncore_field)
+    public function getMappedRedcapEvent($field_key, $push=false)
     {
-        $field = $this->getMappedField($oncore_field);
+        $field = $this->getMappedField($field_key, $push);
         $event = array_key_exists("event", $field) ? $field["event"] : "";
         return $event;
     }
@@ -258,9 +259,9 @@ class Mapping
     /**
      * @return string
      */
-    public function getMappedRedcapType($oncore_field)
+    public function getMappedRedcapType($field_key, $push=false)
     {
-        $field = $this->getMappedField($oncore_field);
+        $field = $this->getMappedField($field_key, $push);
         $type = array_key_exists("field_type", $field) ? $field["field_type"] : "";
         return $type;
     }
@@ -268,22 +269,23 @@ class Mapping
     /**
      * @return array
      */
-    public function getMappedRedcapValueSet($oncore_field)
+    public function getMappedRedcapValueSet($field_key, $push=false)
     {
-        $field = $this->getMappedField($oncore_field);
-        $value_set = array_key_exists("value_mapping", $field) ? $field["value_mapping"] : array();
-//        [value_mapping] => Array
-//        (
-//            [0] => Array
-//            (
-//                [oc] => Male
-//                [rc] => 1
-//                        )
-//                )
+        $field      = $this->getMappedField($field_key, $push);
+        $value_set  = array_key_exists("value_mapping", $field) ? $field["value_mapping"] : array();
+
         $temp = array();
-        if (!empty($value_set)) {
-            foreach ($value_set as $set) {
-                $temp[$set["oc"]] = $set["rc"];
+        if($push){
+            if (!empty($value_set)) {
+                foreach ($value_set as $set) {
+                    $temp[$set["rc"]] = $set["oc"];
+                }
+            }
+        }else{
+            if (!empty($value_set)) {
+                foreach ($value_set as $set) {
+                    $temp[$set["oc"]] = $set["rc"];
+                }
             }
         }
 
@@ -294,12 +296,17 @@ class Mapping
     /**
      * @return string
      */
-    public function getMappedOncoreField($redcap_field)
+    public function getMappedOncoreField($redcap_field, $push=false)
     {
-        $project_mapping = $this->getProjectMapping();
-        foreach($project_mapping as $oncore_field => $mapping){
-            if($mapping["redcap_field"] == $redcap_field){
-                return $oncore_field;
+        $temp               = $this->getProjectMapping();
+        $project_mapping    = $push ? $temp["push"] : $temp["pull"];
+        foreach($project_mapping as $field_key => $mapping){
+            if(!$push && $mapping["redcap_field"] == $redcap_field){
+                return $field_key;
+                break;
+            }
+            if($push && $field_key == $redcap_field){
+                return $mapping["oncore_field"];
                 break;
             }
         }
@@ -351,30 +358,25 @@ class Mapping
     /**
      * @return array
      */
-    public function calculatePushPullStatus($oncore_field)
+    public function calculatePushPullStatus($field_key)
     {
         $pull_status    = false;
         $push_status    = false;
-        $oc_field_map   = $this->getMappedField($oncore_field);
+        $oc_field_map_pull      = $this->getMappedField($field_key);
+        $oc_field_map_push      = $this->getMappedField($field_key, 1);
+
 
         //has mapping
-        if (!empty($oc_field_map)) {
+        if (!empty($oc_field_map_pull)) {
             $redcap_field   = $oc_field_map["redcap_field"];
-            $oncore_vset    = $this->getOncoreValueSet($oncore_field);
-            $vmap_format    = $this->getMappedRedcapValueSet($oncore_field);
-            $rc_type        = $this->getMappedRedcapType($oncore_field);
+            $vmap_format    = $this->getMappedRedcapValueSet($field_key);
+            $rc_type        = $this->getMappedRedcapType($field_key);
             $rc_vset        = $this->getRedcapValueSet($redcap_field);
+            $oncore_vset    = $this->getOncoreValueSet($field_key);
 
             if (!empty($vmap_format)) {
                 //has value set mapping
-                $rc_coded_values = array_keys($rc_vset);
                 $oncore_coverage = array_diff($oncore_vset, array_keys($vmap_format));
-                $redcap_coverage = array_diff($rc_coded_values, array_values($vmap_format));
-
-                if (empty($redcap_coverage)) {
-                    //this means all valid redcap values have been mapped to an oncore value
-                    $push_status = true;
-                }
 
                 if (empty($oncore_coverage)) {
                     //this means all the valid oncore values have been mapped to a redcap value
@@ -383,11 +385,37 @@ class Mapping
             } elseif ($rc_type == "text") {
                 //if redcap field type is text, then it can accept anything always
                 $pull_status = true;
+            }
+        }
+
+        if (!empty($oc_field_map_push)) {
+            $oncore_field   = $oc_field_map_push["oncore_field"];
+
+            $vmap_format    = $this->getMappedRedcapValueSet($field_key,1);
+            $rc_type        = $this->getMappedRedcapType($field_key,1);
+            $oncore_vset    = $this->getOncoreValueSet($oncore_field);
+
+            $rc_vset        = $this->getRedcapValueSet($field_key, 1);
+
+
+            if (!empty($vmap_format)) {
+
+                //has value set mapping
+                $rc_coded_values = array_keys($rc_vset);
+                $redcap_coverage = array_diff($rc_coded_values, array_keys($vmap_format));
+                if (empty($redcap_coverage)) {
+                    //this means all valid redcap values have been mapped to an oncore value
+                    $push_status = true;
+                }
+            } elseif ($rc_type == "text") {
+                //if redcap field type is text, then it can accept anything always
                 if (empty($oncore_vset)) {
                     //if redcap field is text, but oncore only has fixed value set, then push is not always true
                     $push_status = true;
                 }
             }
+
+
         }
 
         return array("pull" => $pull_status, "push" => $push_status);
@@ -396,18 +424,18 @@ class Mapping
     /**
      * @return bool
      */
-    public function getPullStatus($oncore_field)
+    public function getPullStatus($field_key)
     {
-        $status = $this->calculatePushPullStatus($oncore_field);
+        $status = $this->calculatePushPullStatus($field_key);
         return $status["pull"];
     }
 
     /**
      * @return bool
      */
-    public function getPushStatus($oncore_field)
+    public function getPushStatus($field_key)
     {
-        $status = $this->calculatePushPullStatus($oncore_field);
+        $status = $this->calculatePushPullStatus($field_key, 1);
         return $status["push"];
     }
 
@@ -452,9 +480,6 @@ class Mapping
         }
         return $this->site_studies_subset;
     }
-
-
-
 
 
 
@@ -507,7 +532,8 @@ class Mapping
 
             //each select will have different input['name']
             $map_select     = str_replace("[ONCORE_FIELD]", $field, $rc_select);
-            $rc_field       = $project_mappings[$field];
+
+            $rc_field       = $project_mappings["pull"][$field];
             $rc_field_name  = $rc_field["redcap_field"];
             $event_name     = $this->getRedcapEventName($rc_field_name);
             $oncore_type    = current($field_details["oncore_field_type"]);
@@ -516,7 +542,7 @@ class Mapping
             $value_map_html = "";
             $value_map_html = $this->makeValueMappingUI($field, $rc_field_name);
 
-            if (array_key_exists($field, $project_mappings)) {
+            if (array_key_exists($field, $project_mappings["pull"])) {
                 $json_vmapping      = json_encode($this->getMappedRedcapValueSet($field));
                 $data_value_mapping = "data-val_mapping='{$json_vmapping}'";
                 $map_select         = str_replace("'$rc_field_name'", "'$rc_field_name' selected ", $map_select);
@@ -558,20 +584,20 @@ class Mapping
         foreach($redcap_fields as $rc_field_name => $rc_field){
             //each select will have different input['name']
             $map_select     = str_replace("[REDCAP_FIELD]", $rc_field_name, $oc_select);
-            $oncore_field   = $this->getMappedOncoreField($rc_field_name);
+            $oncore_field   = $this->getMappedOncoreField($rc_field_name, 1);
             $event_name     = $this->getRedcapEventName($rc_field_name);
             $rc_type        = $this->getRedcapType($rc_field_name);
             $push_status    = "";
 
             $value_map_html = $this->makeValueMappingUI_RC($oncore_field, $rc_field_name);
             $map_select     = str_replace("'$rc_field_name'", "'$rc_field_name' data-eventname='$event_name' data-type='$rc_type' ", $map_select);
-            if (array_key_exists($oncore_field, $project_mappings)) {
-                $json_vmapping      = json_encode($this->getMappedRedcapValueSet($oncore_field));
+            if (array_key_exists($rc_field_name, $project_mappings["push"])) {
+                $json_vmapping      = json_encode($this->getMappedRedcapValueSet($rc_field_name, 1));
                 $data_value_mapping = "data-val_mapping='{$json_vmapping}'";
 
                 $map_select     = str_replace("'$oncore_field'", "'$oncore_field' selected ", $map_select);
                 $map_select     = str_replace("'vmap-$rc_field_name'", $data_value_mapping, $map_select);
-                $push_status    = $this->getPushStatus($oncore_field) ? "ok" : "";
+                $push_status    = $this->getPushStatus($rc_field_name) ? "ok" : "";
             }
 
             $push_not_required .= "<tr class='$rc_field_name'>\r\n";
@@ -653,8 +679,8 @@ class Mapping
      * @return array
      */
     public function makeValueMappingUI_RC($oncore_field, $redcap_field){
-        $mapped_field   = $this->getMappedField($oncore_field);
-        $value_mapping  = $this->getMappedRedcapValueSet($oncore_field);
+        $mapped_field   = $this->getMappedField($redcap_field,1);
+        $value_mapping  = $this->getMappedRedcapValueSet($redcap_field,1);
 
         $value_map_html = "";
         $rc_values      = $this->getRedcapValueSet($redcap_field);
@@ -681,8 +707,8 @@ class Mapping
                 $value_map_status   = "";
                 $value_select       = str_replace("'[REDCAP_FIELD_VALUE]'", "'$redcap_field"."_"."$idx' data-oc_field='$oncore_field'", $v_select);
 
-                if (array_search($idx, $value_mapping)) {
-                    $oc_val         = array_search($idx, $value_mapping);
+                if (array_key_exists($idx, $value_mapping)) {
+                    $oc_val         = $value_mapping[$idx];
                     $value_select   = str_replace(">$oc_val", " selected>$oc_val", $value_select);
                     $value_map_status = "ok";
                 }
