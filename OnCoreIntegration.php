@@ -140,7 +140,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
         }
         if (!$this->protocols) {
-            $this->setProtocols(new Protocols($this->getUsers(), $this->getProjectId()));
+            $this->setProtocols(new Protocols($this->getUsers(), $this->getMapping(), $this->getProjectId()));
         }
     }
 
