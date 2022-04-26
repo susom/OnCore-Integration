@@ -739,7 +739,8 @@ class Mapping
      */
     public function getOnCoreMappedValue($OnCoreValue, $mappedValues)
     {
-        $mappedValues = $mappedValues['value_mapping_pull'];
+        //$mappedValues = $mappedValues['value_mapping_pull'];
+        $mappedValues = $mappedValues['value_mapping'];
         foreach ($mappedValues as $mappedValue) {
             if ($OnCoreValue == $mappedValue['oc']) {
                 return $mappedValue;
@@ -755,7 +756,8 @@ class Mapping
      */
     public function getREDCapMappedValue($REDCapValue, $mappedValues)
     {
-        $mappedValues = $mappedValues['value_mapping_push'];
+        //$mappedValues = $mappedValues['value_mapping_push'];
+        $mappedValues = $mappedValues['value_mapping'];
         foreach ($mappedValues as $mappedValue) {
             if ($REDCapValue == $mappedValue['rc']) {
                 return $mappedValue;
