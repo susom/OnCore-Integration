@@ -79,7 +79,7 @@ try {
                 break;
 
             case "approveSync":
-                $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_NUMBER_INT) : null;
+                $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
                 $module->getProtocols()->pullOnCoreRecordsIntoREDCap($result);
                 break;
 
