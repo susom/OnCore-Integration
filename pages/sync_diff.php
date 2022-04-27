@@ -159,7 +159,7 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null, $excluded=n
                 $exclude_text   = $excluded ? "Re-Include" : "Exclude";
                 $id_info[]      = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
                 $id_info        = implode("<br>", $id_info);
-                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' value='$oc_pr_id' checked/></td>";
+                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id' value='$oc_pr_id' checked/></td>";
                 $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
             }
             $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
@@ -265,7 +265,7 @@ function makeOncoreTableHTML($records, $noredcap=null, $disabled=null, $excluded
                 $exclude_text   = $excluded ? "Re-Include" : "Exclude";
                 $id_info[]      = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
                 $id_info        = implode("<br>", $id_info);
-                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' value='$oc_pr_id' checked/></td>";
+                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id' value='$oc_pr_id' checked/></td>";
                 $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
             }
             $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
@@ -629,11 +629,13 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         $("#syncFromOncore, #pullFromOncore").submit(function(e){
             e.preventDefault();
 
-            var inputs          = $(this).find(".includes input[name='approved_ids']").serializeArray();
             var approved_ids    = [];
-            for(var i in inputs){
-                approved_ids.push(inputs[i]["value"]);
-            }
+            var inputs          = $(this).find(".includes input[name='approved_ids']").each(function(){
+                var _el         = $(this);
+                var oncore_id   = _el.val();
+                var rc_id       = _el.data("rc_id");
+                approved_ids.push({"oncore" : oncore_id , "redcap" : rc_id});
+            });
 
             $.ajax({
                 url: ajax_endpoint,
