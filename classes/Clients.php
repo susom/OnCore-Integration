@@ -149,18 +149,25 @@ abstract class Clients
 
     /**
      * @param $path
+     * @param $customOptions
      * @return \Psr\Http\Message\ResponseInterface|void
      * @throws \Exception
      */
-    public function get($path)
+    public function get($path, $customOptions = [])
     {
+
         $jwt = $this->getAccessToken();
-        $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . $path, [
+        $options = [
             'debug' => false,
             'headers' => [
                 'Authorization' => "Bearer {$jwt}",
             ]
-        ]);
+        ];
+
+        if (!empty($customOptions)) {
+            $options = array_merge($options, $customOptions);
+        }
+        $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . $path, $options);
         return $response;
     }
 
