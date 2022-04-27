@@ -28,7 +28,7 @@ class Users extends Clients
     /**
      * @var User
      */
-    private $redcapUser;
+    private $redcapUser = null;
 
     /**
      * @var array

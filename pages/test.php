@@ -6,7 +6,16 @@ use GuzzleHttp\Exception\GuzzleException;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-
+try {
+    $module->onCoreProtocolsScanCron();
+} catch (GuzzleException $e) {
+    $response = $e->getResponse();
+    $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+    echo($responseBodyAsString['message']);
+} catch (\Exception $e) {
+    Entities::createException($e->getMessage());
+    echo $e->getMessage();
+}
 //$user = $module->framework->getUser();
 //$admin = $module->getUsers()->getOnCoreAdmin($user->getUsername());
 //if (!$admin) {
@@ -22,23 +31,23 @@ use GuzzleHttp\Exception\GuzzleException;
 //    echo '</pre>';
 //}
 
-try {
-    $module->initiateProtocol();
-//    $demographics = $module->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush(6, $module->getProtocols()->getFieldsMap(), $module->getMapping()->getOnCoreFieldDefinitions());
-//    $records = $module->getProtocols()->getSubjects()->createOnCoreProtocolSubject( $module->getProtocols()->getEntityRecord()['oncore_protocol_id'], 'SHC Main Hosp, Welch Rd & campus/nearby clinics',  null, $demographics);
-    $records = $module->getProtocols()->pushREDCapRecordToOnCore(11, 'SHC Main Hosp, Pasteur, Welch & campus/nearby clinics', $module->getMapping()->getOnCoreFieldDefinitions());
-
-    echo '<pre>';
-    print_r($records);
-    echo '</pre>';
-} catch (GuzzleException $e) {
-    $response = $e->getResponse();
-    $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-    echo($responseBodyAsString['message']);
-} catch (\Exception $e) {
-    Entities::createException($e->getMessage());
-    echo $e->getMessage();
-}
+//try {
+//    $module->initiateProtocol();
+////    $demographics = $module->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush(6, $module->getProtocols()->getFieldsMap(), $module->getMapping()->getOnCoreFieldDefinitions());
+////    $records = $module->getProtocols()->getSubjects()->createOnCoreProtocolSubject( $module->getProtocols()->getEntityRecord()['oncore_protocol_id'], 'SHC Main Hosp, Welch Rd & campus/nearby clinics',  null, $demographics);
+//    $records = $module->getProtocols()->pushREDCapRecordToOnCore(11, 'SHC Main Hosp, Pasteur, Welch & campus/nearby clinics', $module->getMapping()->getOnCoreFieldDefinitions());
+//
+//    echo '<pre>';
+//    print_r($records);
+//    echo '</pre>';
+//} catch (GuzzleException $e) {
+//    $response = $e->getResponse();
+//    $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+//    echo($responseBodyAsString['message']);
+//} catch (\Exception $e) {
+//    Entities::createException($e->getMessage());
+//    echo $e->getMessage();
+//}
 //try {
 //    $module->initiateProtocol();
 //    $records = $module->getProtocols()->getUser()->getOnCoreAdmin();

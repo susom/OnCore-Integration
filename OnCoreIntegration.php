@@ -137,7 +137,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function initiateProtocol()
     {
         if (!$this->users) {
-            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser() ?: null, $this->getCSRFToken()));
         }
         if (!$this->protocols) {
             $this->setProtocols(new Protocols($this->getUsers(), $this->getMapping(), $this->getProjectId()));
@@ -994,7 +994,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         try {
             $projects = self::query("select project_id, project_irb_number from redcap_projects where project_irb_number is NOT NULL ", []);
 
-            $this->initiateProtocol();
+            // manually set users to make guzzle calls.
+            if (!$this->users) {
+                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+            }
 
             while ($project = $projects->fetch_assoc()) {
                 $id = $project['project_id'];
@@ -1003,41 +1006,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 if (!$irb) {
                     continue;
                 }
-                $protocols = $this->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
-
-                if (!empty($protocols)) {
-                    $entity_oncore_protocol = $this->getProtocols()->getProtocolEntityRecord($id, $irb);
-                    if (empty($entity_oncore_protocol)) {
-                        foreach ($protocols as $protocol) {
-                            $data = array(
-                                'redcap_project_id' => $id,
-                                'irb_number' => $irb,
-                                'oncore_protocol_id' => $protocol['protocolId'],
-                                // cron will save the first event. and when connect is approved the redcap user has to confirm the event id.
-                                'redcap_event_id' => 0,
-                                'status' => '0',
-                                'last_date_scanned' => time()
-                            );
-
-                            $entity = (new Entities)->create(self::ONCORE_PROTOCOLS, $data);
-
-                            if ($entity) {
-                                Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
-                                $this->getProtocols()->setEntityRecord($data);
-                                $this->getProtocols()->prepareProtocolSubjects();
-                            } else {
-                                throw new \Exception(implode(',', $this->getProtocols()->errors));
-                            }
-                        }
-                    } else {
-                        $this->getProtocols()->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
-                        Entities::createLog('OnCore Protocol record updated for IRB: ' . $irb . '.');
-                    }
-                } else {
-                    $this->emLog('IRB ' . $irb . ' has no OnCore Protocol.');
-                    Entities::createLog('IRB ' . $irb . ' has no OnCore Protocol.');
-                }
+                $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id;
+                $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
+                $this->emDebug("running cron for $url on project " . $project['app_title']);
             }
+
         } catch (\Exception $e) {
             $this->emError($e->getMessage());
             \REDCap::logEvent('CRON JOB ERROR: ' . $e->getMessage());

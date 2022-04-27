@@ -79,7 +79,6 @@ class Protocols
 //        }
 
 
-
         $oncoreProtocolSubjects = $this->getSubjects()->getOnCoreProtocolSubjects($this->getEntityRecord()['oncore_protocol_id']);
 //        if(!$oncoreProtocolSubjects){
 //            throw new \Exception('Cant find oncore subjects');
@@ -386,6 +385,45 @@ class Protocols
         }
     }
 
+
+    public function processCron($id, $irb)
+    {
+        $protocols = $this->searchOnCoreProtocolsViaIRB($irb);
+
+        if (!empty($protocols)) {
+            $entity_oncore_protocol = $this->getProtocolEntityRecord($id, $irb);
+            if (empty($entity_oncore_protocol)) {
+                foreach ($protocols as $protocol) {
+                    $data = array(
+                        'redcap_project_id' => $id,
+                        'irb_number' => $irb,
+                        'oncore_protocol_id' => $protocol['protocolId'],
+                        // cron will save the first event. and when connect is approved the redcap user has to confirm the event id.
+                        'redcap_event_id' => 0,
+                        'status' => '0',
+                        'last_date_scanned' => time()
+                    );
+
+                    $entity = (new Entities)->create(OnCoreIntegration::ONCORE_PROTOCOLS, $data);
+
+                    if ($entity) {
+                        Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
+                        $this->setEntityRecord($data);
+                        $this->prepareProtocolSubjects();
+                    } else {
+                        throw new \Exception(implode(',', $entity->errors));
+                    }
+                }
+            } else {
+                $this->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
+                Entities::createLog('OnCore Protocol record updated for IRB: ' . $irb . '.');
+            }
+        } else {
+            Entities::createLog('IRB ' . $irb . ' has no OnCore Protocol.');
+        }
+
+    }
+
     /**
      * search OnCore API for a protocol via ID
      * @param $protocolID
@@ -445,16 +483,10 @@ class Protocols
 
     public function pullOnCoreRecordsIntoREDCap($records)
     {
-        try {
-            if ($this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $records, $this->getMapping()->getProjectFieldMappings()['pull'])) {
-                // update linkage entity table with redcap record and new status
-                $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id']);
-                $this->processSyncedRecords();
-            } else {
-                throw new \Exception('Cound not pull OnCore record into REDCap');
-            }
-        } catch (\Exception $e) {
-            Entities::createException($e->getMessage());
+        if ($this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $records, $this->getMapping()->getProjectFieldMappings()['pull'])) {
+            // update linkage entity table with redcap record and new status
+            $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id']);
+            $this->processSyncedRecords();
         }
     }
 
@@ -479,7 +511,7 @@ class Protocols
         if ($record->num_rows == 0 && $status == 0) {
             return [];
         } elseif ($record->num_rows == 0 && $status == 2) {
-            $this->getProtocolEntityRecord($redcapProjectId, $irbNum, 0);
+            return $this->getProtocolEntityRecord($redcapProjectId, $irbNum, 0);
         } else {
             return db_fetch_assoc($record);
         }
