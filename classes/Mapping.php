@@ -17,8 +17,8 @@ class Mapping
 
     public function __construct($module)
     {
-        $this->module = $module;
-        $this->oncore_fields = $this->getOnCoreFieldDefinitions();
+        $this->module           = $module;
+        $this->oncore_fields    = $this->getOnCoreFieldDefinitions();
         $this->redcap_fields    = $this->getProjectFieldDictionary();
         $this->project_mapping  = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull"=>array(),"push"=>array());
     }
@@ -40,9 +40,9 @@ class Mapping
     {
         global $Proj;
 
-        $event_fields = array();
-        $events = \REDCap::getEventNames(true);
-        $dict = \REDCap::getDataDictionary(PROJECT_ID, "array");
+        $event_fields   = array();
+        $events         = \REDCap::getEventNames(true);
+        $dict           = \REDCap::getDataDictionary(PROJECT_ID, "array");
 
         if (!empty($events)) {
             foreach ($events as $event_id => $event) {
@@ -54,8 +54,8 @@ class Mapping
                 foreach ($temp as $field_name) {
                     $event_fields[$event][] = array(
                         "name" => $field_name
-                    , "field_type" => $dict[$field_name]["field_type"]
-                    , "select_choices" => $dict[$field_name]["select_choices_or_calculations"]
+                        , "field_type" => $dict[$field_name]["field_type"]
+                        , "select_choices" => $dict[$field_name]["select_choices_or_calculations"]
                     );
                 }
             }
@@ -64,26 +64,15 @@ class Mapping
             foreach ($dict as $field_name => $field_details) {
                 $temp[] = array(
                     "name" => $field_name
-                , "field_type" => $field_details["field_type"]
-                , "select_choices" => $field_details["select_choices_or_calculations"]
+                    , "field_type" => $field_details["field_type"]
+                    , "select_choices" => $field_details["select_choices_or_calculations"]
                 );
             }
             $event_fields[$Proj->getUniqueEventNames($this->module->getFirstEventId())] = $temp;
         }
-        return $event_fields;
-    }
-
-    //TODO USE THIS ONE INSTEAD OF MY DEFAULT ONE FORMAT getProjectFieldDictionary
-
-    /**
-     * @return array
-     */
-    public function getFormattedRedcapFields()
-    {
-        $rc_fields = $this->getRedcapFields();
 
         $temp = array();
-        foreach ($rc_fields as $event_name => $field) {
+        foreach ($event_fields as $event_name => $field) {
             foreach ($field as $item) {
                 $select_choices = array();
                 if (!empty($item["select_choices"])) {
@@ -96,8 +85,8 @@ class Mapping
 
                 $temp[$item["name"]] = array(
                     "redcap_field_type" => $item["field_type"]
-                    , "select_choices" => $select_choices
-                    , "event_name" => $event_name
+                , "select_choices" => $select_choices
+                , "event_name" => $event_name
                 );
             }
         }
@@ -175,8 +164,8 @@ class Mapping
      */
     public function getOncoreField($oncore_field)
     {
-        $field_set = $this->getOncoreFields();
-        $field = array_key_exists($oncore_field, $field_set) ? $field_set[$oncore_field] : array();
+        $field_set  = $this->getOncoreFields();
+        $field      = array_key_exists($oncore_field, $field_set) ? $field_set[$oncore_field] : array();
         return $field;
     }
 
@@ -185,8 +174,8 @@ class Mapping
      */
     public function getOncoreValueSet($oncore_field)
     {
-        $field = $this->getOncoreField($oncore_field);
-        $value_set = array_key_exists("oncore_valid_values", $field) ? $field["oncore_valid_values"] : array();
+        $field      = $this->getOncoreField($oncore_field);
+        $value_set  = array_key_exists("oncore_valid_values", $field) ? $field["oncore_valid_values"] : array();
         return $value_set;
     }
 
@@ -195,8 +184,8 @@ class Mapping
      */
     public function getOncoreType($oncore_field)
     {
-        $field = $this->getOncoreField($oncore_field);
-        $type = array_key_exists("oncore_field_type", $field) ? current($field["oncore_field_type"]) : "";
+        $field  = $this->getOncoreField($oncore_field);
+        $type   = array_key_exists("oncore_field_type", $field) ? current($field["oncore_field_type"]) : "";
         return $type;
     }
 
@@ -205,8 +194,8 @@ class Mapping
      */
     public function getOncoreRequired($oncore_field)
     {
-        $field = $this->getOncoreField($oncore_field);
-        $req = array_key_exists("required", $field) ? $field["required"] : false;
+        $field  = $this->getOncoreField($oncore_field);
+        $req    = array_key_exists("required", $field) ? $field["required"] : false;
         return $req;
     }
 
@@ -215,8 +204,8 @@ class Mapping
      */
     public function getOncoreAlias($oncore_field)
     {
-        $field = $this->getOncoreField($oncore_field);
-        $alias = array_key_exists("alias", $field) && !empty($field["alias"]) ? $field["alias"] : $oncore_field;
+        $field  = $this->getOncoreField($oncore_field);
+        $alias  = array_key_exists("alias", $field) && !empty($field["alias"]) ? $field["alias"] : $oncore_field;
         return $alias;
     }
 
@@ -225,8 +214,8 @@ class Mapping
      */
     public function getOncoreDesc($oncore_field)
     {
-        $field = $this->getOncoreField($oncore_field);
-        $desc = array_key_exists("description", $field) ? $field["description"] : "";
+        $field  = $this->getOncoreField($oncore_field);
+        $desc   = array_key_exists("description", $field) ? $field["description"] : "";
         return $desc;
     }
 
@@ -247,29 +236,9 @@ class Mapping
      */
     public function getMappedRedcapField($field_key, $push=false)
     {
-        $field = $this->getMappedField($field_key, $push);
-        $name = array_key_exists("redcap_field", $field) ? $field["redcap_field"] : "";
+        $field  = $this->getMappedField($field_key, $push);
+        $name   = array_key_exists("redcap_field", $field) ? $field["redcap_field"] : "";
         return $name;
-    }
-
-    /**
-     * @return string
-     */
-    public function getMappedRedcapEvent($field_key, $push=false)
-    {
-        $field = $this->getMappedField($field_key, $push);
-        $event = array_key_exists("event", $field) ? $field["event"] : "";
-        return $event;
-    }
-
-    /**
-     * @return string
-     */
-    public function getMappedRedcapType($field_key, $push=false)
-    {
-        $field = $this->getMappedField($field_key, $push);
-        $type = array_key_exists("field_type", $field) ? $field["field_type"] : "";
-        return $type;
     }
 
     /**
@@ -281,14 +250,12 @@ class Mapping
         $value_set  = array_key_exists("value_mapping", $field) ? $field["value_mapping"] : array();
 
         $temp = array();
-        if($push){
-            if (!empty($value_set)) {
+        if (!empty($value_set)) {
+            if($push){
                 foreach ($value_set as $set) {
                     $temp[$set["rc"]] = $set["oc"];
                 }
-            }
-        }else{
-            if (!empty($value_set)) {
+            }else{
                 foreach ($value_set as $set) {
                     $temp[$set["oc"]] = $set["rc"];
                 }
@@ -307,12 +274,8 @@ class Mapping
         $temp               = $this->getProjectMapping();
         $project_mapping    = $push ? $temp["push"] : $temp["pull"];
         foreach($project_mapping as $field_key => $mapping){
-            if(!$push && $mapping["redcap_field"] == $redcap_field){
+            if($mapping["redcap_field"] == $redcap_field){
                 return $field_key;
-                break;
-            }
-            if($push && $field_key == $redcap_field){
-                return $mapping["oncore_field"];
                 break;
             }
         }
@@ -324,8 +287,8 @@ class Mapping
      */
     public function getRedcapField($redcap_field)
     {
-        $fields = $this->getFormattedRedcapFields();
-        $field = array_key_exists($redcap_field, $fields) ? $fields[$redcap_field] : array();
+        $fields = $this->getRedcapFields();
+        $field  = array_key_exists($redcap_field, $fields) ? $fields[$redcap_field] : array();
         return $field;
     }
 
@@ -334,8 +297,8 @@ class Mapping
      */
     public function getRedcapType($redcap_field)
     {
-        $field = $this->getRedcapField($redcap_field);
-        $type = array_key_exists("redcap_field_type", $field) ? $field["redcap_field_type"] : "";
+        $field  = $this->getRedcapField($redcap_field);
+        $type   = array_key_exists("redcap_field_type", $field) ? $field["redcap_field_type"] : "";
         return $type;
     }
 
@@ -344,8 +307,8 @@ class Mapping
      */
     public function getRedcapEventName($redcap_field)
     {
-        $field = $this->getRedcapField($redcap_field);
-        $event = array_key_exists("event_name", $field) ? $field["event_name"] : "";
+        $field  = $this->getRedcapField($redcap_field);
+        $event  = array_key_exists("event_name", $field) ? $field["event_name"] : "";
         return $event;
     }
 
@@ -354,8 +317,8 @@ class Mapping
      */
     public function getRedcapValueSet($redcap_field)
     {
-        $field = $this->getRedcapField($redcap_field);
-        $value_set = array_key_exists("select_choices", $field) ? $field["select_choices"] : array();
+        $field      = $this->getRedcapField($redcap_field);
+        $value_set  = array_key_exists("select_choices", $field) ? $field["select_choices"] : array();
         return $value_set;
     }
 
@@ -366,19 +329,19 @@ class Mapping
      */
     public function calculatePushPullStatus($field_key)
     {
-        $pull_status    = false;
-        $push_status    = false;
-        $oc_field_map_pull      = $this->getMappedField($field_key);
-        $oc_field_map_push      = $this->getMappedField($field_key, 1);
+        $pull_status        = false;
+        $push_status        = false;
+        $oc_field_map_pull  = $this->getMappedField($field_key);
+        $oc_field_map_push  = $this->getMappedField($field_key, 1);
 
 
-        //has mapping
+
+        //has pull mapping
         if (!empty($oc_field_map_pull)) {
-            $redcap_field   = $oc_field_map["redcap_field"];
-            $vmap_format    = $this->getMappedRedcapValueSet($field_key);
-            $rc_type        = $this->getMappedRedcapType($field_key);
-            $rc_vset        = $this->getRedcapValueSet($redcap_field);
+            $redcap_field   = $this->getMappedRedcapField($field_key);
+            $rc_type        = $this->getRedcapType($redcap_field);
             $oncore_vset    = $this->getOncoreValueSet($field_key);
+            $vmap_format    = $this->getMappedRedcapValueSet($field_key);
 
             if (!empty($vmap_format)) {
                 //has value set mapping
@@ -395,17 +358,13 @@ class Mapping
         }
 
         if (!empty($oc_field_map_push)) {
-            $oncore_field   = $oc_field_map_push["oncore_field"];
-
+            $redcap_field   = $this->getMappedRedcapField($field_key,1);
+            $rc_type        = $this->getRedcapType($redcap_field);
+            $oncore_vset    = $this->getOncoreValueSet($field_key);
             $vmap_format    = $this->getMappedRedcapValueSet($field_key,1);
-            $rc_type        = $this->getMappedRedcapType($field_key,1);
-            $oncore_vset    = $this->getOncoreValueSet($oncore_field);
-
-            $rc_vset        = $this->getRedcapValueSet($field_key, 1);
-
+            $rc_vset        = $this->getRedcapValueSet($redcap_field);
 
             if (!empty($vmap_format)) {
-
                 //has value set mapping
                 $rc_coded_values = array_keys($rc_vset);
                 $redcap_coverage = array_diff($rc_coded_values, array_keys($vmap_format));
@@ -498,24 +457,28 @@ class Mapping
         $project_fields     = $this->getRedcapFields();
         $oncore_fields      = $this->getOnCoreFields();
         $project_mappings   = $this->getProjectMapping();
-        $redcap_fields      = array();
 
         $pull_required_html = "";
         $pull_not_required  = "";
         $push_required_html = "";
         $push_not_required  = "";
 
+
         //REDCap Data Dictionary Fields w/ generic 'xxx'name
+        $event_fields = array();
+        foreach ($project_fields as $rc_field_name => $field) {
+            $event_name = $field["event_name"];
+            if(!array_key_exists($event_name, $event_fields)){
+                $event_fields[$event_name] = array();
+            }
+            $field_choices                  = !empty($field["select_choices"]) ? $field["select_choices"] : array();
+            $event_fields[$event_name][]    = "<option data-eventname='$event_name' data-value_set='" . json_encode($field_choices) . "' data-type='{$field["redcap_field_type"]}' value='$rc_field_name' 'vmap-{$rc_field_name}'>$rc_field_name</option>\r\n";
+        }
         $rc_select = "<select class='form-select form-select-sm mrn_field redcap_field' name='[ONCORE_FIELD]'>\r\n";
         $rc_select .= "<option value=-99>-Map REDCap Field-</option>\r\n";
-        foreach ($project_fields as $event_name => $fields) {
+        foreach($event_fields as $event_name => $fields){
             $rc_select .= "<optgroup label='$event_name'>\r\n";
-            foreach ($fields as $field) {
-                $field_choices = !empty($field["select_choices"]) ? $this->getRedcapValueSet($field["name"]) : array();
-                $field["select_choices"]        = $field_choices;
-                $redcap_fields[$field["name"]]  = $field;
-                $rc_select .= "<option data-eventname='$event_name' data-value_set='" . json_encode($field_choices) . "' data-type='{$field["field_type"]}' value='{$field["name"]}' 'vmap-{$field["name"]}'>{$field["name"]}</option>\r\n";
-            }
+            $rc_select .= implode("", $fields);
             $rc_select .= "</optgroup>\r\n";
         }
         $rc_select .= "</select>\r\n";
@@ -586,8 +549,7 @@ class Mapping
         $oc_select .= implode("", $no_req_options);
         $oc_select .= "</select>\r\n";
 
-
-        foreach($redcap_fields as $rc_field_name => $rc_field){
+        foreach($project_fields as $rc_field_name => $rc_field){
             //each select will have different input['name']
             $map_select     = str_replace("[REDCAP_FIELD]", $rc_field_name, $oc_select);
             $oncore_field   = $this->getMappedOncoreField($rc_field_name, 1);
@@ -597,13 +559,13 @@ class Mapping
 
             $value_map_html = $this->makeValueMappingUI_RC($oncore_field, $rc_field_name);
             $map_select     = str_replace("'$rc_field_name'", "'$rc_field_name' data-eventname='$event_name' data-type='$rc_type' ", $map_select);
-            if (array_key_exists($rc_field_name, $project_mappings["push"])) {
-                $json_vmapping      = json_encode($this->getMappedRedcapValueSet($rc_field_name, 1));
+            if (array_key_exists($oncore_field, $project_mappings["push"])) {
+                $json_vmapping      = json_encode($this->getMappedRedcapValueSet($oncore_field, 1));
                 $data_value_mapping = "data-val_mapping='{$json_vmapping}'";
 
                 $map_select     = str_replace("'$oncore_field'", "'$oncore_field' selected ", $map_select);
                 $map_select     = str_replace("'vmap-$rc_field_name'", $data_value_mapping, $map_select);
-                $push_status    = $this->getPushStatus($rc_field_name) ? "ok" : "";
+                $push_status    = $this->getPushStatus($oncore_field) ? "ok" : "";
             }
 
             $push_not_required .= "<tr class='$rc_field_name'>\r\n";

@@ -14,32 +14,25 @@ try {
 
         switch ($action) {
             case "saveMapping":
-//                $module->getMapping()->setProjectFieldMappings(array());
                 //Saves to em project settings
                 //MAKE THIS A MORE GRANULAR SAVE.  GET
-                /*
-                 * "oncore_field": oncore_field
-                    , "redcap_field": redcap_field
-                    , "event": event_name
-                    , "field_type" : ftype
-                    , "value_mapping_pull" : value_mapping
-                 * */
+
                 $current_mapping    = $module->getMapping()->getProjectMapping();
                 $result             = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
 
-                $pull_mapping   = !empty($result["mapping"]) && $result["mapping"] == "pull" ? true : false;
-                $oncore_field   = !empty($result["oncore_field"]) ? $result["oncore_field"] : null;
-                $redcap_field   = !empty($result["redcap_field"]) && $result["redcap_field"] !== "-99" ? $result["redcap_field"] : null;
-                $eventname      = !empty($result["event"]) ? $result["event"] : null;
-                $ftype          = !empty($result["field_type"]) ? $result["field_type"] : null;
-                $vmap           = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
+                $pull_mapping       = !empty($result["mapping"]) ? $result["mapping"] : null;
+                $oncore_field       = !empty($result["oncore_field"]) && $result["oncore_field"] !== "-99" ? $result["oncore_field"] : null;
+                $redcap_field       = !empty($result["redcap_field"]) && $result["redcap_field"] !== "-99" ? $result["redcap_field"] : null;
+                $eventname          = !empty($result["event"]) ? $result["event"] : null;
+                $ftype              = !empty($result["field_type"]) ? $result["field_type"] : null;
+                $vmap               = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
 
-                if($pull_mapping){
+                if($pull_mapping == "pull"){
                     //pull side
                     if(!$redcap_field){
                         unset($current_mapping["pull"][$oncore_field]);
                     }else{
-                        $current_mapping["pull"][$oncore_field] = array(
+                        $current_mapping[$pull_mapping][$oncore_field] = array(
                             "redcap_field"  => $redcap_field,
                             "event"         => $eventname,
                             "field_type"    => $ftype,
@@ -49,10 +42,15 @@ try {
                 }else{
                     //push side
                     if(!$oncore_field){
-                        unset($current_mapping["push"][$oncore_field]);
+                        foreach($current_mapping["push"] as $oc_field =>  $item){
+                            if($item["redcap_field"] == $redcap_field){
+                                unset($current_mapping["push"][$oc_field]);
+                                break;
+                            }
+                        }
                     }else{
-                        $current_mapping["push"][$redcap_field] = array(
-                            "oncore_field"  => $oncore_field,
+                        $current_mapping[$pull_mapping][$oncore_field] = array(
+                            "redcap_field"  => $redcap_field,
                             "event"         => $eventname,
                             "field_type"    => $ftype,
                             "value_mapping" => $vmap
@@ -60,7 +58,6 @@ try {
                     }
                 }
 
-                $module->emDebug("POSTING GRANULAR UPDATE", $current_mapping["push"]);
                 $module->getMapping()->setProjectFieldMappings($current_mapping);
                 break;
 

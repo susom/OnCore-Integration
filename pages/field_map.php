@@ -5,58 +5,23 @@ namespace Stanford\OnCoreIntegration;
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
 $ajax_endpoint      = $module->getUrl("ajax/handler.php");
+$icon_ajax          = $module->getUrl("assets/images/icon_ajax.gif");
 $mapping            = $module->getMapping();
 
 $field_map_ui       = $mapping->makeFieldMappingUI();
 $field_map_ui_pull  = $field_map_ui["pull"];
 $field_map_ui_push  = $field_map_ui["push"];
 
-$project_mappings_sample = array(
-    "pull" => array(
-        "ethnicity" => array(
-            "redcap_field"  => "ethnic_background",
-            "event"         => "baseline_arm_1",
-            "field_type"    => "radio",
-            "value_mapping" => array(
-                array( "oc" => "Hispanic or Latino", "rc" => 1 ),
-                array( "oc" => "Non-Hispanic", "rc" => 2 ),
-                array( "oc" => "NOTE - Use Unknown For Not Reported", "rc" => 3 ),
-                array( "oc" => "Unknown", "rc" => 3 )
-            )
-        )
-    ),
-    "push" => array(
-        "ethnicity" => array(
-            "redcap_field"  => "ethnic_background",
-            "event"         => "baseline_arm_1",
-            "field_type"    => "radio",
-            "value_mapping" => array(
-                array( "oc" => "Hispanic or Latino", "rc" => 1 ),
-                array( "oc" => "Non-Hispanic", "rc" => 2 ),
-                array( "oc" => "Unknown", "rc" => 3 ),
-                array( "oc" => "Unknown", "rc" => 4 ),
-                array( "oc" => "Unknown", "rc" => 5 )
-            )
-        )
-    )
+//$current_mapping    = $module->getMapping()->getProjectMapping();
+//$module->emDebug("push mapping", $current_mapping);
+//$module->getMapping()->setProjectFieldMappings(array("pull"=>array(), "push" => array()));
 
-);
+$oncore_fields          = $field_map_ui["oncore_fields"];
+$req_pull               = $field_map_ui_pull["required"];
+$not_req_pull           = $field_map_ui_pull["not_required"];
+$req_push               = $field_map_ui_push["required"];
+$not_req_push           = $field_map_ui_push["not_required"];
 
-
-
-
-$current_mapping    = $module->getMapping()->getProjectMapping();
-//$module->emDebug($current_mapping["push"]);
-//$module->getMapping()->setProjectFieldMappings(array("pull"=>$current_mapping["pull"], "push" => array()));
-
-
-$oncore_fields      = $field_map_ui["oncore_fields"];
-
-$req_pull           = $field_map_ui_pull["required"];
-$not_req_pull       = $field_map_ui_pull["not_required"];
-
-$req_push           = $field_map_ui_push["required"];
-$not_req_push       = $field_map_ui_push["not_required"];
 $overall_pull_status    = $module->getMapping()->getOverallPullStatus() ? "ok" : "";
 $overall_push_status    = $module->getMapping()->getOverallPushStatus() ? "ok" : "";
 
@@ -82,11 +47,11 @@ $site_selection[]       = "</ul>\r\n";
     <h1>REDCap/OnCore Field Mapping</h1>
     <p class="lead">Map REDCap Variables to OnCore Properties and vice versa to ensure that data can be pulled and pushed between projects.  Once the requisite mapping coverage is acheived the icon in the tabs will show a "green checkmark"</p>
     <ul class="nav nav-tabs">
-        <li class=""><a data-toggle="tab" href="#pull_mapping" class="pull_mapping <?=$overall_pull_status?>">Pull Data From OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
-        <li class="active"><a data-toggle="tab" href="#push_mapping" class="push_mapping <?=$overall_push_status?>">Push Data To OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
+        <li class="active"><a data-toggle="tab" href="#pull_mapping" class="pull_mapping <?=$overall_pull_status?>">Pull Data From OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
+        <li class=""><a data-toggle="tab" href="#push_mapping" class="push_mapping <?=$overall_push_status?>">Push Data To OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
     </ul>
     <div class="tab-content">
-        <div class="tab-pane" id="pull_mapping">
+        <div class="tab-pane active" id="pull_mapping">
             <form id="oncore_mapping" class="container">
                 <h2>Map OnCore Fields to REDCap project variables to PULL</h2>
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
@@ -114,7 +79,7 @@ $site_selection[]       = "</ul>\r\n";
             </form>
         </div>
 
-        <div class="tab-pane active" id="push_mapping">
+        <div class="tab-pane" id="push_mapping">
             <form id="study_sites" class="container">
                 <h2>Select subset of study sites for this project</h2>
                 <p class="lead">Data pushed from REDCap to OnCore will require a matching study site. Click to choose which study site will be available to this project.</p>
@@ -144,6 +109,22 @@ $site_selection[]       = "</ul>\r\n";
     </div>
 </div>
 <style>
+    #field_mapping td{
+        position:relative;
+    }
+    #field_mapping .loading{
+        position:relative;
+        border:1px solid re;
+    }
+    #field_mapping .loading::after{
+        content:"";
+
+        position:absolute;
+        margin-left:10px; width:30px; height:30px;
+        background:url(<?=$icon_ajax?>) 0 0 no-repeat;
+        background-size:contain;
+    }
+
     #study_sites{
         margin-bottom:50px;
     }
@@ -318,6 +299,7 @@ $site_selection[]       = "</ul>\r\n";
                     , "value_mapping" : value_mapping
                 };
 
+                $(this).parent().addClass("loading");
                 $.ajax({
                     url: ajax_endpoint,
                     method: 'POST',
@@ -327,8 +309,11 @@ $site_selection[]       = "</ul>\r\n";
                     },
                     dataType: 'json'
                 }).done(function (result) {
+                    //remove spinners
                     updatePushPullStatus(oncore_field, redcap_field);
                     makeValueMappingRow(oncore_field, redcap_field, 0);
+                    updateOverAllStatus();
+                    $("#field_mapping .loading").removeClass("loading");
                 }).fail(function (e) {
                     console.log("failed to save", e);
                 });
@@ -360,6 +345,7 @@ $site_selection[]       = "</ul>\r\n";
                     , "value_mapping" : value_mapping
                 };
 
+                $(this).parent().addClass("loading");
                 $.ajax({
                     url: ajax_endpoint,
                     method: 'POST',
@@ -371,6 +357,8 @@ $site_selection[]       = "</ul>\r\n";
                 }).done(function (result) {
                     updatePushPullStatus(oncore_field, redcap_field);
                     makeValueMappingRow(oncore_field, redcap_field, 1);
+                    updateOverAllStatus();
+                    $("#field_mapping .loading").removeClass("loading");
                 }).fail(function (e) {
                     console.log("failed to save", e);
                 });
@@ -404,6 +392,8 @@ $site_selection[]       = "</ul>\r\n";
                     }
 
                     $("#oncore_mapping select[name='" + oncore_field + "']").find("option:selected").data("val_mapping", val_mapping);
+
+                    $(this).parent().addClass("loading");
                     $("#oncore_mapping select[name='" + oncore_field + "']").trigger("change");
                 }
             }
@@ -434,6 +424,8 @@ $site_selection[]       = "</ul>\r\n";
                     }
 
                     $("#redcap_mapping select[name='" + rc_field + "']").find("option:selected").data("val_mapping", val_mapping);
+
+                    $(this).parent().addClass("loading");
                     $("#redcap_mapping select[name='" + rc_field + "']").trigger("change");
                 }
             }
@@ -500,8 +492,8 @@ $site_selection[]       = "</ul>\r\n";
     }
 
     function updatePushPullStatus(oncore_field, redcap_field){
-        var _el     = $("tr."+oncore_field);
-        var _el2    = $("tr."+redcap_field);
+        var _el     = $("#oncore_mapping tr."+oncore_field);
+        var _el2    = $("#redcap_mapping tr."+redcap_field);
 
         _el.find("td.status.pull").removeClass("ok");
         _el2.find("td.status.push").removeClass("ok");
@@ -538,8 +530,8 @@ $site_selection[]       = "</ul>\r\n";
             var parent_id = rc_mapping ? "#redcap_mapping" : "#oncore_mapping";
             if($(parent_id+ " tr."+oncore_field).length){
                 //CLEAR EXISTING ROW BEFORE BUILDING NEW UI
-                $("tr.more."+ oncore_field).remove();
-                $(result).insertAfter($("tr."+oncore_field));
+                $(parent_id+ " tr.more."+ oncore_field).remove();
+                $(result).insertAfter($(parent_id+ " tr."+oncore_field));
             }
         }).fail(function (e) {
             console.log("failed to get value mapping row", e);
