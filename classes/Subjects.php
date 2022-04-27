@@ -670,12 +670,16 @@ class Subjects extends SubjectDemographics
             if (!isset($field['value_mapping'])) {
                 $data[$field['event']][$field['redcap_field']] = $onCoreValue;
             } else {
-                $parsed = json_decode($onCoreValue, true);
+                if (is_array($onCoreValue)) {
+                    $parsed = $onCoreValue;
+                } else {
+                    $parsed = json_decode($onCoreValue, true);
+                }
                 if (is_array($parsed)) {
                     foreach ($parsed as $item) {
                         $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
                         if ($field['field_type'] == 'checkbox') {
-                            $data[$field['event']][$field['redcap_field'] . '___' . $map['rc']] = 1;
+                            $data[$field['event']][$field['redcap_field'] . '___' . $map['rc']] = true;
                         } else {
                             $data[$field['event']][$field['redcap_field']] = $map['rc'];
                         }
@@ -733,6 +737,8 @@ class Subjects extends SubjectDemographics
                     $id = end($response['ids']);
                     Entities::createLog('OnCore Subject ' . $record['oncore'] . ' got pull into REDCap record ' . $id);
                 }
+
+                unset($data);
             }
         }
         return true;
