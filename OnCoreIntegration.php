@@ -782,8 +782,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $this->initiateProtocol();
         $this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
 
-        $records = $this->getProtocols()->getSyncedRecords();
-        $mapped_fields = $this->getMapping()->getProjectFieldMappings();
+        $records        = $this->getProtocols()->getSyncedRecords();
+        $mapped_fields  = $this->getMapping()->getProjectFieldMappings();
 
         $sync_diff  = array();
         $bin_match  = array("excluded" => array(), "included" => array());
@@ -845,7 +845,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             $$bin_var["included"][$mrn] = array();
                         }
                     }
-                    foreach($mapped_fields as $oncore_field => $redcap_details){
+                    foreach($mapped_fields["pull"] as $oncore_field => $redcap_details){
                         if(in_array($oncore_field, $exclude)){
                             continue;
                         }
