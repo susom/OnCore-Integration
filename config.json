@@ -67,6 +67,12 @@
             "type": "textarea"
         },
         {
+            "key": "redcap-oncore-project-site-studies",
+            "name": "Json Object represent the subset of Study Sites for OnCore Subjects in this project <h6><span class='text-lg badge badge-lg badge-danger'>DO NOT MODIFY</span></h6>",
+            "required": false,
+            "type": "textarea"
+        },
+        {
             "key": "enable-project-debug-logging",
             "name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
             "required": false,
