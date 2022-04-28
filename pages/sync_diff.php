@@ -75,8 +75,6 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null, $excluded=n
 
             $ts_last_scan   = $row["ts_last_scan"];
 
-            $diffmatch      = $oc_data == $rc_data ? "match" : "diff";
-
             $rc = !empty($rc_field) ? $rc_data : "";
             $oc = !empty($oc_field) ? $oc_data : "";
 
