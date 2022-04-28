@@ -10,7 +10,7 @@ OnCore Fields Definition Example:
         "alias": "",
         "description": "subject Demographics Id",
         "oncore_field_type": [
-            "int"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"

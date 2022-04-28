@@ -829,9 +829,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 case 0:
                     //redcap only
                     if(array_key_exists("redcap",$record)){
-                        $redcap     = current($record["redcap"]);
-                        $rc_id      = $redcap["record_id"];
-                        $mrn        = $redcap["mrn"];
+                        // set the keys for redcap array
+                        $arr = current($record["redcap"]);
+                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush($arr["record_id"], $this->getProtocols()->getFieldsMap()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
+                        // handle data scattered over multiple events
+                        $redcap = [];
+                        foreach ($temp as $onCoreField => $value) {
+                            $redcapField = $this->getMapping()->getMappedRedcapField($onCoreField);
+                            $redcap[$redcapField ?: $onCoreField] = $value;
+                        }
+                        $rc_id = $redcap["record_id"];
+                        $mrn = $redcap["mrn"];
                     }
 
                 default:
