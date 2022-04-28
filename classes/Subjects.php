@@ -615,7 +615,8 @@ class Subjects extends SubjectDemographics
 
                 $a = gettype($redcapValue);
                 if (!in_array($a, $oncoreFieldsDef[$key]['oncore_field_type'])) {
-                    throw new \Exception('datatype does not match');
+                    //throw new \Exception('datatype does not match');
+                    continue;
                 }
                 $data[$key] = $redcapValue;
             } else {
