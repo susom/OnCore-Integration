@@ -3,7 +3,11 @@
 }
 .show_all_matched {
     position:absolute;
-    right:10px; bottom:5px;
+    right:10px; top:-35px;
+}
+
+form.oncore_match{
+    position:relative;
 }
 
 #oncore_mapping ul.nav-tabs{
@@ -30,13 +34,13 @@ tr.match td.data{
     color:#0f6b58;
 }
 
-tr.match td.rc_data,
-tr.match td.oc_data{
+tr td.rc_data,
+tr td.oc_data{
     display:none;
 }
 
-tr.match td.rc_data.showit,
-tr.match td.oc_data.showit{
+tr td.rc_data.showit,
+tr td.oc_data.showit{
     display:table-cell;
 }
 

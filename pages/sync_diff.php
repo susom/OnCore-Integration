@@ -29,72 +29,19 @@ if($full_match_count || $partial_match_count || $oncore_count){
     }
 }
 
-if(isset($_GET["download_csv"])){
-    if(!empty($_GET["bin"])){
-        $bin = filter_var($_GET["bin"], FILTER_SANITIZE_STRING);
-        switch($bin){
-            case "fullmatch":
-                makeSyncTableCSV($sync_diff["match"], $bin);
-                break;
-
-            case "oncore_only":
-                makeSyncTableCSV($sync_diff["oncore"], $bin);
-                break;
-
-            case "redcap_only":
-                makeSyncTableCSV($sync_diff["redcap"], $bin);
-                break;
-        }
-    }
-    exit;
-}
-
-
-
-function makeSyncTableCSV($records, $bin){
-    global $module;
-
-    $headers        = array("MRN","REDCap ID", "OnCore Subject ID", "OnCore Field" , "OnCore Data", "REDCap Field", "REDCap Data", "REDCap Event" );
-    $output_dest    = 'php://output';
-    $output         = fopen($output_dest, 'w') or die('Can\'t create .csv file, try again later.');
-
-    //Add the headers
-    fputcsv($output, $headers);
-
-    // write each row at a time to a file
-    foreach($records as $mrn => $rows){
-        foreach($rows as $row){
-            $row_array = array();
-            $row_array[]    = $mrn;
-            $row_array[]    = $row["rc_id"];
-            $row_array[]    = $row["oc_pr_id"];
-            $row_array[]    = $row["oc_field"];
-            $row_array[]    = $row["oc_data"];
-            $row_array[]    = $row["rc_field"];
-            $row_array[]    = $row["rc_data"];
-            $row_array[]    = $row["rc_event"];
-
-            fputcsv($output, $row_array);
-        }
-    }
-
-    // output headers so that the file is downloaded rather than displayed
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename='.$bin.'.csv');
-}
 function makeSyncTableHTML($records, $noredcap=null, $disabled=null, $excluded=null){
     global $module;
 
     $show_all_btn = !$noredcap && !$disabled ? "<button class='btn btn-info show_all_matched'>Show All</button>" : "";
     $excludes_cls = $excluded ? "excludes" : "includes";
-    $html = "<table class='table table-striped $disabled $excludes_cls'>";
+    $html = "$show_all_btn<table class='table table-striped $disabled $excludes_cls'>";
     $html .= "<thead>";
     $html .= "<tr>";
     $html .= "<th style='width: 6%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
     $html .= "<th style='width: 25%'>Subject Details</th>";
     $html .= "<th style='width: 25%'>OnCore Property</th>";
     $html .= "<th style='width: 22%'>OnCore Data</th>";
-    $html .= "<th style='width: 22%'>REDCap Data $show_all_btn</th>";
+    $html .= "<th style='width: 22%'>REDCap Data</th>";
     $html .= "</tr>";
     $html .= "</thead>";
 
@@ -192,15 +139,15 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null, $excluded=n
 function makeOncoreTableHTML($records, $noredcap=null, $disabled=null, $excluded=null){
     global $module;
 
-    $show_all_btn = !$noredcap && !$disabled ? "<button class='btn btn-info show_all_matched'>Show All</button>" : "";
+    $show_all_btn =  !$disabled ? "<button class='btn btn-info show_all_matched'>Show All</button>" : "";
     $excludes_cls = $excluded ? "excludes" : "includes";
-    $html = "<table class='table table-striped $disabled $excludes_cls'>";
+    $html = "$show_all_btn<table class='table table-striped $disabled $excludes_cls'>";
     $html .= "<thead>";
     $html .= "<tr>";
     $html .= "<th style='width: 6%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
     $html .= "<th style='width: 32%'>Subject Details</th>";
     $html .= "<th style='width: 32%'>OnCore Property</th>";
-    $html .= "<th style='width: 30%'>OnCore Data $show_all_btn</th>";
+    $html .= "<th style='width: 30%'>OnCore Data</th>";
     $html .= "</tr>";
     $html .= "</thead>";
 
@@ -299,14 +246,14 @@ function makeRedcapTableHTML($records, $noredcap=null, $disabled=null, $excluded
 
     $show_all_btn = !$noredcap && !$disabled ? "<button class='btn btn-info show_all_matched'>Show All</button>" : "";
     $excludes_cls = $excluded ? "excludes" : "includes";
-    $html = "<table class='table table-striped $disabled $excludes_cls'>";
+    $html = "$show_all_btn<table class='table table-striped $disabled $excludes_cls'>";
     $html .= "<thead>";
     $html .= "<tr>";
     $html .= "<th style='width: 6%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
     $html .= "<th style='width: 22%'>Subject Details</th>";
     $html .= "<th style='width: 25%'>Study Site</th>";
     $html .= "<th style='width: 22%'>OnCore Property</th>";
-    $html .= "<th style='width: 25%'>REDCap Data $show_all_btn</th>";
+    $html .= "<th style='width: 25%'>REDCap Data</th>";
     $html .= "</tr>";
     $html .= "</thead>";
 
@@ -465,7 +412,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
         <div class="tab-pane" id="oncore">
             <h2>Unlinked Oncore Subjects not linked in this REDCap Project</h2>
-            <p>The following Subjects were found in the OnCore Protocol.  Click "Import Subjects" to create the following subjects in this project.  (TODO IF auto increment is disabled , get from PROJ object) The REDCap record will default to the OnCore Protocol Subject ID. </p>
+            <p>The following Subjects were found in the OnCore Protocol.  Click "Import Subjects" to create the following subjects in this project.</p>
 
             <form id="pullFromOncore" class="oncore_match">
                 <input type="hidden" name="matchtype" value="oncoreonly"/>
@@ -516,10 +463,12 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         $(".show_all_matched").on("click", function(e){
             e.preventDefault();
 
-            if(!$("tr.match td.rc_data").is(":visible")){
-                $("tr.match td.rc_data, tr.match td.oc_data").show();
+            if(!$("tr td.rc_data").is(":visible") && !$("tr td.oc_data").is(":visible")){
+                $(".show_all_matched").html("Show Less");
+                $("tr td.rc_data, tr td.oc_data").show();
             }else{
-                $("tr.match td.rc_data, tr.match td.oc_data").hide();
+                $(".show_all_matched").html("Show All");
+                $("tr td.rc_data, tr td.oc_data").hide();
             }
         });
 
