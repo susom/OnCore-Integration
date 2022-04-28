@@ -62,7 +62,7 @@ try {
                 break;
 
             case "saveSiteStudies":
-                $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : null;
+                $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : array();
                 $module->getMapping()->setProjectSiteStudies($result);
                 break;
 
