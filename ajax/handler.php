@@ -84,7 +84,7 @@ try {
                 break;
 
             case "pushToOncore":
-                $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_NUMBER_INT) : null;
+                $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
                 $module->emDebug("push to oncore approved ids(redcap?)", $result);
                 foreach($result as $record){
                     $rc_id      = $record["redcap_id"];
