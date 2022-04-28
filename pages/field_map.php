@@ -4,6 +4,7 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
+$oncore_css         = $module->getUrl("assets/styles/field_mapping.css");
 $ajax_endpoint      = $module->getUrl("ajax/handler.php");
 $icon_ajax          = $module->getUrl("assets/images/icon_ajax.gif");
 $mapping            = $module->getMapping();
@@ -42,6 +43,7 @@ $site_selection[]       = "</ul>\r\n";
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
+<link rel="stylesheet" href="<?=$oncore_css?>">
 
 <div id="field_mapping">
     <h1>REDCap/OnCore Field Mapping</h1>
@@ -109,140 +111,13 @@ $site_selection[]       = "</ul>\r\n";
     </div>
 </div>
 <style>
-    #field_mapping td{
-        position:relative;
-    }
-    #field_mapping .loading{
-        position:relative;
-        border:1px solid re;
-    }
-    #field_mapping .loading::after{
-        content:"";
-
-        position:absolute;
-        margin-left:10px; width:30px; height:30px;
-        background:url(<?=$icon_ajax?>) 0 0 no-repeat;
-        background-size:contain;
-    }
-
-    #study_sites{
-        margin-bottom:50px;
-    }
-    #study_sites ul {
-        margin:0;
-        padding:10px;
-        list-style:none;
-        box-shadow: 0 0 3px 1px #ccc;
-        border-radius: 3px;
-    }
-
-    #study_sites li {
-        display:inline-block;
-        width:33%;
-        position:relative;
-        padding:0;
-        margin:0 0 10px 0;
-        vertical-align: top;
-    }
-
-    #study_sites li label{}
-
-    #study_sites li input{
-        position:absolute;
-        top:50%; left:15px;
-        transform: translateY(-30%)
-    }
-
-    #study_sites li span{
-        display: flex;
-        justify-content:center;
-        flex-direction: column;
-
-        width:95%;
-        min-height:54px;
-        line-height:100%;
-        border-radius: 3px;
-        padding:10px 10px 10px 35px;
-        font-size:120%;
-        color:#aaa;
-        background:#F7F7FA;
-    }
-
-    #study_sites input:checked + span{
-        background:#E9F4F4;
-        color:#1B2E2E;
-    }
-
-    .nav-tabs i.fa-check-circle {
-        color: #5cb85c;
-        padding: 5px;
-    }
-
-    .nav-tabs i.fa-times-circle {
-        color: #da4f49;
-        padding: 5px;
-    }
-
-    .td_oc_field{ width:35% }
-    .td_rc_field{ width:35% }
-    .td_rc_event{ width:15% }
-    .td_pull{ width:15% }
-    .td_push{ width:15% }
-
-    .td_oc_vset{ width:35% }
-    .td_rc_vset{ width:35% }
-    .td_map_status{ width:15% }
-    .td_vset_spacer {width:15%}
-
-    tr.required td{
-        color:initial;
-    }
-
-    tbody tr.required td:first-child:after{
-        content:"*";
-    }
-    tbody tr.notrequired td{
-        display:none;
-    }
-    tr.show_optional td {
-        text-align:left;
-    }
-    .table .centered { text-align:center; }
-
-    tr.more td {
-        border-top:initial;
-        padding-top: 0;
-        padding-bottom: 1.25rem;
-    }
-
-    .nav-tabs .ok i.fa-times-circle,
-    .nav-tabs i.fa-check-circle,
-    td.value_map_status.ok .fa-times-circle,
-    td.value_map_status .fa-check-circle,
-    td.status.ok .fa-times-circle,
-    td.status .fa-check-circle{
-        display:none;
-    }
-
-    .nav-tabs .ok i.fa-check-circle,
-    td.value_map_status.ok .fa-check-circle,
-    td.status.ok .fa-check-circle{
-        display:inline-block;
-    }
-
-    table.value_map{
-        width:100%;
-    }
-
-    table.value_map th,
-    table.value_map td{
-        padding:0 0 .5em 0;
-    }
-
-    table.value_map th {
-        background: #fff !important;
-        border: initial !important;
-    }
+#field_mapping .loading::after{
+    content:"";
+    background:url(<?=$icon_ajax?>) 0 0 no-repeat;
+    position:absolute;
+    margin-left:10px; width:30px; height:30px;
+    background-size:contain;
+}
 </style>
 <script>
     $(document).ready(function () {
@@ -517,7 +392,6 @@ $site_selection[]       = "</ul>\r\n";
             });
         });
     });
-
 
     function onlyUnique(value, index, self) {
         return self.indexOf(value) === index;
