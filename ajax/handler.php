@@ -87,9 +87,16 @@ try {
                 $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
                 $module->emDebug("push to oncore approved ids(redcap?)", $result);
                 foreach($result as $record){
-                    $rc_id      = $record["redcap_id"];
+                    if (!$record["redcap_id"] || $record["redcap_id"] == '') {
+                        throw new \Exception('REDCap Record ID is missing.');
+                    }
+
+                    if (!$record["study_site"] || $record["study_site"] == '') {
+                        throw new \Exception('Study Site is missing for REDCap Recprd ID: ' . $record["redcap_id"]);
+                    }
+                    $rc_id = $record["redcap_id"];
                     $study_site = $record["study_site"];
-                    $records    = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $study_site, $module->getMapping()->getOnCoreFieldDefinitions());
+                    $records = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $study_site, $module->getMapping()->getOnCoreFieldDefinitions());
                 }
                 break;
 

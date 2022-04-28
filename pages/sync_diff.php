@@ -311,7 +311,8 @@ function makeRedcapTableHTML($records, $noredcap=null, $disabled=null, $excluded
                     $id_info[] = "REDCap ID : $rc_id";
                 }
 
-                $study_select   = "<select name='studysite_$rc_id' class='studysite' data-rc_id='$rc_id'>\r\n";
+                $study_select = "<select name='studysite_$rc_id' class='studysite' data-rc_id='$rc_id'>\r\n";
+                $study_select .= "<option value=''>Select Study Site</option>\r\n";
                 foreach($project_study_sites as $studysite){
                     $study_select .= "<option value='$studysite'>$studysite</option>\r\n";
                 }
