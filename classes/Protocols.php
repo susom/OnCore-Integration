@@ -412,6 +412,7 @@ class Protocols
                         Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
                         $this->setEntityRecord($data);
                         $this->prepareProtocolSubjects();
+                        $this->processSyncedRecords();
                     } else {
                         throw new \Exception(implode(',', $entity->errors));
                     }
