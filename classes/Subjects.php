@@ -189,7 +189,16 @@ class Subjects extends SubjectDemographics
             // has mapped values
             if (isset($field['value_mapping'])) {
                 // oncore is array of text ie. race
-                $parsed = json_decode($onCoreSubject['demographics'][$key], true);
+                $onCoreType = $this->getMapping()->getOncoreType($key);
+                if ($onCoreType == 'array') {
+                    if (is_array($onCoreSubject['demographics'][$key])) {
+                        $parsed = $onCoreSubject['demographics'][$key];
+                    } else {
+                        $parsed = json_decode($onCoreSubject['demographics'][$key], true);
+                    }
+                } else {
+                    $parsed = null;
+                }
                 if (is_array($parsed)) {
                     // if redcap field is checkbox
                     if ($field['field_type'] == 'checkbox') {
@@ -431,7 +440,7 @@ class Subjects extends SubjectDemographics
         if ($entity->setData($data)) {
             $entity->save();
         } else {
-            throw new \Exception(implode(',', $this->errors));
+            throw new \Exception(implode(',', $entity->errors));
         }
     }
 
@@ -743,9 +752,8 @@ class Subjects extends SubjectDemographics
                     $id = end($response['ids']);
                     Entities::createLog('OnCore Subject ' . $record['oncore'] . ' got pull into REDCap record ' . $id);
                 }
-
-                unset($data);
             }
+            unset($data);
         }
         return true;
     }
