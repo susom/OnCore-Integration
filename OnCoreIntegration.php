@@ -328,7 +328,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 'oncore_protocol_subject_status' => [
                     'name' => 'OnCore Protocol Subject Status (On/Off Study)',
                     'type' => 'integer',
-                    'required' => true,
+                    'required' => false,
                     'default' => self::ONCORE_SUBJECT_ON_STUDY,
                     'choices' => [
                         self::ONCORE_SUBJECT_ON_STUDY => 'ON STUDY',
