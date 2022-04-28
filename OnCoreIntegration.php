@@ -59,6 +59,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const NO = 0;
 
+    const ONCORE_SUBJECT_ON_STUDY = 1;
+
+
+    const ONCORE_SUBJECT_OFF_STUDY = 0;
+
+
     const ONCORE_SUBJECT_SOURCE_TYPE_ONCORE = 'OnCore';
 
     const ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE = 'Onstage';
@@ -318,6 +324,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     'name' => 'OnCore Protocol Subject Id(NOT Demographics)',
                     'type' => 'integer',
                     'required' => false,
+                ],
+                'oncore_protocol_subject_status' => [
+                    'name' => 'OnCore Protocol Subject Status (On/Off Study)',
+                    'type' => 'integer',
+                    'required' => true,
+                    'default' => self::ONCORE_SUBJECT_ON_STUDY,
+                    'choices' => [
+                        self::ONCORE_SUBJECT_ON_STUDY => 'ON STUDY',
+                        self::ONCORE_SUBJECT_OFF_STUDY => 'OFF STUDY'
+                    ],
                 ],
                 'status' => [
                     'name' => 'Linkage Status',
@@ -871,7 +887,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             $redcapField = $this->getMapping()->getMappedRedcapField($onCoreField);
                             $redcap[$redcapField ?: $onCoreField] = $value;
                         }
-                        $rc_id = $redcap["record_id"];
+                        $rc_id = $arr["record_id"];
                         $mrn = $redcap["mrn"];
                     }
 

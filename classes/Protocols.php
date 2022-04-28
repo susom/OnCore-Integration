@@ -100,6 +100,7 @@ class Protocols
                     'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
                     'redcap_record_id' => $redcapRecord['id'],
                     'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
+                    'oncore_protocol_subject_status' => $subject['status'] == 'ON STUDY' ? OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY : OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY,
                     'excluded' => OnCoreIntegration::NO,
                     'status' => $this->getSubjects()->determineSyncedRecordMatch($subject, $redcapRecord['record'], $fields['pull'])
                 );
@@ -131,6 +132,7 @@ class Protocols
                         'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
                         'redcap_record_id' => '',
                         'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
+                        'oncore_protocol_subject_status' => $subject['status'] == 'ON STUDY' ? OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY : OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY,
                         'excluded' => OnCoreIntegration::NO,
                         'status' => OnCoreIntegration::ONCORE_ONLY
                     );
