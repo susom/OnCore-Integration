@@ -6,6 +6,7 @@ namespace Stanford\OnCoreIntegration;
 
 $oncore_css         = $module->getUrl("assets/styles/oncore.css");
 $oncore_js          = $module->getUrl("assets/scripts/oncore.js");
+$icon_ajax          = $module->getUrl("assets/images/icon_ajax.gif");
 $ajax_endpoint      = $module->getUrl("ajax/handler.php");
 $sync_diff          = $module->getSyncDiff();
 $sync_summ          = $module->getSyncDiffSummary();
@@ -587,6 +588,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 approved_ids.push({"oncore" : oncore_id , "redcap" : rc_id});
             });
 
+            showPageBlockerSpinner();
             $.ajax({
                 url: ajax_endpoint,
                 method: 'POST',
@@ -599,6 +601,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 location.reload();
             }).fail(function (e) {
                 console.log("failed to save", e);
+                hidePageBlockerSpinner();
             });
         });
 
@@ -619,6 +622,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 approved_ids.push(temp);
             }
 
+            showPageBlockerSpinner();
             $.ajax({
                 url: ajax_endpoint,
                 method: 'POST',
@@ -631,8 +635,34 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 location.reload();
             }).fail(function (e) {
                 console.log("failed to save", e);
+                hidePageBlockerSpinner();
             });
         })
     });
+
+    function showPageBlockerSpinner(){
+        var opaque = $("<div>").attr("id","blockingOverlay");
+        opaque.appendTo("body");
+    }
+
+    function hidePageBlockerSpinner(){
+        $("#blockingOverlay").remove();
+    }
 </script>
+<style>
+#blockingOverlay{
+    background-color: #000;
+    position: fixed; /* Sit on top of the page content */
+    width: 100%; /* Full width (cover the whole page) */
+    height: 100%; /* Full height (cover the whole page) */
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:url(<?=$icon_ajax?>);
+    background-repeat:no-repeat;
+    background-position:50% 40%;
+    background-size:10%;
+    background-color: rgba(0,0,0,0.5); /* Black background with opacity */
+    z-index: 20; /* Specify a stack order in case you're using a different order for other elements */
+    cursor: pointer; /* Add a pointer on hover */
+}
+</style>
 <?php
