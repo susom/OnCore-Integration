@@ -831,10 +831,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     if(array_key_exists("redcap",$record)){
                         // set the keys for redcap array
                         $arr = current($record["redcap"]);
+                        // this just to prepare the array to be displayed.
                         $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush($arr["record_id"], $this->getProtocols()->getFieldsMap()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
                         // handle data scattered over multiple events
                         $redcap = [];
                         foreach ($temp as $onCoreField => $value) {
+                            // Use redcap fields name instead of oncore to work with Irvin UI.
                             $redcapField = $this->getMapping()->getMappedRedcapField($onCoreField);
                             $redcap[$redcapField ?: $onCoreField] = $value;
                         }
