@@ -671,10 +671,15 @@ class Subjects extends SubjectDemographics
             if (!isset($field['value_mapping'])) {
                 $data[$field['event']][$field['redcap_field']] = $onCoreValue;
             } else {
-                if (is_array($onCoreValue)) {
-                    $parsed = $onCoreValue;
+                $onCoreType = $this->getMapping()->getOncoreType($key);
+                if ($onCoreType == 'array') {
+                    if (is_array($onCoreValue)) {
+                        $parsed = $onCoreValue;
+                    } else {
+                        $parsed = json_decode($onCoreValue, true);
+                    }
                 } else {
-                    $parsed = json_decode($onCoreValue, true);
+                    $parsed = null;
                 }
                 if (is_array($parsed)) {
                     foreach ($parsed as $item) {
