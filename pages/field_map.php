@@ -249,6 +249,34 @@ $site_selection[]       = "</ul>\r\n";
         var ajax_endpoint       = "<?=$ajax_endpoint?>";
         var oncore_fields       = <?=json_encode($oncore_fields)?>;
 
+        //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACHOTHER
+        var ajaxQueue = {
+            queuedRequests: [],
+            addRequest: function (req) {
+                this.queuedRequests.push(req);
+                // if it's the first request, start execution
+                if (this.queuedRequests.length === 1) {
+                    this.executeNextRequest();
+                }
+            },
+            clearQueue: function () {
+                this.queuedRequests = [];
+            },
+            executeNextRequest: function () {
+                var queuedRequests = this.queuedRequests;
+                // console.log("request started");
+                queuedRequests[0]().then(function (data) {
+                    // console.log("request complete", data);
+                    // remove completed request from queue
+                    queuedRequests.shift();
+                    // if there are more requests, execute the next in line
+                    if (queuedRequests.length) {
+                        ajaxQueue.executeNextRequest();
+                    }
+                });
+            }
+        };
+
         //SUPERFICIAL UI
         //TAB BEHAVIOR
         $("#field_mapping ul.nav-tabs a").on("click", function(){
@@ -300,22 +328,32 @@ $site_selection[]       = "</ul>\r\n";
                 };
 
                 $(this).parent().addClass("loading");
-                $.ajax({
-                    url: ajax_endpoint,
-                    method: 'POST',
-                    data: {
-                        "action": "saveMapping",
-                        "field_mappings": field_maps,
-                    },
-                    dataType: 'json'
-                }).done(function (result) {
-                    //remove spinners
-                    updatePushPullStatus(oncore_field, redcap_field);
-                    makeValueMappingRow(oncore_field, redcap_field, 0);
-                    updateOverAllStatus();
-                    $("#field_mapping .loading").removeClass("loading");
-                }).fail(function (e) {
-                    console.log("failed to save", e);
+
+                ajaxQueue.addRequest(function () {
+                    // -- your ajax request goes here --
+                    return $.ajax({
+                        url: ajax_endpoint,
+                        method: 'POST',
+                        data: {
+                            "action": "saveMapping",
+                            "field_mappings": field_maps,
+                        },
+                        dataType: 'json'
+                    }).done(function (result) {
+                        //remove spinners
+                        updatePushPullStatus(oncore_field, redcap_field);
+                        makeValueMappingRow(oncore_field, redcap_field, 0);
+                        updateOverAllStatus();
+                        $("#field_mapping .loading").removeClass("loading");
+                    }).fail(function (e) {
+                        console.log("failed to save", e);
+                    });
+
+                    return new Promise(function (resolve, reject) {
+                        setTimeout(function () {
+                            resolve(data);
+                        }, 2000);
+                    });
                 });
             }
         });
@@ -346,21 +384,31 @@ $site_selection[]       = "</ul>\r\n";
                 };
 
                 $(this).parent().addClass("loading");
-                $.ajax({
-                    url: ajax_endpoint,
-                    method: 'POST',
-                    data: {
-                        "action": "saveMapping",
-                        "field_mappings": field_maps,
-                    },
-                    dataType: 'json'
-                }).done(function (result) {
-                    updatePushPullStatus(oncore_field, redcap_field);
-                    makeValueMappingRow(oncore_field, redcap_field, 1);
-                    updateOverAllStatus();
-                    $("#field_mapping .loading").removeClass("loading");
-                }).fail(function (e) {
-                    console.log("failed to save", e);
+
+                ajaxQueue.addRequest(function () {
+                    // -- your ajax request goes here --
+                    return $.ajax({
+                        url: ajax_endpoint,
+                        method: 'POST',
+                        data: {
+                            "action": "saveMapping",
+                            "field_mappings": field_maps,
+                        },
+                        dataType: 'json'
+                    }).done(function (result) {
+                        updatePushPullStatus(oncore_field, redcap_field);
+                        makeValueMappingRow(oncore_field, redcap_field, 1);
+                        updateOverAllStatus();
+                        $("#field_mapping .loading").removeClass("loading");
+                    }).fail(function (e) {
+                        console.log("failed to save", e);
+                    });
+
+                    return new Promise(function (resolve, reject) {
+                        setTimeout(function () {
+                            resolve(data);
+                        }, 2000);
+                    });
                 });
             }
         });
@@ -445,21 +493,31 @@ $site_selection[]       = "</ul>\r\n";
                 sss.push($(this).val());
             });
 
-            $.ajax({
-                url: ajax_endpoint,
-                method: 'POST',
-                data: {
-                    "action": "saveSiteStudies",
-                    "site_studies_subset" : sss
-                },
-                dataType: 'json'
-            }).done(function (result) {
-                //done
-            }).fail(function (e) {
-                console.log("failed to save", e);
+            ajaxQueue.addRequest(function () {
+                // -- your ajax request goes here --
+                return $.ajax({
+                    url: ajax_endpoint,
+                    method: 'POST',
+                    data: {
+                        "action": "saveSiteStudies",
+                        "site_studies_subset" : sss
+                    },
+                    dataType: 'json'
+                }).done(function (result) {
+                    //done
+                }).fail(function (e) {
+                    console.log("failed to save", e);
+                });
+
+                return new Promise(function (resolve, reject) {
+                    setTimeout(function () {
+                        resolve(data);
+                    }, 2000);
+                });
             });
         });
     });
+
 
     function onlyUnique(value, index, self) {
         return self.indexOf(value) === index;
