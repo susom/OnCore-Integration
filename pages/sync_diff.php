@@ -607,7 +607,6 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 },
                 dataType: 'json'
             }).done(function (syncsummary) {
-                console.log(syncsummary);
                 $("#summ_total_count").html(syncsummary["total_count"]);
                 $("#summ_full_match").html(syncsummary["full_match_count"]);
                 $("#summ_partial_match").html(syncsummary["partial_match_count"]);
@@ -621,6 +620,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 var fake_date = year+"-"+month+"-"+day;
                 var fake_time = ts.toLocaleTimeString('en-US', { hour12: false , hour: '2-digit', minute:'2-digit'});
                 $("#summ_last_ts").html(fake_date + " " + fake_time);
+
+                location.reload();
             }).fail(function (e) {
                 console.log("failed to save", e);
             });
