@@ -37,13 +37,13 @@
         "control-center": [
             {
                 "name": "OnCore Demographic Options",
-                "icon": "fas fa-database",
+                "icon": "fas fa-sliders-h",
                 "url": "pages/demo_options.php",
                 "show-header-and-footer": true
             },
             {
                 "name": "OnCore Logs Entity table",
-                "icon": "database_table",
+                "icon": "fas fa-database",
                 "url": "pages/logs_viewer.php"
             }
         ],
