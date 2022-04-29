@@ -89,13 +89,13 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null, $excluded=n
             } else {
                 $diffmatch = $oc_data == $rc_data ? "match" : "diff";
             }
-
+            $showit = $diffmatch == 'diff' ? 'showit' : '';
             if(is_array($rc)){
                 $rc = implode(", ", array_filter($rc) );
 
             }
 
-            $html .= "<tr class='$diffmatch'>";
+            $html .= "<tr class='$diffmatch $showit'>";
             if(!$print_rowspan){
                 $print_rowspan  = true;
                 $id_info        = array();
@@ -105,19 +105,19 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null, $excluded=n
                 if(!empty($rc_id)) {
                     $id_info[] = "REDCap ID : $rc_id";
                 }
-                if(!empty($oc_pr_id)) {
+                if (!empty($oc_pr_id)) {
                     $id_info[] = "OnCore Subject ID : $oc_pr_id";
                 }
-                $exclude_class  = $excluded ? "include_subject" : "exclude_subject";
-                $exclude_text   = $excluded ? "Re-Include" : "Exclude";
-                $id_info[]      = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
-                $id_info        = implode("<br>", $id_info);
+                $exclude_class = $excluded ? "include_subject" : "exclude_subject";
+                $exclude_text = $excluded ? "Re-Include" : "Exclude";
+                $id_info[] = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
+                $id_info = implode("<br>", $id_info);
                 $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id' value='$oc_pr_id' checked/></td>";
                 $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
             }
-            $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
-            $html .= "<td class='oc_data data'>$oc</td>";
-            $html .= "<td class='rc_data data'>$rc</td>";
+            $html .= "<td class='oc_data oc_field $showit'>$oc_alias</td>";
+            $html .= "<td class='oc_data data $showit'>$oc</td>";
+            $html .= "<td class='rc_data data $showit'>$rc</td>";
             $html .= "</tr>";
         }
         $html .= "</tbody>";
@@ -461,30 +461,33 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         }
 
         //TAB BEHAVIOR
-        $("#oncore_mapping ul.nav-tabs a").on("click", function(){
+        $("#oncore_mapping ul.nav-tabs a").on("click", function () {
             $("li.active").removeClass("active");
             $(this).parent("li").addClass("active");
         });
 
         //SHOW "no diff" MATCHES
-        $(".show_all_matched").on("click", function(e){
+        $(".show_all_matched").on("click", function (e) {
             e.preventDefault();
 
-            if(!$("tr td.rc_data").is(":visible") && !$("tr td.oc_data").is(":visible")){
+            console.log($(this).hasClass('expanded'))
+            if (!$(this).hasClass('expanded')) {
                 $(".show_all_matched").html("Show Less");
                 $("tr td.rc_data, tr td.oc_data").show();
-            }else{
+                $(this).addClass('expanded')
+            } else {
                 $(".show_all_matched").html("Show All");
                 $("tr td.rc_data, tr td.oc_data").hide();
+                $(this).removeClass('expanded')
             }
         });
 
         //CHECKBOX BEHAVIOR
-        $(".check_all").on("change",function(){
-            if($(this).is(":checked")){
+        $(".check_all").on("change", function () {
+            if ($(this).is(":checked")) {
                 //check all
-                $(this).closest("table").find(".accept_diff").prop("checked",true);
-            }else{
+                $(this).closest("table").find(".accept_diff").prop("checked", true);
+            } else {
                 //uncheck all
                 $(this).closest("table").find(".accept_diff").prop("checked",false);
             }
