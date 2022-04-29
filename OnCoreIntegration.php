@@ -578,6 +578,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 return $link;
             }
         }
+        //for control center to display CP links.
+        if (\ExternalModules\ExternalModules::isSuperUser()) {
+            // Super users can see all pages
+            return $link;
+        }
     }
 
 

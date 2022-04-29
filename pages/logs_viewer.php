@@ -13,7 +13,7 @@ try {
         throw new \Exception('Access Denied');
     }
     $list = new EntityList(OnCoreIntegration::ONCORE_REDCAP_API_ACTIONS_LOG, $module);
-    $list->render('project'); // Context: project.
+    $list->render('control_center'); // Context: project.
 
 } catch (\Exception $e) {
     echo '<div class="alert alert-danger">' . $e->getMessage() . '</div>';
