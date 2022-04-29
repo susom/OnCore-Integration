@@ -34,6 +34,19 @@
     ],
     "enable-every-page-hooks-on-system-pages": false,
     "links": {
+        "control-center": [
+            {
+                "name": "OnCore Demographic Options",
+                "icon": "fas fa-database",
+                "url": "pages/demo_options.php",
+                "show-header-and-footer": true
+            },
+            {
+                "name": "OnCore Logs Entity table",
+                "icon": "database_table",
+                "url": "pages/logs_viewer.php"
+            }
+        ],
         "project": [
             {
                 "name": "OnCore Field Mapping",
@@ -46,14 +59,6 @@
                 "icon": "fas fa-not-equal",
                 "url": "pages/sync_diff.php",
                 "show-header-and-footer": false
-            }
-        ],
-        "control-center": [
-            {
-                "name": "OnCore Demographic Options",
-                "icon": "fas fa-database",
-                "url": "pages/demo_options.php",
-                "show-header-and-footer": true
             }
         ]
     },
@@ -196,6 +201,20 @@
             "cron_name": "oncore_protocols_scan",
             "cron_description": "This cron will run daily to scan OnCore API for new Projects.",
             "method": "onCoreProtocolsScanCron",
+            "cron_frequency": "86400",
+            "cron_max_run_time": "3600"
+        },
+        {
+            "cron_name": "oncore_protocols_subjects_scan",
+            "cron_description": "This cron will run daily to scan OnCore API to pull and sync exiting protocols subjects.",
+            "method": "onCoreProtocolsSubjectsScanCron",
+            "cron_frequency": "86400",
+            "cron_max_run_time": "3600"
+        },
+        {
+            "cron_name": "oncore_redcap_records_scan",
+            "cron_description": "This cron will run daily to only sync REDCap records with linkage entity table.",
+            "method": "onCoreREDCapRecordsScanCron",
             "cron_frequency": "86400",
             "cron_max_run_time": "3600"
         }

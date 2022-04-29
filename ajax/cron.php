@@ -9,12 +9,25 @@ use GuzzleHttp\Exception\GuzzleException;
 
 try {
     global $Proj;
+    $action = filter_var($_GET['action'], FILTER_SANITIZE_STRING);
     if (!$module->users) {
         $module->setUsers(new Users($module->PREFIX, null, $module->getCSRFToken()));
     }
-    $module->getProtocols()->processCron($module->getProjectId(), $Proj->project['project_irb_number']);
-    header('Content-Type: application/json');
-    echo json_encode(array('status' => 'success', 'message' => 'Cron Processed for pid' . $module->getProjectId()));
+    if ($action == 'protocols') {
+        $module->getProtocols()->processCron($module->getProjectId(), $Proj->project['project_irb_number']);
+        header('Content-Type: application/json');
+        echo json_encode(array('status' => 'success', 'message' => 'Protocols Cron completed for pid' . $module->getProjectId()));
+    } elseif ($action == 'subjects') {
+        $module->getProtocols()->syncRecords();
+        header('Content-Type: application/json');
+        echo json_encode(array('status' => 'success', 'message' => 'Subjects Cron completed for pid' . $module->getProjectId()));
+    } elseif ($action == 'redcap_only') {
+        $module->getProtocols()->syncREDCapRecords();
+        header('Content-Type: application/json');
+        echo json_encode(array('status' => 'success', 'message' => 'REDCap Records Cron completed for pid' . $module->getProjectId()));
+    } else {
+        throw new \Exception('Unknown Action');
+    }
 } catch (\LogicException|ClientException|GuzzleException $e) {
     header("Content-type: application/json");
 //    http_response_code(404);
