@@ -68,9 +68,9 @@ class Protocols
             throw new \Exception('No REDCap Project linked to OnCore Protocol found.');
         }
         $fields = $this->getMapping()->getProjectFieldMappings();
-        $record = $this->getSubjects()->getRedcapProjectRecords()[$redcapId];
+        $record = array('id' => $redcapId, 'record' => $this->getSubjects()->getRedcapProjectRecords()[$redcapId]);;
 
-        $redcapMRN = $record[OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event'])][$fields['pull']['mrn']['redcap_field']];
+        $redcapMRN = $record['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event'])][$fields['pull']['mrn']['redcap_field']];
 
         // TODO what to do if no MRN
         if ($redcapMRN) {

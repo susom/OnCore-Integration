@@ -895,7 +895,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         // set the keys for redcap array
                         $arr = current($record["redcap"]);
                         // this just to prepare the array to be displayed.
-                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush($arr["record_id"], $this->getProtocols()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
+                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush($arr["record_id"], $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
                         // handle data scattered over multiple events
                         $redcap = [];
                         foreach ($temp as $onCoreField => $value) {
