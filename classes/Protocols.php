@@ -88,6 +88,15 @@ class Protocols
         }
     }
 
+    public function syncREDCapRecords()
+    {
+        $redcapRecords = $this->getSubjects()->getRedcapProjectRecords();
+
+        foreach ($redcapRecords as $id => $redcapRecord) {
+            $record = $this->processREDCapOnlyRecord($id);
+        }
+    }
+
     private function matchREDCapRecordWithOnCoreSubject($redcapRecord, $subject, $fields)
     {
         $data = array(
@@ -226,62 +235,6 @@ class Protocols
 
         Entities::createLog("REDCap Record Id#$redcapRecordId was pushed succesfully to OnCore Protocol .");
         return $result;
-    }
-
-    /**
-     * @return array
-     */
-    public function getFieldsMap()
-    {
-        if ($this->getEntityRecord()) {
-            $arr = json_decode(ExternalModules::getProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
-            return $arr ?: [];
-        } else {
-            return [];
-        }
-
-    }
-
-    /**
-     * this method will save fields map array into EM project settings.
-     * @param array $fieldsMap
-     * @return void
-     */
-    public function setFieldsMap(array $fieldsMap): void
-    {
-        // TODO
-//        $test = array("subjectDemographicsId" => "subjectDemographicsId",
-//            "subjectSource" => "subjectSource",
-//            "mrn" => "mrn",
-//            "lastName" => "lastName",
-//            "firstName" => "firstName",
-//            "middleName" => "middleName",
-//            "suffix" => "suffix",
-//            "birthDate" => "birthDate",
-//            "approximateBirthDate" => "approximateBirthDate",
-//            "birthDateNotAvailable" => "birthDateNotAvailable",
-//            "expiredDate" => "expiredDate",
-//            "approximateExpiredDate" => "approximateExpiredDate",
-//            "lastDateKnownAlive" => "lastDateKnownAlive",
-//            "ssn" => "ssn",
-//            "gender" => "gender",
-//            "ethnicity" => "ethnicity",
-//            "race" => "race",
-//            "subjectComments",
-//            "additionalSubjectIds",
-//            "streetAddress",
-//            "addressLine2",
-//            "city",
-//            "state",
-//            "zip",
-//            "county",
-//            "country",
-//            "phoneNo",
-//            "alternatePhoneNo",
-//            "email");
-
-        ExternalModules::setProjectSetting($this->getUser()->getPREFIX(), $this->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, json_encode($fieldsMap));
-        $this->fieldsMap = $fieldsMap;
     }
 
     /**

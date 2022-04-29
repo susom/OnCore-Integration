@@ -890,7 +890,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         // set the keys for redcap array
                         $arr = current($record["redcap"]);
                         // this just to prepare the array to be displayed.
-                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush($arr["record_id"], $this->getProtocols()->getFieldsMap()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
+                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush($arr["record_id"], $this->getProtocols()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
                         // handle data scattered over multiple events
                         $redcap = [];
                         foreach ($temp as $onCoreField => $value) {
@@ -1074,7 +1074,75 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 if (!$irb) {
                     continue;
                 }
-                $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id;
+                $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id . '&action=protocols';
+                $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
+                $this->emDebug("running cron for $url on project " . $project['app_title']);
+            }
+
+        } catch (\Exception $e) {
+            $this->emError($e->getMessage());
+            \REDCap::logEvent('CRON JOB ERROR: ' . $e->getMessage());
+            Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
+
+        }
+    }
+
+
+    public function onCoreProtocolsSubjectsScanCron()
+    {
+        try {
+            $projects = self::query("select project_id, project_irb_number from redcap_projects where project_irb_number is NOT NULL ", []);
+
+            // manually set users to make guzzle calls.
+            if (!$this->users) {
+                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+            }
+
+            while ($project = $projects->fetch_assoc()) {
+                $id = $project['project_id'];
+                $irb = $project['project_irb_number'];
+
+                if (!$irb) {
+                    continue;
+                }
+
+                // only link protocols
+                $protocol = Protocols::getProtocolEntityRecord($id);
+                if (!empty($protocol) && $protocol['status'] == self::ONCORE_PROTOCOL_STATUS_YES) {
+                    $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id . '&action=redcap_only';
+                    $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
+                    $this->emDebug("running cron for $url on project " . $project['app_title']);
+                }
+
+            }
+
+        } catch (\Exception $e) {
+            $this->emError($e->getMessage());
+            \REDCap::logEvent('CRON JOB ERROR: ' . $e->getMessage());
+            Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
+
+        }
+    }
+
+
+    public function onCoreREDCapRecordsScanCron()
+    {
+        try {
+            $projects = self::query("select project_id, project_irb_number from redcap_projects where project_irb_number is NOT NULL ", []);
+
+            // manually set users to make guzzle calls.
+            if (!$this->users) {
+                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+            }
+
+            while ($project = $projects->fetch_assoc()) {
+                $id = $project['project_id'];
+                $irb = $project['project_irb_number'];
+
+                if (!$irb) {
+                    continue;
+                }
+                $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id . '&action=subjects';
                 $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
                 $this->emDebug("running cron for $url on project " . $project['app_title']);
             }
