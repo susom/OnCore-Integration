@@ -79,7 +79,10 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null, $excluded=n
             $oc = !empty($oc_field) ? $oc_data : "";
 
             if ($oc_type == "array") {
-                $oc = json_decode($oc, 1);
+                if (!is_array($oc)) {
+                    $oc = json_decode($oc, 1);
+                }
+
                 // race values are array for redcap and oncore need to decode oncore and compare the arrays.
                 $diff = array_diff($oc, $rc_data);
                 $diffmatch = empty($diff) ? "match" : "diff";

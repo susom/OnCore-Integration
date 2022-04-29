@@ -148,8 +148,7 @@ try {
     Entities::createException($responseBodyAsString['message']);
     header("Content-type: application/json");
     http_response_code(404);
-    $result['data'] = [];
-    echo json_encode($result);
+    echo json_encode($responseBodyAsString);
 } catch (\Exception $e) {
     Entities::createException($e->getMessage());
     header("Content-type: application/json");
