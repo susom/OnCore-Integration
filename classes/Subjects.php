@@ -548,6 +548,20 @@ class Subjects extends SubjectDemographics
         }
     }
 
+    public function searchOnCoreProtocolSubjectViaMRN($protocolId, $redcapMRN)
+    {
+        // reset oncore protocol subjects to get latest subjects
+        $this->setOnCoreProtocolSubjects(null, true);
+
+        $oncoreProtocolSubjects = $this->getOnCoreProtocolSubjects($protocolId);
+
+        foreach ($oncoreProtocolSubjects as $oncoreProtocolSubject) {
+            if ($oncoreProtocolSubject['demographics']['mrn'] == $redcapMRN) {
+                return $oncoreProtocolSubject;
+            }
+        }
+    }
+
     public function pushToOnCore($protocolId, $studySite, $redcapId, $fields, $oncoreFieldsDef)
     {
         $record = $this->getRedcapProjectRecords()[$redcapId];
