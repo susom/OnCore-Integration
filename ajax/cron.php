@@ -31,10 +31,12 @@ try {
 } catch (\LogicException|ClientException|GuzzleException $e) {
     header("Content-type: application/json");
 //    http_response_code(404);
+    Entities::createException($e->getMessage());
     $result['data'] = [];
     echo json_encode($result);
 } catch (\Exception $e) {
     header("Content-type: application/json");
+    Entities::createException($e->getMessage());
     http_response_code(404);
     echo json_encode(array('status' => 'error', 'message' => $e->getMessage()));
 }
