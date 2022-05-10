@@ -96,8 +96,10 @@ try {
                 $rc_id      = $record["redcap_id"];
                 $study_site = $record["study_site"];
 
-                $result = $rc_id;
-//                $result     = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $study_site, $module->getMapping()->getOnCoreFieldDefinitions());
+                $push = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $study_site, $module->getMapping()->getOnCoreFieldDefinitions());
+                if($push){
+                    $result = $rc_id;
+                }
                 break;
 
             case "excludeSubject":
