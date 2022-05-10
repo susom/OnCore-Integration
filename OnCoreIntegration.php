@@ -716,6 +716,26 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         console.log("failed to integrate", e);
                     });
                 });
+
+                //TRIGGER CRON ON NEW IRB  INPUT
+                $("#project_irb_number").on("blur", function(){
+                    console.log("an IRB was input!");
+                    var irb = $(this).val();
+
+                    $.ajax({
+                        url : ajax_endpoint,
+                        method: 'POST',
+                        data: {
+                            "action" : "triggerIRBSweep"
+                        },
+                        dataType: 'json'
+                    }).done(function (e) {
+                        console.log("triggerIRBSweep done");
+                        document.location.reload();
+                    }).fail(function (e) {
+                        console.log("triggerIRBSweep failed", e);
+                    });
+                });
             });
 		</script>
         <style>

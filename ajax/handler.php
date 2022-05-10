@@ -58,12 +58,12 @@ try {
                     }
                 }
 
-                $module->getMapping()->setProjectFieldMappings($current_mapping);
+                $result = $module->getMapping()->setProjectFieldMappings($current_mapping);
                 break;
 
             case "saveSiteStudies":
                 $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : array();
-                $module->getMapping()->setProjectSiteStudies($result);
+                $result = $module->getMapping()->setProjectSiteStudies($result);
                 break;
 
             case "integrateOnCore":
@@ -80,24 +80,24 @@ try {
 
             case "approveSync":
                 $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
-                $module->getProtocols()->pullOnCoreRecordsIntoREDCap($result);
+                $result = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($result);
                 break;
 
             case "pushToOncore":
-                $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
-                $module->emDebug("push to oncore approved ids(redcap?)", $result);
-                foreach($result as $record){
-                    if (!$record["redcap_id"] || $record["redcap_id"] == '') {
-                        throw new \Exception('REDCap Record ID is missing.');
-                    }
-
-                    if (!$record["study_site"] || $record["study_site"] == '') {
-                        throw new \Exception('Study Site is missing for REDCap Recprd ID: ' . $record["redcap_id"]);
-                    }
-                    $rc_id = $record["redcap_id"];
-                    $study_site = $record["study_site"];
-                    $records = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $study_site, $module->getMapping()->getOnCoreFieldDefinitions());
+                $record = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
+                $module->emDebug("push to oncore approved ids(redcap?)", $record);
+                if (!$record["redcap_id"] || $record["redcap_id"] == '') {
+                    throw new \Exception('REDCap Record ID is missing.');
                 }
+
+                if (!$record["study_site"] || $record["study_site"] == '') {
+                    throw new \Exception('Study Site is missing for REDCap Recprd ID: ' . $record["redcap_id"]);
+                }
+                $rc_id      = $record["redcap_id"];
+                $study_site = $record["study_site"];
+
+                $result = $rc_id;
+//                $result     = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $study_site, $module->getMapping()->getOnCoreFieldDefinitions());
                 break;
 
             case "excludeSubject":
@@ -138,6 +138,10 @@ try {
                 }
 
                 $result         = $result["html"];
+                break;
+
+            case "triggerIRBSweep":
+                $result = $module->onCoreProtocolsScanCron();
                 break;
         }
         echo json_encode($result);
