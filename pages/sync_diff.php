@@ -117,7 +117,7 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null, $excluded=n
                 $exclude_text = $excluded ? "Re-Include" : "Exclude";
                 $id_info[] = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
                 $id_info = implode("<br>", $id_info);
-                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id' value='$oc_pr_id' checked/></td>";
+                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id'  data-mrn='$mrn'  value='$oc_pr_id' checked/></td>";
                 $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
             }
             $html .= "<td class='oc_data oc_field $showit'>$oc_alias</td>";
@@ -224,8 +224,8 @@ function makeOncoreTableHTML($records, $noredcap=null, $disabled=null, $excluded
                 $exclude_class  = $excluded ? "include_subject" : "exclude_subject";
                 $exclude_text   = $excluded ? "Re-Include" : "Exclude";
                 $id_info[]      = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
-                $id_info        = implode("<br>", $id_info);
-                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id' value='$oc_pr_id' checked/></td>";
+                $id_info = implode("<br>", $id_info);
+                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id' data-mrn='$mrn' value='$oc_pr_id' checked/></td>";
                 $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
             }
             $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
@@ -328,8 +328,8 @@ function makeRedcapTableHTML($records, $noredcap=null, $disabled=null, $excluded
                 $exclude_class  = $excluded ? "include_subject" : "exclude_subject";
                 $exclude_text   = $excluded ? "Re-Include" : "Exclude";
                 $id_info[]      = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
-                $id_info        = implode("<br>", $id_info);
-                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' value='$rc_id' checked/></td>";
+                $id_info = implode("<br>", $id_info);
+                $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' value='$rc_id' data-redcap='$rc_id' data-oncore='' data-mrn='$mrn' checked/></td>";
                 $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
                 $html .= "<td class='rc_study' rowspan=$rowspan>$study_select</td>";
             }
@@ -595,49 +595,105 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             });
         });
 
-        $("#syncFromOncore, #pullFromOncore").submit(function(e){
+        $("#syncFromOncore, #pullFromOncore").submit(function (e) {
             e.preventDefault();
 
-            var approved_ids    = [];
-            var inputs          = $(this).find(".includes input[name='approved_ids']").each(function(){
-                var _el         = $(this);
-                var oncore_id   = _el.val();
-                var rc_id       = _el.data("rc_id");
-                approved_ids.push({"oncore" : oncore_id , "redcap" : rc_id});
+            var approved_ids = [];
+            var inputs = $(this).find(".includes input[name='approved_ids']").each(function () {
+                var _el = $(this);
+                var oncore_id = _el.val();
+                var rc_id = _el.data("rc_id");
+                var mrn = _el.data("mrn");
+                approved_ids.push({
+                    "name": 'approved_ids',
+                    'mrn': mrn,
+                    "oncore": oncore_id,
+                    "value": oncore_id,
+                    "redcap": rc_id
+                });
             });
+            console.log(approved_ids)
+            console.log(inputs)
+            var temp = $(this).find(".includes input[name='approved_ids']").serializeArray();
+            console.log(temp)
+            if (approved_ids.length) {
+                //will have same index
+                var pullModal = new batchModal(approved_ids);
+                pullModal.show();
+                for (var i in approved_ids) {
+                    console.log(approved_ids[i])
+                    var rc_id = approved_ids[i]["value"];
+                    var oncore = approved_ids[i]["oncore"];
+                    var temp = {"value": rc_id, "oncore": oncore}
+                    $.ajax({
+                        url: ajax_endpoint,
+                        method: 'POST',
+                        data: {
+                            "action": "approveSync",
+                            "approved_ids": temp,
+                        },
+                        dataType: 'json'
+                    }).done(function (result) {
+                        const rndInt = randomIntFromInterval(1000, 5000);
+                        setTimeout(function () {
+                            //some showman ship
+                            pullModal.setRowStatus(rc_id, true);
+                        }, rndInt);
+                    }).fail(function (e) {
+                        console.log("pushToOncore failed", e);
+                        pullModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
+                    });
+                }
+            }
 
-            showPageBlockerSpinner();
-            $.ajax({
-                url: ajax_endpoint,
-                method: 'POST',
-                data: {
-                    "action": "approveSync",
-                    "approved_ids": approved_ids,
-                },
-                dataType: 'json'
-            }).done(function (result) {
-                location.reload();
-            }).fail(function (e) {
-                console.log("failed to save", e);
-                hidePageBlockerSpinner();
-            });
+            // $.ajax({
+            //     url: ajax_endpoint,
+            //     method: 'POST',
+            //     data: {
+            //         "action": "approveSync",
+            //         "approved_ids": approved_ids,
+            //     },
+            //     dataType: 'json'
+            // }).done(function (result) {
+            //     location.reload();
+            // }).fail(function (e) {
+            //     console.log("failed to save", e);
+            //     hidePageBlockerSpinner();
+            // });
         });
 
-        $("#pushToOncore").submit(function(e){
+        $("#pushToOncore").submit(function (e) {
             e.preventDefault();
 
-            var inputs      = $(this).find(".includes input[name='approved_ids']").serializeArray();
+            // var inputs      = $(this).find(".includes input[name='approved_ids']").serializeArray();
             // var inputs      = [{value:1, mrn:12345}, {value:2, mrn:23456}, {value:3, mrn:34567}, {value:4, mrn:45678}];
+            var approved_ids = []
+            var inputs = $(this).find(".includes input[name='approved_ids']").each(function () {
+                if (this.checked) {
+                    var _el = $(this);
+                    var oncore_id = _el.data("oncore");
+                    var rc_id = _el.val();
+                    var mrn = _el.data("mrn");
+                    approved_ids.push({
+                        "name": 'approved_ids',
+                        'mrn': mrn,
+                        "oncore": oncore_id,
+                        "value": rc_id,
+                        "redcap": rc_id
+                    });
+                }
 
-            if(inputs.length){
+            });
+
+            if (inputs.length) {
                 //will have same index
-                var pushModal = new batchModal(inputs);
+                var pushModal = new batchModal(approved_ids);
                 pushModal.show();
 
-                for(var i in inputs){
-                    var rc_id       = inputs[i]["value"];
-                    var temp        = {"value" : rc_id, "mrn" : 12345}
-
+                for (var i in approved_ids) {
+                    var rc_id = approved_ids[i]["value"];
+                    var mrn = approved_ids[i]["mrn"];
+                    var temp = {"value": rc_id, "mrn": mrn}
                     $.ajax({
                         url: ajax_endpoint,
                         method: 'POST',
@@ -647,14 +703,14 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                         },
                         dataType: 'json'
                     }).done(function (rc_id) {
-                        const rndInt    = randomIntFromInterval(1000, 5000);
-                        setTimeout(function(){
+                        const rndInt = randomIntFromInterval(1000, 5000);
+                        setTimeout(function () {
                             //some showman ship
                             pushModal.setRowStatus(rc_id, true);
                         }, rndInt);
-                    }).fail(function (rc_id) {
+                    }).fail(function (e) {
                         console.log("pushToOncore faile", e);
-                        pushModal.setRowStatus(rc_id, false, "failed to save");
+                        pushModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
                     });
                 }
             }

@@ -3,8 +3,8 @@ class batchModal{
     id              = "blockingOverlay";
     completedItems  = 0;
     lead            = "Please leave this modal open while we push the data is uploaded.";
-    headerText      = "Pushing REDCap to OnCore";
-    colHeaders      = ["REDCap ID","MRN","Status", "Note"];
+    headerText = "Pushing REDCap to OnCore";
+    colHeaders = ["REDCap ID", "OnCore Subject Demographics ID", "MRN", "Status", "Note"];
 
     /*
      must include batch_modal.css
@@ -44,12 +44,12 @@ class batchModal{
         var tbl     = $("<table>").addClass("pushTBL");
         data.append(tbl);
 
-        var row = $("<tr><th>"+_this.colHeaders[0]+"</th><th>"+_this.colHeaders[1]+"</th><th>"+_this.colHeaders[2]+"</th><th>"+_this.colHeaders[3]+"</th></tr>");
+        var row = $("<tr><th>" + _this.colHeaders[0] + "</th><th>" + _this.colHeaders[1] + "</th><th>" + _this.colHeaders[2] + "</th><th>" + _this.colHeaders[3] + "</th><th>" + _this.colHeaders[4] + "</th></tr>");
         tbl.append(row);
 
         for(var i in _this._inputs){
             var inp = _this._inputs[i];
-            var row = $("<tr><td>"+inp["value"]+"</td><td>"+inp["mrn"]+"</td><td data-status_rowid='"+inp["value"]+"'></td><td data-note_rowid='"+inp["value"]+"'></td></tr>");
+            var row = $("<tr><td>" + inp["redcap"] + "</td><td>" + inp["oncore"] + "</td><td>" + inp["mrn"] + "</td><td data-status_rowid='" + inp["value"] + "'></td><td data-note_rowid='" + inp["value"] + "'></td></tr>");
             tbl.append(row);
         }
 

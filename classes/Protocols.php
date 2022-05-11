@@ -224,8 +224,9 @@ class Protocols
     }
 
 
-    public function pushREDCapRecordToOnCore($redcapRecordId, $studySite, $oncoreFieldsDef)
+    public function pushREDCapRecordToOnCore($redcapRecordId, $oncoreFieldsDef)
     {
+        // TODO get study site from redcap record.
         $result = $this->getSubjects()->pushToOnCore($this->getEntityRecord()['oncore_protocol_id'], $studySite, $redcapRecordId, $this->getMapping()->getProjectFieldMappings()['push'], $oncoreFieldsDef);
         // reset loaded subjects for protocol so we can pull them after creating new one.
         $this->getSubjects()->setOnCoreProtocolSubjects(null, true);
@@ -484,9 +485,9 @@ class Protocols
         }
     }
 
-    public function pullOnCoreRecordsIntoREDCap($records)
+    public function pullOnCoreRecordsIntoREDCap($record)
     {
-        if ($this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $records, $this->getMapping()->getProjectFieldMappings()['pull'])) {
+        if ($this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $record, $this->getMapping()->getProjectFieldMappings()['pull'])) {
             // update linkage entity table with redcap record and new status
             $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id']);
             $this->syncRecords();

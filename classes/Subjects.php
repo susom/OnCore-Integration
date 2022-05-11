@@ -731,17 +731,17 @@ class Subjects extends SubjectDemographics
      * @return bool
      * @throws Exception
      */
-    public function pullOnCoreRecordsIntoREDCap($projectId, $protocolId, $records, $fields)
+    public function pullOnCoreRecordsIntoREDCap($projectId, $protocolId, $record, $fields)
     {
-        foreach ($records as $record) {
-            if (!is_array($record)) {
-                throw new \Exception('Records array is not correct');
-            }
-            if (!isset($record['oncore'])) {
-                throw new \Exception('No OnCore Protocol Subject is passed');
-            }
-            $subject = $this->getOnCoreProtocolSubject($protocolId, $record['oncore']);
-            if (empty($subject)) {
+        //foreach ($records as $record) {
+        if (!is_array($record)) {
+            throw new \Exception('Records array is not correct');
+        }
+        if (!isset($record['oncore'])) {
+            throw new \Exception('No OnCore Protocol Subject is passed');
+        }
+        $subject = $this->getOnCoreProtocolSubject($protocolId, $record['oncore']);
+        if (empty($subject)) {
                 throw new \Exception('No Subject record found for ' . $record['oncore']);
             }
             $id = $record['redcap'];
@@ -768,7 +768,7 @@ class Subjects extends SubjectDemographics
                 }
             }
             unset($data);
-        }
+        //}
         return true;
     }
 
