@@ -151,6 +151,10 @@ try {
     Entities::createException($responseBodyAsString['message']);
     header("Content-type: application/json");
     http_response_code(404);
+    // add redcap record id!
+    if ($rc_id) {
+        $responseBodyAsString['rc_id'] = $rc_id;
+    }
     echo json_encode($responseBodyAsString);
 } catch (\Exception $e) {
     Entities::createException($e->getMessage());

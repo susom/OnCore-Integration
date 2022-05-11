@@ -197,7 +197,9 @@ function makeOncoreTableHTML($records, $noredcap=null, $disabled=null, $excluded
             $oc = !empty($oc_field) ? $oc_data : "";
 
             if($oc_type == "array"){
-                $oc = json_decode($oc, 1);
+                if (!is_array($oc)) {
+                    $oc = json_decode($oc, 1);
+                }
                 $oc = implode(", ", array_filter($oc));
             }
 
