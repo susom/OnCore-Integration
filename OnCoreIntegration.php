@@ -152,6 +152,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         if (!$enabled) {
             // TODO: what to do when redcap_entity is not enabled in the system
             $this->emError("Cannot use this module OncoreIntegration because it is dependent on the REDCap Entities EM");
+        } else {
+            \REDCapEntity\EntityDB::buildSchema($this->PREFIX);
+            $this->emDebug("Created all OnCore Entity tables");
         }
     }
 
@@ -535,34 +538,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         // TODO redcap entity for OnCore records not in REDCap
 
         // TODO redcap entity to save the linkage between redcap and OnCore records
-
-        // REDCap entity to store allowed subject demographics
-        $types['oncore_demo_options'] = [
-                'label' => 'OnCore Allowed Subject Demographics Options',
-                'label_plural' => 'OnCore Allowed Subject Demographics Options',
-                'icon' => 'home_pencil',
-                'properties' => [
-                        'oncore_demo_field' => [
-                            'name' => 'OnCore Demographics Field',
-                            'type' => 'text',
-                            'required' => true,
-                            'choices'   => [
-                                'gender'    => 'Gender',
-                                'race'      => 'Race',
-                                'ethnicity' => 'Ethnicity',
-                                'state'     => 'State',
-                                'country'   => 'Country',
-                                'id_type'   => 'Identifier Type'
-                            ]
-                        ],
-                        'oncore_demo_option' => [
-                            'name' => 'OnCore Allowed Value',
-                            'type' => 'text',
-                            'required' => true
-                        ]
-                ]
-        ];
-
 
         return $types;
     }
