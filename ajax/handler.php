@@ -80,6 +80,7 @@ try {
 
             case "approveSync":
                 $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
+                $id = $result['oncore'];
                 $result = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($result);
                 break;
 
@@ -90,7 +91,7 @@ try {
                     throw new \Exception('REDCap Record ID is missing.');
                 }
 
-                $rc_id      = $record["value"];
+                $rc_id = $id = $record["value"];
 
                 $push = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $module->getMapping()->getOnCoreFieldDefinitions());
 //                $push = true;
@@ -152,15 +153,15 @@ try {
     header("Content-type: application/json");
     http_response_code(404);
     // add redcap record id!
-    if ($rc_id) {
-        $responseBodyAsString['rc_id'] = $rc_id;
+    if ($id) {
+        $responseBodyAsString['id'] = $id;
     }
     echo json_encode($responseBodyAsString);
 } catch (\Exception $e) {
     Entities::createException($e->getMessage());
     header("Content-type: application/json");
     http_response_code(404);
-    echo json_encode(array('status' => 'error', 'message' => $e->getMessage()));
+    echo json_encode(array('status' => 'error', 'message' => $e->getMessage(), 'id' => $id));
 }
 
 

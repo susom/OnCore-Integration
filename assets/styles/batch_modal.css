@@ -21,14 +21,16 @@
     cursor: pointer; /* Add a pointer on hover */
 }
 #pushModal{
-    position:absolute;
-    width:440px; height:520px;
-    border:1px solid #999;
-    border-radius:5px;
-    top:50%; left:50%;
+    position: absolute;
+    width: 850px;
+    height: 520px;
+    border: 1px solid #999;
+    border-radius: 5px;
+    top: 50%;
+    left: 50%;
     transform: translate(-50%, -50%);
-    background:#fff;
-    z-index:21;
+    background: #fff;
+    z-index: 21;
 }
 
 #pushModal .lead{
