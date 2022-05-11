@@ -195,7 +195,9 @@ function makeOncoreTableHTML($records, $noredcap=null, $disabled=null, $excluded
             $oc = !empty($oc_field) ? $oc_data : "";
 
             if($oc_type == "array"){
-                $oc = json_decode($oc, 1);
+                if (!is_array($oc)) {
+                    $oc = json_decode($oc, 1);
+                }
                 $oc = implode(", ", array_filter($oc));
             }
 
@@ -646,17 +648,25 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                         },
                         dataType: 'json'
                     }).done(function (rc_id) {
-                        const rndInt    = randomIntFromInterval(1000, 5000);
-                        setTimeout(function(){
+                        const rndInt = randomIntFromInterval(1000, 5000);
+                        setTimeout(function () {
                             finished_uploads++;
                             drawPBAR(finished_uploads, total_uploads);
-                            $(".pushTBL td[data-pbrcid='"+rc_id+"']").text("ok");
+                            $(".pushTBL td[data-pbrcid='" + rc_id + "']").addClass('alert alert-success').text("ok");
                         }, rndInt);
                     }).fail(function (e) {
-                        console.log("pushToOncore faile", e);
+                        const rndInt = randomIntFromInterval(1000, 5000);
+                        setTimeout(function () {
+                            finished_uploads++;
+                            drawPBAR(finished_uploads, total_uploads);
+                            var result = e.responseJSON
+                            $(".pushTBL td[data-pbrcid='" + result['rc_id'] + "']").addClass('alert alert-danger').text(result['message']);
+                        }, rndInt);
+
                     });
                 }
-                function hidePageBlockerSpinner(){
+
+                function hidePageBlockerSpinner() {
                     $("#blockingOverlay").remove();
                 }
             }
@@ -740,23 +750,26 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
     width: 100%; /* Full width (cover the whole page) */
     height: 100%; /* Full height (cover the whole page) */
     top: 0; left: 0; right: 0; bottom: 0;
-    /*background-image:url(*/<?//=$icon_ajax?>/*);*/
-    background-repeat:no-repeat;
-    background-position:50% 40%;
-    background-size:10%;
-    background-color: rgba(0,0,0,0.5); /* Black background with opacity */
+    /*background-image:url(*/<?//=$icon_ajax?> /*);*/
+    background-repeat: no-repeat;
+    background-position: 50% 40%;
+    background-size: 10%;
+    background-color: rgba(0, 0, 0, 0.5); /* Black background with opacity */
     z-index: 20; /* Specify a stack order in case you're using a different order for other elements */
     cursor: pointer; /* Add a pointer on hover */
 }
-#pushModal{
-    position:absolute;
-    width:440px; height:440px;
-    border:1px solid #999;
-    border-radius:5px;
-    top:50%; left:50%;
+
+#pushModal {
+    position: absolute;
+    width: 850px;
+    height: auto;
+    border: 1px solid #999;
+    border-radius: 5px;
+    top: 50%;
+    left: 50%;
     transform: translate(-50%, -50%);
-    background:#fff;
-    z-index:21;
+    background: #fff;
+    z-index: 21;
 }
 
 .pushHDR,
