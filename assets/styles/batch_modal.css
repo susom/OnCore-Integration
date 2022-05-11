@@ -1,0 +1,110 @@
+#blockingOverlay{
+    position: fixed; /* Sit on top of the page content */
+    width: 100%; /* Full width (cover the whole page) */
+    height: 100%; /* Full height (cover the whole page) */
+    top: 0; left: 0; right: 0; bottom: 0;
+    border:1px transparent #fff;
+}
+#blockingOverlay:before{
+    content:"";
+    border:1px transparent #fff;
+    background-color: #000;
+    position: absolute; /* Sit on top of the page content */
+    width: 100%; /* Full width (cover the whole page) */
+    height: 100%; /* Full height (cover the whole page) */
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-repeat:no-repeat;
+    background-position:50% 40%;
+    background-size:10%;
+    background-color: rgba(0,0,0,0.5); /* Black background with opacity */
+    z-index: 20; /* Specify a stack order in case you're using a different order for other elements */
+    cursor: pointer; /* Add a pointer on hover */
+}
+#pushModal{
+    position:absolute;
+    width:440px; height:520px;
+    border:1px solid #999;
+    border-radius:5px;
+    top:50%; left:50%;
+    transform: translate(-50%, -50%);
+    background:#fff;
+    z-index:21;
+}
+
+#pushModal .lead{
+    margin-bottom:initial;
+}
+
+.pushFTR label{
+    margin:0 15px;
+}
+#modal_msg {
+    margin:0 15px;
+    width:calc(100% - 30px);
+    height:64px;
+}
+
+.batch_counter{
+    text-align:right;
+    padding:0 15px;
+}
+.batch_counter i{
+    font-style:normal;
+}
+.batch_counter em{
+    color: green;
+    font-style: normal;
+    font-weight: bold;
+}
+.pushHDR{
+    padding:15px;
+    box-shadow: 0px 0px 5px 0px #ccc;
+}
+
+.pushBDY .lead{
+    padding:5px 15px;
+}
+
+#pbar_box{
+    border:1px solid #666;
+    border-radius:5px;
+    margin:0 15px;
+    background: #fffccc;
+}
+
+#pbar{
+    background:#63A4FC;
+    height:20px; width:0;
+    display:block;
+    border-radius:3px;
+}
+
+.pushDATA {
+    height: 230px;
+    max-height: 230px;
+    overflow-y: scroll;
+    margin:10px 0;
+}
+
+.pushTBL {
+    width: calc(100% - 30px);
+    margin: 15px;
+}
+.pushTBL th{
+    color:#666;
+    border-bottom:1px solid #ccc;
+}
+.pushTBL td {
+    padding:5px;
+}
+
+::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: 7px;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, .5);
+    box-shadow: 0 0 1px rgba(255, 255, 255, .5);
+}
