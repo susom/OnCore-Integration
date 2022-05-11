@@ -5,7 +5,9 @@ namespace Stanford\OnCoreIntegration;
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
 $oncore_css         = $module->getUrl("assets/styles/oncore.css");
+$batch_css         = $module->getUrl("assets/styles/batch_modal.css");
 $oncore_js          = $module->getUrl("assets/scripts/oncore.js");
+$batch_js          = $module->getUrl("assets/scripts/batch_modal.js");
 $icon_ajax          = $module->getUrl("assets/images/icon_ajax.gif");
 $ajax_endpoint      = $module->getUrl("ajax/handler.php");
 $sync_diff          = $module->getSyncDiff();
@@ -366,6 +368,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
 <link rel="stylesheet" href="<?=$oncore_css?>">
+<link rel="stylesheet" href="<?=$batch_css?>">
 
 <div id="oncore_mapping" class="container">
     <h3>REDCap/OnCore Interaction</h3>
@@ -455,6 +458,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         </div>
     </div>
 </div>
+<script src="<?=$batch_js?>" type="text/javascript"></script>
 <script>
     $(document).ready(function () {
         var ajax_endpoint   = "<?=$ajax_endpoint?>";
@@ -620,188 +624,43 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         $("#pushToOncore").submit(function(e){
             e.preventDefault();
 
-            var inputs          = $(this).find(".includes input[name='approved_ids']").serializeArray();
-            var studysites      = $(this).find(".includes .studysite").serializeArray();
-
-            // inputs      = [{value:1}, {value:2}, {value:3}, {value:4}];
-            // studysites  = [{value: "shc"}, {value: "lpch"}, {value:"sutter"}, {value:"kaiser"}];
+            var inputs      = $(this).find(".includes input[name='approved_ids']").serializeArray();
+            // var inputs      = [{value:1, mrn:12345}, {value:2, mrn:23456}, {value:3, mrn:34567}, {value:4, mrn:45678}];
 
             if(inputs.length){
                 //will have same index
-                showPushModal(inputs,studysites);
-                var total_uploads       = inputs.length;
-                var finished_uploads    = 0;
+                var pushModal = new batchModal(inputs);
+                pushModal.show();
+
                 for(var i in inputs){
                     var rc_id       = inputs[i]["value"];
-                    var site_temp   = studysites[i]["name"];
-                    var site_val    = studysites[i]["value"];
-                    var temp        = {"redcap_id" : rc_id, "study_site" : site_val}
+                    var temp        = {"value" : rc_id, "mrn" : 12345}
 
                     $.ajax({
                         url: ajax_endpoint,
                         method: 'POST',
                         data: {
                             "action": "pushToOncore",
-                            "approved_ids": temp
+                            "record": temp
                         },
                         dataType: 'json'
                     }).done(function (rc_id) {
                         const rndInt    = randomIntFromInterval(1000, 5000);
                         setTimeout(function(){
-                            finished_uploads++;
-                            drawPBAR(finished_uploads, total_uploads);
-                            $(".pushTBL td[data-pbrcid='"+rc_id+"']").text("ok");
+                            //some showman ship
+                            pushModal.setRowStatus(rc_id, true);
                         }, rndInt);
-                    }).fail(function (e) {
+                    }).fail(function (rc_id) {
                         console.log("pushToOncore faile", e);
+                        pushModal.setRowStatus(rc_id, false, "failed to save");
                     });
-                }
-                function hidePageBlockerSpinner(){
-                    $("#blockingOverlay").remove();
                 }
             }
         })
     });
 
-    function showPushModal(inputs, studysites){
-        var opaque  = $("<div>").attr("id","blockingOverlay");
-
-        var modal   = $("<div>").attr("id", "pushModal");
-        var hdr     = $("<h2>").addClass("pushHDR").text("Pushing REDCap to OnCore");
-        var close   = $('<button type="button" class="close" data-dismiss="modal">×</button>');
-        hdr.append(close);
-
-        var bdy     = $("<div>").addClass("pushBDY");
-        var lead    = $('<p class="lead">Please leave this modal open while we push the following REDCap records to OnCore</p>');
-        bdy.append(lead);
-
-        var pbar    = $('<div id="pbar_box"><span id="pbar"></span></div>');
-        bdy.append(pbar);
-
-        var tbl     = $("<table>").addClass("pushTBL");
-        bdy.append(tbl);
-
-        var row = $("<tr><th>REDCap ID</th><th>Study Site</th><th>Push Status</th></tr>");
-        tbl.append(row);
-        for(var i in inputs){
-            var row = $("<tr><td>"+inputs[i]["value"]+"</td><td>"+studysites[i]["value"]+"</td><td data-pbrcid='"+inputs[i]["value"]+"'></td></tr>");
-            tbl.append(row);
-        }
-
-        var ftr     = $("<div>").addClass("pushFTR").text("ftr");
-        modal.append(hdr);
-        modal.append(bdy);
-        // modal.append(ftr);
-
-        close.on("click",function(){
-            hidePushModal();
-        });
-
-        opaque.appendTo("body");
-        modal.appendTo(opaque);
-    }
-
-    function hidePushModal(){
-        $("#blockingOverlay").remove();
-    }
-
-    function drawPBAR(finished, total){
-        var perc = finished/total;
-        var pbar_width = Math.round(perc * 100)+ "%";
-        $("#pbar").width(pbar_width);
-    }
-
-    function showMessageModal(){
-        var opaque = $("<div>").attr("id","blockingOverlay");
-        opaque.appendTo("body");
-    }
-
-    function hideMessageModal(){
-
-    }
-
     function randomIntFromInterval(min, max) { // min and max included
         return Math.floor(Math.random() * (max - min + 1) + min)
     }
 </script>
-<style>
-#blockingOverlay{
-    position: fixed; /* Sit on top of the page content */
-    width: 100%; /* Full width (cover the whole page) */
-    height: 100%; /* Full height (cover the whole page) */
-    top: 0; left: 0; right: 0; bottom: 0;
-    border:1px transparent #fff;
-}
-#blockingOverlay:before{
-    content:"";
-    border:1px transparent #fff;
-    background-color: #000;
-    position: absolute; /* Sit on top of the page content */
-    width: 100%; /* Full width (cover the whole page) */
-    height: 100%; /* Full height (cover the whole page) */
-    top: 0; left: 0; right: 0; bottom: 0;
-    /*background-image:url(*/<?//=$icon_ajax?>/*);*/
-    background-repeat:no-repeat;
-    background-position:50% 40%;
-    background-size:10%;
-    background-color: rgba(0,0,0,0.5); /* Black background with opacity */
-    z-index: 20; /* Specify a stack order in case you're using a different order for other elements */
-    cursor: pointer; /* Add a pointer on hover */
-}
-#pushModal{
-    position:absolute;
-    width:440px; height:440px;
-    border:1px solid #999;
-    border-radius:5px;
-    top:50%; left:50%;
-    transform: translate(-50%, -50%);
-    background:#fff;
-    z-index:21;
-}
-
-.pushHDR,
-.pushBDY,
-.pushFTR{
-
-}
-
-.pushHDR{
-    padding:15px;
-    box-shadow: 0px 0px 5px 0px #ccc;
-}
-.pushBDY{
-}
-
-.pushBDY .lead{
-    padding:5px 15px;
-}
-
-#pbar_box{
-    border:1px solid #666;
-    border-radius:5px;
-    margin:0 15px;
-}
-
-#pbar{
-    background:#63A4FC;
-    height:20px; width:0;
-    display:block;
-    border-radius:3px;
-}
-
-.pushTBL {
-    width: calc(100% - 30px);
-    margin: 15px;
-    height: 100%;
-    max-height: 240px;
-    overflow: scroll;
-}
-.pushTBL th{
-    color:#666;
-    border-bottom:1px solid #ccc;
-}
-.pushTBL td {
-    padding:5px;
-}
-</style>
 <?php
