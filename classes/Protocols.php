@@ -86,6 +86,7 @@ class Protocols
             }
             Entities::createLog('REDCap Record ' . $redcapId . ' got synced');
         }
+        return true;
     }
 
     public function syncREDCapRecords()
@@ -487,10 +488,11 @@ class Protocols
 
     public function pullOnCoreRecordsIntoREDCap($record)
     {
-        if ($this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $record, $this->getMapping()->getProjectFieldMappings()['pull'])) {
+        if ($redcapId = $this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $record, $this->getMapping()->getProjectFieldMappings()['pull'])) {
             // update linkage entity table with redcap record and new status
             $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id']);
-            $this->syncRecords();
+            $this->syncIndividualRecord($redcapId);
+            return array('message' => 'REDCap Record ' . $redcapId . ' got synced', 'status' => 'success', 'id' => $record['oncore']);
         }
     }
 

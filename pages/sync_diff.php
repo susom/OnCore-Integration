@@ -600,31 +600,32 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
             var approved_ids = [];
             var inputs = $(this).find(".includes input[name='approved_ids']").each(function () {
-                var _el = $(this);
-                var oncore_id = _el.val();
-                var rc_id = _el.data("rc_id");
-                var mrn = _el.data("mrn");
-                approved_ids.push({
-                    "name": 'approved_ids',
-                    'mrn': mrn,
-                    "oncore": oncore_id,
-                    "value": oncore_id,
-                    "redcap": rc_id
-                });
+                if (this.checked) {
+                    var _el = $(this);
+                    var oncore_id = _el.val();
+                    var rc_id = _el.data("rc_id");
+                    var mrn = _el.data("mrn");
+                    approved_ids.push({
+                        "name": 'approved_ids',
+                        'mrn': mrn,
+                        "oncore": oncore_id,
+                        "value": oncore_id,
+                        "redcap": rc_id
+                    });
+                }
             });
-            console.log(approved_ids)
-            console.log(inputs)
+
             var temp = $(this).find(".includes input[name='approved_ids']").serializeArray();
-            console.log(temp)
+
             if (approved_ids.length) {
                 //will have same index
                 var pullModal = new batchModal(approved_ids);
                 pullModal.show();
                 for (var i in approved_ids) {
                     console.log(approved_ids[i])
-                    var rc_id = approved_ids[i]["value"];
+                    var rc_id = approved_ids[i]["redcap"];
                     var oncore = approved_ids[i]["oncore"];
-                    var temp = {"value": rc_id, "oncore": oncore}
+                    var temp = {"redcap": rc_id, "oncore": oncore}
                     $.ajax({
                         url: ajax_endpoint,
                         method: 'POST',
@@ -637,7 +638,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                         const rndInt = randomIntFromInterval(1000, 5000);
                         setTimeout(function () {
                             //some showman ship
-                            pullModal.setRowStatus(rc_id, true);
+                            pullModal.setRowStatus(result.id, true);
                         }, rndInt);
                     }).fail(function (e) {
                         console.log("pushToOncore failed", e);
@@ -702,11 +703,11 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             "record": temp
                         },
                         dataType: 'json'
-                    }).done(function (rc_id) {
+                    }).done(function (result) {
                         const rndInt = randomIntFromInterval(1000, 5000);
                         setTimeout(function () {
                             //some showman ship
-                            pushModal.setRowStatus(rc_id, true);
+                            pushModal.setRowStatus(result.id, true);
                         }, rndInt);
                     }).fail(function (e) {
                         console.log("pushToOncore faile", e);

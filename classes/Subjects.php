@@ -769,7 +769,7 @@ class Subjects extends SubjectDemographics
             }
             unset($data);
         //}
-        return true;
+        return $id;
     }
 
     /**
