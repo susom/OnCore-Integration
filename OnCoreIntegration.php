@@ -548,6 +548,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         global $Proj;
         // only project context
         if ($Proj) {
+            if ($this->PREFIX != $link['prefix']) {
+                return $link;
+            }
             //RACE CONDITIONs THIS FIRES BEFORE redcap_every_page_top
             $entity_record = $this->hasOnCoreIntegration();
             if (!empty($entity_record)) {
