@@ -61,6 +61,12 @@
                 "show-header-and-footer": false
             },
             {
+                "name": "VUE --- Manual Sync With Oncore",
+                "icon": "fas fa-not-equal",
+                "url": "pages/sync/index.php",
+                "show-header-and-footer": true
+            },
+            {
                 "name": "Manually Trigger Cron for Current Project(YOU MUST ADD ACTION)",
                 "icon": "fas fa-database",
                 "url": "ajax/cron.php"
