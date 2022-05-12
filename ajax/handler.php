@@ -13,11 +13,15 @@ try {
         $result = null;
         $module->initiateProtocol();
         switch ($action) {
+            case "getMappingHTML":
+                $result =  $module->getMapping()->makeFieldMappingUI();
+                break;
+
             case "saveMapping":
                 //Saves to em project settings
                 //MAKE THIS A MORE GRANULAR SAVE.  GET
-
-                $current_mapping    = $module->getMapping()->getProjectMapping();
+                $project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
+                $current_mapping        = $module->getMapping()->getProjectMapping();
                 $result             = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
 
                 $pull_mapping       = !empty($result["mapping"]) ? $result["mapping"] : null;
@@ -54,7 +58,7 @@ try {
                     if(!$redcap_field){
                         unset($current_mapping[$pull_mapping][$oncore_field]);
                     }else{
-                        if(!$vmap){
+                        if(!$vmap && in_array($oncore_field, $project_oncore_subset)){
                             //if its just a one to one mapping, then just go ahead and map the other direction
                             $current_mapping["pull"][$oncore_field] = array(
                                 "redcap_field"  => $redcap_field,
@@ -92,7 +96,9 @@ try {
 
             case "saveOncoreSubset":
                 $result = !empty($_POST["oncore_subset"]) ? filter_var_array($_POST["oncore_subset"], FILTER_SANITIZE_STRING) : array();
-                $result = $module->getMapping()->setProjectOncoreSubset($result);
+                $module->getMapping()->setProjectOncoreSubset($result);
+
+                $result = $module->getMapping()->makeFieldMappingUI();
                 break;
 
             case "savePushPullPref":
