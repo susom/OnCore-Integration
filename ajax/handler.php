@@ -111,10 +111,10 @@ try {
 
                 $rc_id = $id = $record["value"];
 
-                $push = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $module->getMapping()->getOnCoreFieldDefinitions());
+                $temp = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $module->getMapping()->getOnCoreFieldDefinitions());
 //                $push = true;
-                if($push){
-                    $result = $rc_id;
+                if (is_array($temp)) {
+                    $result = array('id' => $rc_id, 'status' => 'success', 'message' => $temp['message']);
                 }
                 break;
 
