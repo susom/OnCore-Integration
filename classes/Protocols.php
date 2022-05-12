@@ -200,14 +200,14 @@ class Protocols
 
         $fields = $this->getMapping()->getProjectFieldMappings();
 
-        if (!$fields) {
-            throw new \Exception('Fields map is not defined.');
+        if (!$fields['pull']) {
+            throw new \Exception('Fields Pulling Map is not defined.');
         }
 
         foreach ($oncoreProtocolSubjects as $subject) {
             $onCoreMrn = $subject['demographics']['mrn'];
 //            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $this->getEntityRecord()['redcap_event_id'], $fields['mrn']);
-            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['mrn']['event']), $fields['pull']['mrn']['redcap_field']);
+            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event']), $fields['pull']['mrn']['redcap_field']);
             if ($redcapRecord) {
                 $this->matchREDCapRecordWithOnCoreSubject($redcapRecord, $subject, $fields);
                 // now remove redcap record from array
@@ -414,7 +414,7 @@ class Protocols
                         Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
                         $this->setEntityRecord($data);
                         $this->prepareProtocolSubjects();
-                        $this->syncRecords();
+                        //$this->syncRecords();
                     } else {
                         throw new \Exception(implode(',', $entity->errors));
                     }

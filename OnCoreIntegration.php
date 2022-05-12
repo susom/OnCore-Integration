@@ -548,6 +548,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         global $Proj;
         // only project context
         if ($Proj) {
+
             //RACE CONDITIONs THIS FIRES BEFORE redcap_every_page_top
             $entity_record = $this->hasOnCoreIntegration();
             if (!empty($entity_record)) {
@@ -570,18 +571,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         $available_oncore_protocols = $this->getOnCoreProtocols();
         $oncore_integrations        = $this->getOnCoreIntegrations();
-        $has_oncore_integration     = $this->hasOnCoreIntegration();
+        $has_oncore_integration = $this->hasOnCoreIntegration();
         ?>
         <script>
-            var ajax_endpoint           = "<?=$ajax_endpoint?>";
-            var field_map_url           = "<?=$field_map_url?>";
+            var ajax_endpoint = "<?=$ajax_endpoint?>";
+            var field_map_url = "<?=$field_map_url?>";
 
-            var oncore_protocols        = <?=json_encode($available_oncore_protocols); ?>;
-            var oncore_integrations     = <?=json_encode($oncore_integrations); ?>;
-            var has_oncore_integration  = <?=json_encode($has_oncore_integration); ?>;
+            var oncore_protocols = <?=json_encode($available_oncore_protocols); ?>;
+            var oncore_integrations = <?=json_encode($oncore_integrations); ?>;
+            var has_oncore_integration = <?=json_encode($has_oncore_integration); ?>;
 
-            var has_field_mappings      = <?=json_encode(!empty($this->getMapping()->getProjectFieldMappings())); ?>;
-            var last_adjudication       = <?=json_encode($this->getSyncDiffSummary()); ?>;
+            var has_field_mappings = <?=json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ?: []); ?>;
+            var last_adjudication = <?=json_encode($this->getSyncDiffSummary()); ?>;
 
             var make_oncore_module = function () {
                 if ($("#setupChklist-modify_project").length) {
@@ -604,21 +605,21 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
                     $("#setupChklist-modify_project").after(new_section);
                     var content_bdy = new_section.find(".chklisttext");
-                    var lead        = $("<span>");
+                    var lead = $("<span>");
                     content_bdy.append(lead);
 
                     //IF ONCORE HAS BEEN INTEGATED WITH THIS PROJECT, THEN DISPLAY SUMMARY OF LAST ADJUDICATION
-                    if(has_field_mappings){
-                        var lead_class  = "oncore_results";
-                        var lead_text   = "Results summary from last adjudication : ";
+                    if (has_field_mappings.length > 0) {
+                        var lead_class = "oncore_results";
+                        var lead_text = "Results summary from last adjudication : ";
                         lead_text += "<ul class='summary_oncore_adjudication'>";
-                        lead_text += "<li>Total Subjects : "+last_adjudication["total_count"] +"</li>";
-                        lead_text += "<li>Full Match : "+last_adjudication["full_match_count"] +"</li>";
-                        lead_text += "<li>Partial Match : "+last_adjudication["partial_match_count"] +"</li>";
-                        lead_text += "<li>Oncore Only : "+last_adjudication["oncore_only_count"] +"</li>";
-                        lead_text += "<li>REDCap Only : "+last_adjudication["redcap_only_count"] +"</li>";
+                        lead_text += "<li>Total Subjects : " + last_adjudication["total_count"] + "</li>";
+                        lead_text += "<li>Full Match : " + last_adjudication["full_match_count"] + "</li>";
+                        lead_text += "<li>Partial Match : " + last_adjudication["partial_match_count"] + "</li>";
+                        lead_text += "<li>Oncore Only : " + last_adjudication["oncore_only_count"] + "</li>";
+                        lead_text += "<li>REDCap Only : " + last_adjudication["redcap_only_count"] + "</li>";
                         lead_text += "</ul>";
-                    }else{
+                    } else {
                         var lead_class = "oncore_mapping";
                         var lead_text = "Please <a href='"+field_map_url+"'>Click Here</a> to map OnCore fields to this project.";
                     }
@@ -753,9 +754,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function integrateOnCoreProject($entityId, $integrate = false)
     {
         $this->initiateProtocol();
-        $setStatus  = $integrate ? self::ONCORE_PROTOCOL_STATUS_YES : self::ONCORE_PROTOCOL_STATUS_NO;
-        $entity     = $this->getProtocols()->updateProtocolEntityRecordStatus($entityId, $setStatus);
-        return $entity;
+        $setStatus = $integrate ? self::ONCORE_PROTOCOL_STATUS_YES : self::ONCORE_PROTOCOL_STATUS_NO;
+        $this->getProtocols()->updateProtocolEntityRecordStatus($entityId, $setStatus);
+        return $integrate;
     }
 
     /**

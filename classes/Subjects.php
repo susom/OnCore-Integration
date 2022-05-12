@@ -346,6 +346,8 @@ class Subjects extends SubjectDemographics
                         foreach ($subjects as $key => $subject) {
                             try {
                                 $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId']);
+                                // make it easy to prepare for push/pull
+                                $subjects[$key]['demographics']['studySites'] = $subject['studySite'];
                             } catch (\Exception $e) {
                                 Entities::createException($e->getMessage());
                             }
