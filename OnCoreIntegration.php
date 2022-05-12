@@ -825,6 +825,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $this->has_oncore_integrations;
     }
 
+
     /**
      * @return date time Y-m-d H:i
      */

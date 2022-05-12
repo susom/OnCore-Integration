@@ -5,9 +5,9 @@ namespace Stanford\OnCoreIntegration;
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
 $oncore_css         = $module->getUrl("assets/styles/oncore.css");
-$batch_css         = $module->getUrl("assets/styles/batch_modal.css");
+$batch_css          = $module->getUrl("assets/styles/batch_modal.css");
 $oncore_js          = $module->getUrl("assets/scripts/oncore.js");
-$batch_js          = $module->getUrl("assets/scripts/batch_modal.js");
+$batch_js           = $module->getUrl("assets/scripts/batch_modal.js");
 $icon_ajax          = $module->getUrl("assets/images/icon_ajax.gif");
 $ajax_endpoint      = $module->getUrl("ajax/handler.php");
 $sync_diff          = $module->getSyncDiff();

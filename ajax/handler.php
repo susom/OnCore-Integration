@@ -11,7 +11,7 @@ try {
     if (isset($_POST["action"])) {
         $action = filter_var($_POST["action"], FILTER_SANITIZE_STRING);
         $result = null;
-
+        $module->initiateProtocol();
         switch ($action) {
             case "saveMapping":
                 //Saves to em project settings
@@ -30,8 +30,18 @@ try {
                 if($pull_mapping == "pull"){
                     //pull side
                     if(!$redcap_field){
-                        unset($current_mapping["pull"][$oncore_field]);
+                        unset($current_mapping[$pull_mapping][$oncore_field]);
                     }else{
+                        if(!$vmap){
+                            //if its just a one to one mapping, then just go ahead and map the other direction
+                            $current_mapping["push"][$oncore_field] = array(
+                                "redcap_field"  => $redcap_field,
+                                "event"         => $eventname,
+                                "field_type"    => $ftype,
+                                "value_mapping" => $vmap
+                            );
+                        }
+
                         $current_mapping[$pull_mapping][$oncore_field] = array(
                             "redcap_field"  => $redcap_field,
                             "event"         => $eventname,
@@ -41,14 +51,19 @@ try {
                     }
                 }else{
                     //push side
-                    if(!$oncore_field){
-                        foreach($current_mapping["push"] as $oc_field =>  $item){
-                            if($item["redcap_field"] == $redcap_field){
-                                unset($current_mapping["push"][$oc_field]);
-                                break;
-                            }
-                        }
+                    if(!$redcap_field){
+                        unset($current_mapping[$pull_mapping][$oncore_field]);
                     }else{
+                        if(!$vmap){
+                            //if its just a one to one mapping, then just go ahead and map the other direction
+                            $current_mapping["pull"][$oncore_field] = array(
+                                "redcap_field"  => $redcap_field,
+                                "event"         => $eventname,
+                                "field_type"    => $ftype,
+                                "value_mapping" => $vmap
+                            );
+                        }
+
                         $current_mapping[$pull_mapping][$oncore_field] = array(
                             "redcap_field"  => $redcap_field,
                             "event"         => $eventname,
@@ -58,12 +73,13 @@ try {
                     }
                 }
 
+                $module->emDebug($current_mapping);
+
                 $result = $module->getMapping()->setProjectFieldMappings($current_mapping);
                 break;
 
             case "deleteMapping":
                 //DELETE ENTIRE MAPPING FOR PUSH Or PULL
-
                 $current_mapping    = $module->getMapping()->getProjectMapping();
                 $push_pull          = !empty($_POST["push_pull"]) ? filter_var($_POST["push_pull"], FILTER_SANITIZE_STRING) : null;
 
