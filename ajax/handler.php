@@ -61,9 +61,27 @@ try {
                 $result = $module->getMapping()->setProjectFieldMappings($current_mapping);
                 break;
 
-            case "saveSiteStudies":
-                $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : array();
-                $result = $module->getMapping()->setProjectSiteStudies($result);
+            case "deleteMapping":
+                //DELETE ENTIRE MAPPING FOR PUSH Or PULL
+
+                $current_mapping    = $module->getMapping()->getProjectMapping();
+                $push_pull          = !empty($_POST["push_pull"]) ? filter_var($_POST["push_pull"], FILTER_SANITIZE_STRING) : null;
+
+                if($push_pull){
+                    $current_mapping[$push_pull] = array();
+                }
+
+                $result = $module->getMapping()->setProjectFieldMappings($current_mapping);
+                break;
+
+            case "saveOncoreSubset":
+                $result = !empty($_POST["oncore_subset"]) ? filter_var_array($_POST["oncore_subset"], FILTER_SANITIZE_STRING) : array();
+                $result = $module->getMapping()->setProjectOncoreSubset($result);
+                break;
+
+            case "savePushPullPref":
+                $result = !empty($_POST["pushpull_pref"]) ? filter_var_array($_POST["pushpull_pref"], FILTER_SANITIZE_STRING) : array();
+                $result = $module->getMapping()->setProjectPushPullPref($result);
                 break;
 
             case "integrateOnCore":

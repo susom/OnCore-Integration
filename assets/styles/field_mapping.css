@@ -6,10 +6,11 @@
 }
 
 
-#study_sites{
-    margin-bottom:50px;
+#oncore_fields{
+    margin:50px 0 50px;
+    display:none;
 }
-#study_sites ul {
+#oncore_fields ul {
     margin:0;
     padding:10px;
     list-style:none;
@@ -17,7 +18,7 @@
     border-radius: 3px;
 }
 
-#study_sites li {
+#oncore_fields li {
     display:inline-block;
     width:33%;
     position:relative;
@@ -26,15 +27,15 @@
     vertical-align: top;
 }
 
-#study_sites li label{}
+#oncore_fields li label{}
 
-#study_sites li input{
+#oncore_fields li input{
     position:absolute;
     top:50%; left:15px;
     transform: translateY(-30%)
 }
 
-#study_sites li span{
+#oncore_fields li span{
     display: flex;
     justify-content:center;
     flex-direction: column;
@@ -49,7 +50,7 @@
     background:#F7F7FA;
 }
 
-#study_sites input:checked + span{
+#oncore_fields input:checked + span{
     background:#E9F4F4;
     color:#1B2E2E;
 }
