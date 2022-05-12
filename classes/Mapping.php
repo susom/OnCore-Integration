@@ -230,6 +230,7 @@ class Mapping
     {
         $mapping    = $this->getProjectMapping();
         $field_set  = $push ? $mapping["push"] : $mapping["pull"];
+
         $field      = array_key_exists($field_key, $field_set) ? $field_set[$field_key] : array();
         return $field;
     }
@@ -413,7 +414,7 @@ class Mapping
     public function getOverallPullStatus()
     {
         $all_pull_ok = true;
-        foreach($this->getOncoreRequiredFields() as $oncore_field){
+        foreach($this->getProjectOncoreSubset() as $oncore_field){
             if(!$this->getPullStatus($oncore_field)){
                 $all_pull_ok = false;
                 break;
@@ -427,9 +428,14 @@ class Mapping
      */
     public function getOverallPushStatus()
     {
-        $oncore_field   = "mrn";
-        $status         = $this->getPushStatus($oncore_field);
-        return $status;
+        $all_push_ok = true;
+        foreach($this->getOncoreRequiredFields() as $oncore_field){
+            if(!$this->getPushStatus($oncore_field)){
+                $all_push_ok = false;
+                break;
+            }
+        }
+        return $all_push_ok;
     }
 
 
@@ -502,38 +508,37 @@ class Mapping
         //OnCore Static Field names need mapping to REDCap fields
         foreach($oncore_fields as $field => $field_details) {
             //ONLY SHOW THOSE IN THE CHOSEN SUBSET
-            if(!in_array($field, $project_oncore_sub)){
-                continue;
-            }
+
 
             //each select will have different input['name']
             $rc_map_select     = str_replace("[ONCORE_FIELD]", $field, $rc_select);
 
-            $pull_status            = "";
-            $pull_value_map_html    = "";
-            $event_name             = "";
-            $pull_rc_map_select     = $rc_map_select;
-            if (array_key_exists($field, $project_mappings["pull"])) {
-                $rc_field               = $project_mappings["pull"][$field];
-                $rc_field_name          = $rc_field["redcap_field"];
-                $event_name             = $this->getRedcapEventName($rc_field_name);
-                $json_vmapping          = json_encode($this->getMappedRedcapValueSet($field));
-                $data_value_mapping     = "data-val_mapping='{$json_vmapping}'";
-                $pull_rc_map_select     = str_replace("'$rc_field_name'", "'$rc_field_name' selected ", $pull_rc_map_select);
-                $pull_rc_map_select     = str_replace("'vmap-$rc_field_name'", $data_value_mapping, $pull_rc_map_select);
-                $pull_value_map_html    = $this->makeValueMappingUI($field, $rc_field_name);
-                $pull_status            = $this->getPullStatus($field) ? "ok" : "";
+            if(in_array($field, $project_oncore_sub)){
+                $pull_status            = "";
+                $pull_value_map_html    = "";
+                $event_name             = "";
+                $pull_rc_map_select     = $rc_map_select;
+                if (array_key_exists($field, $project_mappings["pull"])) {
+                    $rc_field               = $project_mappings["pull"][$field];
+                    $rc_field_name          = $rc_field["redcap_field"];
+                    $event_name             = $this->getRedcapEventName($rc_field_name);
+                    $json_vmapping          = json_encode($this->getMappedRedcapValueSet($field));
+                    $data_value_mapping     = "data-val_mapping='{$json_vmapping}'";
+                    $pull_rc_map_select     = str_replace("'$rc_field_name'", "'$rc_field_name' selected ", $pull_rc_map_select);
+                    $pull_rc_map_select     = str_replace("'vmap-$rc_field_name'", $data_value_mapping, $pull_rc_map_select);
+                    $pull_value_map_html    = $this->makeValueMappingUI($field, $rc_field_name);
+                    $pull_status            = $this->getPullStatus($field) ? "ok" : "";
+                }
+                $pull_html .= "<tr class='$field'>\r\n";
+                $pull_html .= "<td class='oc_field'>$field</td>";
+                $pull_html .= "<td class='rc_selects'>$pull_rc_map_select</td>";
+                $pull_html .= "<td class='rc_event centered'>$event_name</td>";
+                $pull_html .= "<td class='centered status pull $pull_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
+                $pull_html .= "</tr>\r\n";
+                if (!empty($pull_value_map_html["html"])) {
+                    $pull_html .= $pull_value_map_html["html"];
+                }
             }
-            $pull_html .= "<tr class='$field'>\r\n";
-            $pull_html .= "<td class='oc_field'>$field</td>";
-            $pull_html .= "<td class='rc_selects'>$pull_rc_map_select</td>";
-            $pull_html .= "<td class='rc_event centered'>$event_name</td>";
-            $pull_html .= "<td class='centered status pull $pull_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
-            $pull_html .= "</tr>\r\n";
-            if (!empty($pull_value_map_html["html"])) {
-                $pull_html .= $pull_value_map_html["html"];
-            }
-
 
             $push_status            = "";
             $push_value_map_html    = "";
@@ -546,7 +551,6 @@ class Mapping
                 $rc_type                = $this->getRedcapType($rc_field_name);
 
                 $push_value_map_html    = $this->makeValueMappingUI_RC($oncore_field, $rc_field_name);
-
                 $json_vmapping          = json_encode($this->getMappedRedcapValueSet($oncore_field, 1));
                 $data_value_mapping     = "data-val_mapping='{$json_vmapping}'";
 
@@ -606,7 +610,7 @@ class Mapping
 
             foreach ($oc_values as $idx => $oc_value) {
                 $value_map_status   = "";
-                $value_select       = str_replace("[ONCORE_FIELD_VALUE]", $oncore_field . "_$idx", $v_select);
+                $value_select       = str_replace("'[ONCORE_FIELD_VALUE]'", "'$oncore_field"."_"."$idx' data-oc_field='$oncore_field' data-rc_field='$redcap_field'", $v_select);
                 if (array_key_exists($oc_value, $value_mapping)) {
                     $rc_val             = $value_mapping[$oc_value];
                     $value_select       = str_replace("'$rc_val'", "'$rc_val' selected", $value_select);
@@ -628,8 +632,8 @@ class Mapping
      * @return array
      */
     public function makeValueMappingUI_RC($oncore_field, $redcap_field){
-        $mapped_field   = $this->getMappedField($redcap_field,1);
-        $value_mapping  = $this->getMappedRedcapValueSet($redcap_field,1);
+        $mapped_field   = $this->getMappedField($oncore_field,1);
+        $value_mapping  = $this->getMappedRedcapValueSet($oncore_field,1);
 
         $value_map_html = "";
         $rc_values      = $this->getRedcapValueSet($redcap_field);
@@ -649,17 +653,19 @@ class Mapping
 
         if ($special_redcap) {
             // IF OVER LAPPING MAPPING OF VALUES THEN PULL AND PUSH IS POSSIBLE
-            $value_map_html .= "<tr class='$redcap_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
+            $value_map_html .= "<tr class='$oncore_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
             $value_map_html .= "<tr><th class='td_oc_vset'>Oncore Valid Values</th><th class='td_rc_vset'>Redcap Valid Values</th><th class='centered td_map_status'>Map Status</th><th class='td_vset_spacer'></th></tr>\r\n";
 
             foreach ($rc_values as $idx => $rc_value) {
                 $value_map_status   = "";
-                $value_select       = str_replace("'[REDCAP_FIELD_VALUE]'", "'$redcap_field"."_"."$idx' data-oc_field='$oncore_field'", $v_select);
+                $value_select       = str_replace("'[REDCAP_FIELD_VALUE]'", "'$redcap_field"."_"."$idx' data-oc_field='$oncore_field' data-rc_field='$redcap_field'", $v_select);
 
                 if (array_key_exists($idx, $value_mapping)) {
                     $oc_val         = $value_mapping[$idx];
                     $value_select   = str_replace(">$oc_val", " selected>$oc_val", $value_select);
                     $value_map_status = "ok";
+
+
                 }
                 $value_map_html .= "<tr>\r\n";
                 $value_map_html .= "<td>$value_select</td>\r\n";

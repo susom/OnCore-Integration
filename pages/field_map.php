@@ -5,7 +5,7 @@ namespace Stanford\OnCoreIntegration;
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
 $current_mapping        = $module->getMapping()->getProjectMapping();
-$module->emDebug($current_mapping);
+//$module->emDebug($current_mapping);
 
 $oncore_css             = $module->getUrl("assets/styles/field_mapping.css");
 $ajax_endpoint          = $module->getUrl("ajax/handler.php");
@@ -257,6 +257,9 @@ $field_selection[]      = "</ul>\r\n";
                 var ftype           = _opt.data("type");
                 var vmaps           = _opt.data("val_mapping");
 
+                var no_refresh      = $(this).hasClass("second_level_trigger");
+                var _select         = $(this);
+
                 //UI UPDATE
                 $("select.redcap_field[name='"+oncore_field+"']").each(function(){
                     var temp_map_direction   = $(this).data("mapdir") == "push" ? "push" : "pull";
@@ -301,8 +304,6 @@ $field_selection[]      = "</ul>\r\n";
                     , "value_mapping" : value_mapping
                 };
 
-
-
                 $(this).parent().addClass("loading");
 
                 ajaxQueue.addRequest(function () {
@@ -317,9 +318,13 @@ $field_selection[]      = "</ul>\r\n";
                         dataType: 'json'
                     }).done(function (result) {
                         //remove spinners
-                        console.log(field_maps, is_rc_mapping);
                         updatePushPullStatus(oncore_field, redcap_field);
-                        makeValueMappingRow(oncore_field, redcap_field, is_rc_mapping);
+
+                        if(!no_refresh || true){
+                            makeValueMappingRow(oncore_field, redcap_field, 0);
+                            makeValueMappingRow(oncore_field, redcap_field, 1);
+                            _select.removeClass("second_level_trigger");
+                        }
                         updateOverAllStatus();
                         $("#field_mapping .loading").removeClass("loading");
                     }).fail(function (e) {
@@ -345,6 +350,8 @@ $field_selection[]      = "</ul>\r\n";
                 var oncore_val_i    = temp[1];
                 var redcap_val_i    = _opt.val();
 
+                var top_level       = $(this).data("rc_field");
+
                 if ($("#oncore_mapping select[name='" + oncore_field + "']").find("option:selected").length) {
                     var val_mapping = $("#oncore_mapping select[name='" + oncore_field + "']").find("option:selected").data("val_mapping");
 
@@ -361,6 +368,7 @@ $field_selection[]      = "</ul>\r\n";
                     }
 
                     $("#oncore_mapping select[name='" + oncore_field + "']").find("option:selected").data("val_mapping", val_mapping);
+                    $("#oncore_mapping select[name='" + oncore_field + "']").addClass("second_level_trigger");
 
                     $(this).parent().addClass("loading");
                     $("#oncore_mapping select[name='" + oncore_field + "']").trigger("change");
@@ -372,14 +380,13 @@ $field_selection[]      = "</ul>\r\n";
                 var _opt            = $(this).find("option:selected");
 
                 var temp            = $(this).attr("name").split("_");
-                var rc_field        = temp[0];
-                var redcap_val_i    = temp[1];
+                var redcap_val_i    = temp.pop();
+                var rc_field        = $(this).data("rc_field");;
                 var oncore_val      = _opt.val();
                 var oncore_field    = $(this).data("oc_field");
 
-                if ($("#redcap_mapping select[name='" + rc_field + "']").find("option:selected").length) {
-
-                    var val_mapping = $("#redcap_mapping select[name='" + rc_field + "']").find("option:selected").data("val_mapping");
+                if ($("#redcap_mapping select[name='" + oncore_field + "']").find("option:selected").length) {
+                    var val_mapping = $("#redcap_mapping select[name='" + oncore_field + "']").find("option:selected").data("val_mapping");
 
                     if (!val_mapping) {
                         val_mapping = {};
@@ -394,15 +401,14 @@ $field_selection[]      = "</ul>\r\n";
                         val_mapping[redcap_val_i] = oset[oncore_val];
                     }
 
-
-                    $("#redcap_mapping select[name='" + rc_field + "']").find("option:selected").data("val_mapping", val_mapping);
+                    $("#redcap_mapping select[name='" + oncore_field + "']").find("option:selected").data("val_mapping", val_mapping);
+                    $("#redcap_mapping select[name='" + oncore_field + "']").addClass("second_level_trigger");
 
                     $(this).parent().addClass("loading");
-                    $("#redcap_mapping select[name='" + rc_field + "']").trigger("change");
+                    $("#redcap_mapping select[name='" + oncore_field + "']").trigger("change");
                 }
             }
         });
-
 
         //ONCORE SUBSET
         $("#oncore_fields").on("change", "input[name='oncore_field_subset']",function(e){
@@ -425,7 +431,8 @@ $field_selection[]      = "</ul>\r\n";
                     },
                     dataType: 'json'
                 }).done(function (result) {
-
+                    $("#oncore_mapping tbody").empty().append(result["pull"]);
+                    updateOverAllStatus();
                 }).fail(function (e) {
                     console.log("saveOncoreSubset failed to save", e);
                 });
@@ -433,7 +440,7 @@ $field_selection[]      = "</ul>\r\n";
                 return new Promise(function (resolve, reject) {
                     setTimeout(function () {
                         resolve(data);
-                    }, 2000);
+                    }, 1000);
                 });
             });
         });
@@ -483,7 +490,7 @@ $field_selection[]      = "</ul>\r\n";
             var overallPull = status["overallPull"];
             var overallPush = status["overallPush"];
 
-            console.log("overall status", status);
+            // console.log("overall status", status);
             $(".nav-tabs .pull_mapping").removeClass("ok");
             if(overallPull){
                 $(".nav-tabs .pull_mapping").addClass("ok");
@@ -522,6 +529,7 @@ $field_selection[]      = "</ul>\r\n";
     }
 
     function makeValueMappingRow(oncore_field, redcap_field, rc_mapping) {
+        // console.log("makeValueMappingRow",oncore_field, redcap_field);
         $.ajax({
             url: ajax_endpoint,
             method: 'POST',
@@ -534,10 +542,11 @@ $field_selection[]      = "</ul>\r\n";
             dataType: 'json'
         }).done(function (result) {
             var parent_id = rc_mapping ? "#redcap_mapping" : "#oncore_mapping";
+
             if($(parent_id+ " tr."+oncore_field).length){
                 //CLEAR EXISTING ROW BEFORE BUILDING NEW UI
-                $(parent_id+ " tr.more."+ oncore_field).remove();
-                $(result).insertAfter($(parent_id+ " tr."+oncore_field));
+                $(parent_id + " tr.more." + oncore_field).remove();
+                $(result).insertAfter($(parent_id + " tr." + oncore_field));
             }
         }).fail(function (e) {
             console.log("failed to get value mapping row", e);
