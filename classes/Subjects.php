@@ -569,18 +569,30 @@ class Subjects extends SubjectDemographics
         $onCoreRecord = $this->searchOnCoreSubjectUsingMRN($redcapMRN);
         if (empty($onCoreRecord)) {
             $demographics = $this->prepareREDCapRecordForOnCorePush($redcapId, $fields, $oncoreFieldsDef);
-            return $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
+            $message = "No subject found for $redcapMRN. Using REDCap data to create new Subject.";
+            Entities::createLog($message);
+            $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
+            $result['message'] = $message;
+            return $result;
         } else {
             // if subject is in different protocol then just add subject to protocol
             if ($onCoreRecord['subjectSource'] == 'OnCore') {
-                return $this->createOnCoreProtocolSubject($protocolId, $studySite, $onCoreRecord['subjectDemographicsId'], null);
+                $message = "OnCore Subject " . $onCoreRecord['subjectDemographicsId'] . " found for $redcapMRN. REDCap data will be ignored and OnCore subject will be used.";
+                Entities::createLog($message);
+                $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, $onCoreRecord['subjectDemographicsId'], null);
+                $result['message'] = $message;
+                return $result;
             }
             // if subject is in Onstage this mean not part of any protocol
             // Onstage data has priority except null
             elseif ($onCoreRecord['subjectSource'] == 'Onstage') {
                 // fill Onstage missing data from redcap record.
                 $demographics = $this->fillMissingData($record, $onCoreRecord, $fields);
-                return $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
+                $message = "No OnCore Subject found for $redcapMRN but a Record found on OnStage table. REDCap data will be used ONLY for missing data from OnStage.";
+                Entities::createLog($message);
+                $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
+                $result['message'] = $message;
+                return $result;
             } else {
                 throw new \Exception('Source is unknown');
             }
