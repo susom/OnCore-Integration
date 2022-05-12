@@ -4,40 +4,33 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-$oncore_css         = $module->getUrl("assets/styles/field_mapping.css");
-$ajax_endpoint      = $module->getUrl("ajax/handler.php");
-$icon_ajax          = $module->getUrl("assets/images/icon_ajax.gif");
-$mapping            = $module->getMapping();
+$current_mapping        = $module->getMapping()->getProjectMapping();
+$module->emDebug($current_mapping);
 
-$pushpull_pref          = $module->getMapping()->getProjectPushPullPref();
-$oncore_props           = $module->getMapping()->getOnCoreFieldDefinitions();
-$project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
+$oncore_css             = $module->getUrl("assets/styles/field_mapping.css");
+$ajax_endpoint          = $module->getUrl("ajax/handler.php");
+$icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
+$mapping                = $module->getMapping();
 
-$module->emDebug($pushpull_pref);
+$pushpull_pref          = $mapping->getProjectPushPullPref();
+$overall_pull_status    = $mapping->getOverallPullStatus() ? "ok" : "";
+$overall_push_status    = $mapping->getOverallPushStatus() ? "ok" : "";
 
-$field_map_ui       = $mapping->makeFieldMappingUI();
-$field_map_ui_pull  = $field_map_ui["pull"];
-$field_map_ui_push  = $field_map_ui["push"];
-
+$field_map_ui           = $mapping->makeFieldMappingUI();
 $oncore_fields          = $field_map_ui["oncore_fields"];
-$req_pull               = $field_map_ui_pull["required"];
-$not_req_pull           = $field_map_ui_pull["not_required"];
-$req_push               = $field_map_ui_push["required"];
-$not_req_push           = $field_map_ui_push["not_required"];
+$pull_html              = $field_map_ui["pull"];
+$push_html              = $field_map_ui["push"];
 
-$overall_pull_status    = $module->getMapping()->getOverallPullStatus() ? "ok" : "";
-$overall_push_status    = $module->getMapping()->getOverallPushStatus() ? "ok" : "";
-
-$oncore_props           = $module->getMapping()->getOnCoreFieldDefinitions();
-$project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
-$field_selection         = array();
-$field_selection[]       = "<ul>\r\n";
+//ONCORE FIELD SUB SET SELECTION
+$oncore_props           = $mapping->getOnCoreFieldDefinitions();
+$project_oncore_subset  = $mapping->getProjectOncoreSubset();
+$field_selection        = array();
+$field_selection[]      = "<ul>\r\n";
 foreach($oncore_props as $field => $props){
     $checked            = in_array($field, $project_oncore_subset) ? "checked" : "";
-
     $field_selection[]   = "<li><label><input type='checkbox' $checked name='oncore_field_subset' value='$field'><span>$field</span></label></li>\r\n";
 }
-$field_selection[]       = "</ul>\r\n";
+$field_selection[]      = "</ul>\r\n";
 ?>
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
@@ -79,7 +72,7 @@ $field_selection[]       = "</ul>\r\n";
 
         <div class="tab-pane" id="pull_mapping">
             <form id="oncore_mapping" class="container">
-                <h2>Map OnCore Fields to REDCap project variables to PULL</h2>
+                <h2>Map OnCore properties to REDCap variables to PULL</h2>
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
                     project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
                     Settings to be able to PULL.</p>
@@ -93,13 +86,7 @@ $field_selection[]       = "</ul>\r\n";
                     </tr>
                     </thead>
                     <tbody>
-                    <?= $req_pull ?>
-
-                    <tr class="show_optional required">
-                        <td colspan="4" ><a href="#" ><span>Show</span> Optional Fields +</a></td>
-                    </tr>
-
-                    <?= $not_req_pull ?>
+                    <?= $pull_html ?>
                     </tbody>
                 </table>
             </form>
@@ -107,7 +94,7 @@ $field_selection[]       = "</ul>\r\n";
 
         <div class="tab-pane" id="push_mapping">
             <form id="redcap_mapping" class="container">
-                <h2>Map REDCap fields to Oncore properties to PUSH</h2>
+                <h2>Map REDCap variables to Oncore properties to PUSH</h2>
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
                     project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
                     Settings to be able to PUSH.</p>
@@ -121,7 +108,7 @@ $field_selection[]       = "</ul>\r\n";
                     </tr>
                     </thead>
                     <tbody>
-                    <?= $not_req_push ?>
+                    <?= $push_html ?>
                     </tbody>
                 </table>
             </form>
@@ -187,16 +174,6 @@ $field_selection[]       = "</ul>\r\n";
         $("#field_mapping ul.nav-tabs a").on("click", function(){
             $("li.active").removeClass("active");
             $(this).parent("li").addClass("active");
-        });
-        $(".show_optional a").on("click",function(e){
-            e.preventDefault();
-            if($("tr.notrequired td").is(":visible")){
-                $(this).find("span").text("Show");
-                $("tr.notrequired td").hide();
-            }else{
-                $(this).find("span").text("Hide");
-                $("tr.notrequired td").show();
-            }
         });
         $(".pCheck").click(function(e){
 
@@ -267,38 +244,64 @@ $field_selection[]       = "</ul>\r\n";
             });
         });
 
-
         //SOME RESPONSIVE UI TO SEE
         //ON SELECT OF TOP LEVEL REDCAP FIELD
-        $("#oncore_mapping select.redcap_field").on("change",function(){
+        $("select.redcap_field").on("change",function(){
             if($(this).find("option:selected")){
                 var _opt            = $(this).find("option:selected");
+                var map_direction   = $(this).data("mapdir") == "push" ? "push" : "pull";
+                var is_rc_mapping   = map_direction == "push" ? 1 : 0;
                 var redcap_field    = _opt.val();
                 var oncore_field    = $(this).attr("name");
                 var event_name      = _opt.data("eventname");
                 var ftype           = _opt.data("type");
                 var vmaps           = _opt.data("val_mapping");
 
-                if($(this).closest("tr").find(".rc_event").length){
-                    $(this).closest("tr").find(".rc_event").empty();
-                    $(this).closest("tr").find(".rc_event").html(event_name);
-                }
+                //UI UPDATE
+                $("select.redcap_field[name='"+oncore_field+"']").each(function(){
+                    var temp_map_direction   = $(this).data("mapdir") == "push" ? "push" : "pull";
+
+                    if(redcap_field !== "-99"){
+                        $(this).find("option[value='"+redcap_field+"']").prop("selected","selected");
+                        if($(this).closest("tr").find(".rc_event").length){
+                            $(this).closest("tr").find(".rc_event").empty();
+                            $(this).closest("tr").find(".rc_event").html(event_name);
+                        }
+                    }else{
+                        if(map_direction == temp_map_direction){
+                            if($(this).closest("tr").find(".rc_event").length){
+                                $(this).closest("tr").find(".rc_event").empty();
+                                $(this).closest("tr").find(".rc_event").html(event_name);
+                            }
+                        }
+                    }
+                });
 
                 var value_mapping   = [];
                 if(vmaps){
-                    for(var oncore_value in vmaps){
-                        var redcap_mapping = vmaps[oncore_value];
-                        value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
+                    if(map_direction == "pull"){
+                        for(var oncore_value in vmaps){
+                            var redcap_mapping = vmaps[oncore_value];
+                            value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
+                        }
+                    }else{
+                        for(var redcap_mapping in vmaps){
+                            var oncore_value = vmaps[redcap_mapping];
+                            value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
+                        }
                     }
                 }
+
                 var field_maps = {
-                      "mapping" : "pull"
+                      "mapping" : map_direction
                     , "oncore_field": oncore_field
                     , "redcap_field": redcap_field
                     , "event": event_name
                     , "field_type" : ftype
                     , "value_mapping" : value_mapping
                 };
+
+
 
                 $(this).parent().addClass("loading");
 
@@ -314,63 +317,9 @@ $field_selection[]       = "</ul>\r\n";
                         dataType: 'json'
                     }).done(function (result) {
                         //remove spinners
+                        console.log(field_maps, is_rc_mapping);
                         updatePushPullStatus(oncore_field, redcap_field);
-                        makeValueMappingRow(oncore_field, redcap_field, 0);
-                        updateOverAllStatus();
-                        $("#field_mapping .loading").removeClass("loading");
-                    }).fail(function (e) {
-                        console.log("failed to save", e);
-                    });
-
-                    return new Promise(function (resolve, reject) {
-                        setTimeout(function () {
-                            resolve(data);
-                        }, 2000);
-                    });
-                });
-            }
-        });
-        $("#redcap_mapping select.oncore_field").on("change",function(){
-            if($(this).find("option:selected")){
-                var _opt            = $(this).find("option:selected");
-                var oncore_field    = _opt.val();
-                var redcap_field    = $(this).attr("name");
-                var ftype           = $(this).data("type");
-                var eventname       = $(this).data("eventname");
-
-                var vmaps           = _opt.data("val_mapping");
-                var value_mapping   = [];
-                if(vmaps){
-                    for(var redcap_mapping in vmaps){
-                        var oncore_value = vmaps[redcap_mapping];
-                        value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
-                    }
-                }
-
-                var field_maps = {
-                      "mapping" : "push"
-                    , "oncore_field": oncore_field
-                    , "redcap_field": redcap_field
-                    , "event": eventname
-                    , "field_type" : ftype
-                    , "value_mapping" : value_mapping
-                };
-
-                $(this).parent().addClass("loading");
-
-                ajaxQueue.addRequest(function () {
-                    // -- your ajax request goes here --
-                    return $.ajax({
-                        url: ajax_endpoint,
-                        method: 'POST',
-                        data: {
-                            "action": "saveMapping",
-                            "field_mappings": field_maps,
-                        },
-                        dataType: 'json'
-                    }).done(function (result) {
-                        updatePushPullStatus(oncore_field, redcap_field);
-                        makeValueMappingRow(oncore_field, redcap_field, 1);
+                        makeValueMappingRow(oncore_field, redcap_field, is_rc_mapping);
                         updateOverAllStatus();
                         $("#field_mapping .loading").removeClass("loading");
                     }).fail(function (e) {
@@ -386,8 +335,7 @@ $field_selection[]       = "</ul>\r\n";
             }
         });
 
-
-        //ON SELECT OF FIXED VALUE REDCAP/ONCORE MAPPING
+        //ON SELECT OF FIXED VALUE SET REDCAP/ONCORE MAPPING
         $("#oncore_mapping").on("change","select.redcap_value", function(){
             if($(this).find("option:selected")){
                 var _opt            = $(this).find("option:selected");
@@ -422,6 +370,7 @@ $field_selection[]       = "</ul>\r\n";
         $("#redcap_mapping").on("change","select.oncore_value", function(){
             if($(this).find("option:selected").length){
                 var _opt            = $(this).find("option:selected");
+
                 var temp            = $(this).attr("name").split("_");
                 var rc_field        = temp[0];
                 var redcap_val_i    = temp[1];
@@ -429,6 +378,7 @@ $field_selection[]       = "</ul>\r\n";
                 var oncore_field    = $(this).data("oc_field");
 
                 if ($("#redcap_mapping select[name='" + rc_field + "']").find("option:selected").length) {
+
                     var val_mapping = $("#redcap_mapping select[name='" + rc_field + "']").find("option:selected").data("val_mapping");
 
                     if (!val_mapping) {
@@ -443,6 +393,7 @@ $field_selection[]       = "</ul>\r\n";
                     } else {
                         val_mapping[redcap_val_i] = oset[oncore_val];
                     }
+
 
                     $("#redcap_mapping select[name='" + rc_field + "']").find("option:selected").data("val_mapping", val_mapping);
 
@@ -474,8 +425,7 @@ $field_selection[]       = "</ul>\r\n";
                     },
                     dataType: 'json'
                 }).done(function (result) {
-                    //done
-                    console.log(result);
+
                 }).fail(function (e) {
                     console.log("saveOncoreSubset failed to save", e);
                 });
