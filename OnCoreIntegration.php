@@ -47,7 +47,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const REDCAP_ONCORE_FIELDS_MAPPING_NAME     = 'redcap-oncore-fields-mapping';
     const REDCAP_ONCORE_PROJECT_SITE_STUDIES    = 'redcap-oncore-project-site-studies';
-
+    const REDCAP_ONCORE_PROJECT_ONCORE_SUBSET   = 'redcap-oncore-project-oncore-subset';
+    const REDCAP_ONCORE_PROJECT_PUSHPULL_PREF   = 'redcap-oncore-project-pushpull-pref';
 
     const ONCORE_PROTOCOL_STATUS_NO = 0;
 

@@ -13,7 +13,8 @@ class Mapping
     private $oncore_fields;
     private $redcap_fields;
     private $project_mapping;
-    private $site_studies_subset;
+    private $oncore_subset;
+    private $pushpull_pref;
 
     public function __construct($module)
     {
@@ -430,22 +431,37 @@ class Mapping
     }
 
 
-    //SITE STUDIES
-    public function setProjectSiteStudies(array $site_studies_subset): void
+    //ONCORE SUBSET
+    public function setProjectOncoreSubset(array $oncore_subset): void
     {
-        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, json_encode($site_studies_subset));
-        $this->site_studies_subset = $site_studies_subset;
+        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_ONCORE_SUBSET, json_encode($oncore_subset));
+        $this->oncore_subset = $oncore_subset;
     }
 
-    public function getProjectSiteStudies()
+    public function getProjectOncoreSubset()
     {
-        if(empty($this->site_studies_subset)){
-            $arr = json_decode(ExternalModules::getProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES), true);
-            $this->site_studies_subset = $arr ?: [];
+        if(empty($this->oncore_subset)){
+            $arr = json_decode(ExternalModules::getProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_ONCORE_SUBSET), true);
+            $this->oncore_subset = $arr ?: [];
         }
-        return $this->site_studies_subset;
+        return $this->oncore_subset;
     }
 
+    //Porject PUSH PULL PREF
+    public function setProjectPushPullPref(array $pushpull_state): void
+    {
+        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_PUSHPULL_PREF, json_encode($pushpull_state));
+        $this->pushpull_pref = $pushpull_state;
+    }
+
+    public function getProjectPushPullPref()
+    {
+        if(empty($this->pushpull_pref)){
+            $arr = json_decode(ExternalModules::getProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_PUSHPULL_PREF), true);
+            $this->pushpull_pref = $arr ?: [];
+        }
+        return $this->pushpull_pref;
+    }
 
 
     //DRAW UI

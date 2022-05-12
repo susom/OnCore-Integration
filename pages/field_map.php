@@ -9,13 +9,15 @@ $ajax_endpoint      = $module->getUrl("ajax/handler.php");
 $icon_ajax          = $module->getUrl("assets/images/icon_ajax.gif");
 $mapping            = $module->getMapping();
 
+$pushpull_pref          = $module->getMapping()->getProjectPushPullPref();
+$oncore_props           = $module->getMapping()->getOnCoreFieldDefinitions();
+$project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
+
+$module->emDebug($pushpull_pref);
+
 $field_map_ui       = $mapping->makeFieldMappingUI();
 $field_map_ui_pull  = $field_map_ui["pull"];
 $field_map_ui_push  = $field_map_ui["push"];
-
-//$current_mapping    = $module->getMapping()->getProjectMapping();
-//$module->emDebug("push mapping", $current_mapping);
-//$module->getMapping()->setProjectFieldMappings(array("pull"=>array(), "push" => array()));
 
 $oncore_fields          = $field_map_ui["oncore_fields"];
 $req_pull               = $field_map_ui_pull["required"];
@@ -26,15 +28,16 @@ $not_req_push           = $field_map_ui_push["not_required"];
 $overall_pull_status    = $module->getMapping()->getOverallPullStatus() ? "ok" : "";
 $overall_push_status    = $module->getMapping()->getOverallPushStatus() ? "ok" : "";
 
-$study_sites            = $module->getUsers()->getOnCoreStudySites();
-$project_study_sites    = $module->getMapping()->getProjectSiteStudies();
-$site_selection         = array();
-$site_selection[]       = "<ul>\r\n";
-foreach($study_sites as $site){
-    $checked            = in_array($site, $project_study_sites) ? "checked" : "";
-    $site_selection[]   = "<li><label><input type='checkbox' $checked name='site_study_subset' value='$site'><span>$site</span></label></li>\r\n";
+$oncore_props           = $module->getMapping()->getOnCoreFieldDefinitions();
+$project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
+$field_selection         = array();
+$field_selection[]       = "<ul>\r\n";
+foreach($oncore_props as $field => $props){
+    $checked            = in_array($field, $project_oncore_subset) ? "checked" : "";
+
+    $field_selection[]   = "<li><label><input type='checkbox' $checked name='oncore_field_subset' value='$field'><span>$field</span></label></li>\r\n";
 }
-$site_selection[]       = "</ul>\r\n";
+$field_selection[]       = "</ul>\r\n";
 ?>
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
@@ -46,14 +49,35 @@ $site_selection[]       = "</ul>\r\n";
 <link rel="stylesheet" href="<?=$oncore_css?>">
 
 <div id="field_mapping">
-    <h1>REDCap/OnCore Field Mapping</h1>
-    <p class="lead">Map REDCap Variables to OnCore Properties and vice versa to ensure that data can be pulled and pushed between projects.  Once the requisite mapping coverage is acheived the icon in the tabs will show a "green checkmark"</p>
+    <h1>REDCap - OnCore Field Mapping</h1>
+    <p class="lead">Map REDCap Variables to OnCore Properties and vice versa to ensure that data can be both pulled and pushed between the two.</p>
     <ul class="nav nav-tabs">
-        <li class="active"><a data-toggle="tab" href="#pull_mapping" class="pull_mapping <?=$overall_pull_status?>">Pull Data From OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
-        <li class=""><a data-toggle="tab" href="#push_mapping" class="push_mapping <?=$overall_push_status?>">Push Data To OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
+        <li class="active"><a data-toggle="tab" href="#oncore_config" class="oncore_config">Configurations</a></li>
+        <li class=""><a data-toggle="tab" href="#pull_mapping" class="optional pull_mapping <?=$overall_pull_status?>">Pull Data From OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
+        <li class=""><a data-toggle="tab" href="#push_mapping" class="optional push_mapping <?=$overall_push_status?>">Push Data To OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
     </ul>
     <div class="tab-content">
-        <div class="tab-pane active" id="pull_mapping">
+        <div class="tab-pane active" id="oncore_config">
+            <form id="oncore_config" class="container">
+                <h2>Oncore Project Linked</h2>
+                <p class="lead">Some configurations need to be set before using this module:</p>
+
+                <label class="map_dir">
+                    <input type="checkbox" class="pCheck" data-tab="pull_mapping" value="1"> Do you want to PULL subject data from OnCore to REDCap
+                </label>
+
+                <label class="map_dir">
+                    <input type="checkbox" class="pCheck" data-tab="push_mapping" value="2"> Do you want to PUSH subject data from REDCap to OnCore
+                </label>
+
+                <div id="oncore_fields">
+                    <h2>Choose which OnCore Properties will be used with this REDCap project</h2>
+                    <?=implode("", $field_selection) ?>
+                </div>
+            </form>
+        </div>
+
+        <div class="tab-pane" id="pull_mapping">
             <form id="oncore_mapping" class="container">
                 <h2>Map OnCore Fields to REDCap project variables to PULL</h2>
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
@@ -82,12 +106,6 @@ $site_selection[]       = "</ul>\r\n";
         </div>
 
         <div class="tab-pane" id="push_mapping">
-            <form id="study_sites" class="container">
-                <h2>Select subset of study sites for this project</h2>
-                <p class="lead">Data pushed from REDCap to OnCore will require a matching study site. Click to choose which study site will be available to this project.</p>
-                <?=implode("", $site_selection) ?>
-            </form>
-
             <form id="redcap_mapping" class="container">
                 <h2>Map REDCap fields to Oncore properties to PUSH</h2>
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
@@ -118,11 +136,21 @@ $site_selection[]       = "</ul>\r\n";
     margin-left:10px; width:30px; height:30px;
     background-size:contain;
 }
+
+#field_mapping .optional{
+    display:none;
+}
+
+.map_dir{
+    font-size:120%;
+    margin-bottom:20px;
+}
 </style>
 <script>
     $(document).ready(function () {
         var ajax_endpoint       = "<?=$ajax_endpoint?>";
         var oncore_fields       = <?=json_encode($oncore_fields)?>;
+        var pushpull_pref       = <?=json_encode($pushpull_pref)?>;
 
         //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACHOTHER
         var ajaxQueue = {
@@ -153,6 +181,8 @@ $site_selection[]       = "</ul>\r\n";
         };
 
         //SUPERFICIAL UI
+        oncoreConfigVis(pushpull_pref);
+
         //TAB BEHAVIOR
         $("#field_mapping ul.nav-tabs a").on("click", function(){
             $("li.active").removeClass("active");
@@ -167,6 +197,74 @@ $site_selection[]       = "</ul>\r\n";
                 $(this).find("span").text("Hide");
                 $("tr.notrequired td").show();
             }
+        });
+        $(".pCheck").click(function(e){
+
+
+            var tab_state = [];
+            $(".pCheck:checked").each(function(){
+                var tab = $(this).data("tab");
+                tab_state.push(tab);
+            });
+
+            if(!$(this).is(":checked")){
+                var tab = $(this).data("tab");
+
+                if (confirm("Unchecking this checkbox will delete all mapped fields.  Do you want to proceed?") == true) {
+                    //FIRE OFF AJAX TO CLEAR OUT RESPECTIVE TABs MAPPINGS
+                    var push_pull = tab == "pull_mapping" ? "pull" : "push";
+                    ajaxQueue.addRequest(function () {
+                        // -- your ajax request goes here --
+                        return $.ajax({
+                            url: ajax_endpoint,
+                            method: 'POST',
+                            data: {
+                                "action": "deleteMapping",
+                                "push_pull" : push_pull
+                            },
+                            dataType: 'json'
+                        }).done(function (result) {
+                            //done
+                            console.log("deleteMapping done");
+                        }).fail(function (e) {
+                            console.log("deleteMapping failed to save", e);
+                        });
+
+                        return new Promise(function (resolve, reject) {
+                            setTimeout(function () {
+                                resolve(data);
+                            }, 2000);
+                        });
+                    });
+                } else {
+                    return false;
+                }
+            }
+
+            oncoreConfigVis();
+            ajaxQueue.addRequest(function () {
+                // -- your ajax request goes here --
+                return $.ajax({
+                    url: ajax_endpoint,
+                    method: 'POST',
+                    data: {
+                        "action": "savePushPullPref",
+                        "pushpull_pref" : tab_state
+                    },
+                    dataType: 'json'
+                }).done(function (result) {
+                    //done
+                    console.log("savePushPullPref done");
+                }).fail(function (e) {
+                    console.log("savePushPullPref failed to save", e);
+                });
+
+                return new Promise(function (resolve, reject) {
+                    setTimeout(function () {
+                        resolve(data);
+                    }, 2000);
+                });
+            });
         });
 
 
@@ -355,17 +453,14 @@ $site_selection[]       = "</ul>\r\n";
         });
 
 
-        //SAVE SITE STUDIES SUB SET
-        $("#study_sites").on("change", "input[name='site_study_subset']",function(){
-            $("#study_sites").submit();
-        });
-        $("#study_sites").submit(function(e){
+        //ONCORE SUBSET
+        $("#oncore_fields").on("change", "input[name='oncore_field_subset']",function(e){
             e.preventDefault();
-            var site_study_subset = $(this).find("input:checked").serializeArray();
+            var oncore_subset = $("#oncore_fields").find("input:checked").serializeArray();
 
-            var sss = [];
-            $(this).find("input:checked").each(function(){
-                sss.push($(this).val());
+            var os = [];
+            $("#oncore_fields").find("input:checked").each(function(){
+                os.push($(this).val());
             });
 
             ajaxQueue.addRequest(function () {
@@ -374,14 +469,15 @@ $site_selection[]       = "</ul>\r\n";
                     url: ajax_endpoint,
                     method: 'POST',
                     data: {
-                        "action": "saveSiteStudies",
-                        "site_studies_subset" : sss
+                        "action": "saveOncoreSubset",
+                        "oncore_subset" : os
                     },
                     dataType: 'json'
                 }).done(function (result) {
                     //done
+                    console.log(result);
                 }).fail(function (e) {
-                    console.log("failed to save", e);
+                    console.log("saveOncoreSubset failed to save", e);
                 });
 
                 return new Promise(function (resolve, reject) {
@@ -392,6 +488,34 @@ $site_selection[]       = "</ul>\r\n";
             });
         });
     });
+
+    function oncoreConfigVis(initial_pushpull){
+        var show = false;
+        $(".pCheck").each(function(){
+            var tab = $(this).data("tab");
+
+            if(initial_pushpull && initial_pushpull.includes(tab) ){
+                $(this).attr("checked",true);
+            }
+
+            if($(this).is(":checked")){
+                $("."+tab).fadeIn(function(){
+                    $(this).css("display","block");
+                });
+                show = true;
+            }else{
+                $("."+tab).fadeOut();
+            }
+        });
+
+        if(show || $("#oncore_fields").find("input:checked").length){
+            $("#oncore_fields").fadeIn();
+        }else{
+            if(!$("#oncore_fields").find("input:checked").length){
+                $("#oncore_fields").fadeOut();
+            }
+        }
+    }
 
     function onlyUnique(value, index, self) {
         return self.indexOf(value) === index;

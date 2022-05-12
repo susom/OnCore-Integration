@@ -2,7 +2,7 @@ class batchModal{
     //DEFAULT VALUES
     id              = "blockingOverlay";
     completedItems  = 0;
-    lead            = "Please leave this modal open while we push the data is uploaded.";
+    lead            = "Please leave this modal open while the data is uploaded.";
     headerText = "Pushing REDCap to OnCore";
     colHeaders = ["REDCap ID", "OnCore Subject Demographics ID", "MRN", "Status", "Note"];
 

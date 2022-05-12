@@ -270,9 +270,6 @@ function makeRedcapTableHTML($records, $noredcap=null, $disabled=null, $excluded
     $html .= "</tr>";
     $html .= "</thead>";
 
-    $project_study_sites    = $module->getMapping()->getProjectSiteStudies();
-//    $study_select           = implode(", ", $project_study_sites);
-
     foreach($records as $mrn => $rows){
         if($noredcap){
             $rc_id = "";
@@ -318,12 +315,7 @@ function makeRedcapTableHTML($records, $noredcap=null, $disabled=null, $excluded
                     $id_info[] = "REDCap ID : $rc_id";
                 }
 
-                $study_select = "<select name='studysite_$rc_id' class='studysite' data-rc_id='$rc_id'>\r\n";
-                $study_select .= "<option value=''>Select Study Site</option>\r\n";
-                foreach($project_study_sites as $studysite){
-                    $study_select .= "<option value='$studysite'>$studysite</option>\r\n";
-                }
-                $study_select .= "</select>";
+
 
                 $exclude_class  = $excluded ? "include_subject" : "exclude_subject";
                 $exclude_text   = $excluded ? "Re-Include" : "Exclude";
@@ -331,7 +323,7 @@ function makeRedcapTableHTML($records, $noredcap=null, $disabled=null, $excluded
                 $id_info = implode("<br>", $id_info);
                 $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' value='$rc_id' data-redcap='$rc_id' data-oncore='' data-mrn='$mrn' checked/></td>";
                 $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
-                $html .= "<td class='rc_study' rowspan=$rowspan>$study_select</td>";
+                $html .= "<td class='rc_study' rowspan=$rowspan></td>";
             }
             $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
             $html .= "<td class='rc_data data'>$rc</td>";
