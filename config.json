@@ -195,6 +195,12 @@
             ]
         },
         {
+            "key": "disable-ssl-verify",
+            "name": "For testing ONLY Disable SSL verification when making requests.",
+            "required": false,
+            "type": "checkbox"
+        },
+        {
             "key": "enable-system-debug-logging",
             "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
             "required": false,

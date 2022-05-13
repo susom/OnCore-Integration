@@ -97,6 +97,11 @@ abstract class Clients
     private $onCoreStudySites = [];
 
     /**
+     * @var bool
+     */
+    private bool $disableVerification = false;
+
+    /**
      * @param $PREFIX
      */
     public function __construct($PREFIX, $redcapCSFRToken)
@@ -127,6 +132,8 @@ abstract class Clients
         $this->setStatusesAllowedToPush(ExternalModules::getSystemSetting($this->getPrefix(), 'protocol-status') ?: []);
 
         $this->setOnCoreStudySites(ExternalModules::getSystemSetting($this->getPrefix(), 'study-site') ?: []);
+
+        $this->setDisableVerification(ExternalModules::getSystemSetting($this->getPrefix(), 'disable-ssl-verify') ? false : true);
 
         $this->setRedcapCSFRToken($redcapCSFRToken);
 
@@ -159,6 +166,7 @@ abstract class Clients
         $jwt = $this->getAccessToken();
         $options = [
             'debug' => false,
+            'verify' => $this->isDisableVerification(),
             'headers' => [
                 'Authorization' => "Bearer {$jwt}",
             ]
@@ -470,6 +478,22 @@ abstract class Clients
     public function setOnCoreStudySites(array $onCoreStudySites): void
     {
         $this->onCoreStudySites = $onCoreStudySites;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isDisableVerification(): bool
+    {
+        return $this->disableVerification;
+    }
+
+    /**
+     * @param bool $disableVerification
+     */
+    public function setDisableVerification(bool $disableVerification): void
+    {
+        $this->disableVerification = $disableVerification;
     }
 
 
