@@ -564,10 +564,18 @@ class Subjects extends SubjectDemographics
         }
     }
 
-    public function pushToOnCore($protocolId, $studySite, $redcapId, $fields, $oncoreFieldsDef)
+    private function getOnCoreStudySite($redcapRecord, $field)
+    {
+        $studySite = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+        $map = $this->getMapping()->getREDCapMappedValue($studySite, $field);
+        return $map['oc'];
+    }
+
+    public function pushToOnCore($protocolId, $redcapId, $fields, $oncoreFieldsDef)
     {
         $record = $this->getRedcapProjectRecords()[$redcapId];
         $redcapMRN = $record[OnCoreIntegration::getEventNameUniqueId($fields['mrn']['event'])][$fields['mrn']['redcap_field']];
+        $studySite = $this->getOnCoreStudySite($record, $fields['studySites']);
         $onCoreRecord = $this->searchOnCoreSubjectUsingMRN($redcapMRN);
         if (empty($onCoreRecord)) {
             $demographics = $this->prepareREDCapRecordForOnCorePush($redcapId, $fields, $oncoreFieldsDef);
@@ -647,6 +655,7 @@ class Subjects extends SubjectDemographics
         $record = $this->getRedcapProjectRecords()[$redcapId];
         $data = [];
         foreach ($fields as $key => $field) {
+            unset($map);
             $redcapValue = $record[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
             if (!isset($field['value_mapping'])) {
 
@@ -677,14 +686,16 @@ class Subjects extends SubjectDemographics
                     } else {
                         $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
                         if (!$map) {
-                            throw new \Exception('cant find map for redcap value ' . $redcapValue);
+//                            throw new \Exception('cant find map for redcap value ' . $redcapValue);
+                            continue;
                         }
                         $data[$key] = $map['oc'];
                     }
                 } else {
                     $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
                     if (!$map) {
-                        throw new \Exception('cant find map for redcap value ' . $redcapValue);
+//                        throw new \Exception('cant find map for redcap value ' . $redcapValue);
+                        continue;
                     }
                     $data[$key] = $map['oc'];
                 }

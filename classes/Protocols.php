@@ -228,7 +228,7 @@ class Protocols
     public function pushREDCapRecordToOnCore($redcapRecordId, $oncoreFieldsDef)
     {
         // TODO get study site from redcap record.
-        $result = $this->getSubjects()->pushToOnCore($this->getEntityRecord()['oncore_protocol_id'], 'SHC Main Hosp, Pasteur, Welch & campus/nearby clinics', $redcapRecordId, $this->getMapping()->getProjectFieldMappings()['push'], $oncoreFieldsDef);
+        $result = $this->getSubjects()->pushToOnCore($this->getEntityRecord()['oncore_protocol_id'], $redcapRecordId, $this->getMapping()->getProjectFieldMappings()['push'], $oncoreFieldsDef);
         // reset loaded subjects for protocol so we can pull them after creating new one.
         $this->getSubjects()->setOnCoreProtocolSubjects(null, true);
 
