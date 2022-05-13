@@ -99,7 +99,7 @@ abstract class Clients
     /**
      * @var bool
      */
-    private bool $disableVerification = false;
+    private $disableVerification = false;
 
     /**
      * @param $PREFIX
@@ -109,9 +109,13 @@ abstract class Clients
         $this->setPREFIX($PREFIX);
 
 
+        $this->setDisableVerification(ExternalModules::getSystemSetting($this->getPrefix(), 'disable-ssl-verify') ? false : true);
+
+
         $this->setGuzzleClient(new \GuzzleHttp\Client([
                 'timeout' => 30,
-                'connect_timeout' => 5
+                'connect_timeout' => 5,
+                'verify' => $this->isDisableVerification(),
             ]
         ));
 
@@ -132,8 +136,6 @@ abstract class Clients
         $this->setStatusesAllowedToPush(ExternalModules::getSystemSetting($this->getPrefix(), 'protocol-status') ?: []);
 
         $this->setOnCoreStudySites(ExternalModules::getSystemSetting($this->getPrefix(), 'study-site') ?: []);
-
-        $this->setDisableVerification(ExternalModules::getSystemSetting($this->getPrefix(), 'disable-ssl-verify') ? false : true);
 
         $this->setRedcapCSFRToken($redcapCSFRToken);
 
@@ -166,7 +168,6 @@ abstract class Clients
         $jwt = $this->getAccessToken();
         $options = [
             'debug' => false,
-            'verify' => $this->isDisableVerification(),
             'headers' => [
                 'Authorization' => "Bearer {$jwt}",
             ]

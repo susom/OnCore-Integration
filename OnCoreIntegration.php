@@ -581,7 +581,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             var oncore_integrations = <?=json_encode($oncore_integrations); ?>;
             var has_oncore_integration = <?=json_encode($has_oncore_integration); ?>;
 
-            var has_field_mappings = <?=json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ?: []); ?>;
+            var has_field_mappings = <?=json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false); ?>;
             var last_adjudication = <?=json_encode($this->getSyncDiffSummary()); ?>;
 
             var make_oncore_module = function () {
@@ -609,7 +609,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     content_bdy.append(lead);
 
                     //IF ONCORE HAS BEEN INTEGATED WITH THIS PROJECT, THEN DISPLAY SUMMARY OF LAST ADJUDICATION
-                    if (has_field_mappings.length > 0) {
+                    if (has_field_mappings) {
                         var lead_class = "oncore_results";
                         var lead_text = "Results summary from last adjudication : ";
                         lead_text += "<ul class='summary_oncore_adjudication'>";
