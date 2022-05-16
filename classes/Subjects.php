@@ -539,7 +539,7 @@ class Subjects extends SubjectDemographics
             }
         }
 
-        $response = $this->getUser()->post('protocolSubjects', ['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographics' => $subjectDemographics, 'subjectDemographicsId' => $subjectDemographicsId]);
+        $response = $this->getUser()->post('protocolSubjects', ['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographics' => $subjectDemographics, 'subjectDemographicsId' => $subjectDemographicsId, 'status' => 'ON STUDY']);
 
 
         if ($response->getStatusCode() == 201) {
