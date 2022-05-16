@@ -45,6 +45,16 @@
                 "name": "OnCore Logs Entity table",
                 "icon": "fas fa-database",
                 "url": "pages/logs_viewer.php"
+            },
+            {
+                "name": "OnCore Protocols table",
+                "icon": "fas fa-database",
+                "url": "pages/protocols_viewer.php"
+            },
+            {
+                "name": "OnCore Subjects table",
+                "icon": "fas fa-database",
+                "url": "pages/subjects_viewer.php"
             }
         ],
         "project": [
