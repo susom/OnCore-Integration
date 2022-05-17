@@ -32,7 +32,21 @@ class Mapping
     {
         $field_list     = json_decode(trim($this->module->getSystemSetting("oncore-field-definition")), true);
         $study_sites    = $this->module->getUsers()->getOnCoreStudySites();
-        $field_list["studySites"] = array("oncore_valid_values" => $study_sites , "oncore_field_type" => array("text"));
+        //TODO PUT THIS SOMEWHERE ELSE
+        $subject_status = array("CONSENT",
+                            "WAIVED, CONSENT",
+                            "REFUSED",
+                            "CONSENTED",
+                            "WITHDRAWN",
+                            "ELIGIBLE",
+                            "ELIGIBLE(O), NOT",
+                            "ELIGIBLE, ON STUDY",
+                            "ON TREATMENT, OFF",
+                            "TREATMENT, ON",
+                            "FOLLOW UP, OFF",
+                            "STUDY, EXPIRED");
+        $field_list["studySites"]       = array("oncore_valid_values" => $study_sites , "oncore_field_type" => array("text"), "required" => "true");
+        $field_list["subjectStatus"]    = array("oncore_valid_values" => $subject_status , "oncore_field_type" => array("text"), "required" => "true");
         return $field_list;
     }
 
@@ -450,7 +464,7 @@ class Mapping
     {
         if(empty($this->oncore_subset)){
             $arr = json_decode(ExternalModules::getProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_ONCORE_SUBSET), true);
-            $this->oncore_subset = $arr ?: [];
+            $this->oncore_subset = $arr ?: ["mrn"];
         }
         return $this->oncore_subset;
     }
@@ -483,8 +497,9 @@ class Mapping
         $oncore_fields      = $this->getOnCoreFields();
         $project_mappings   = $this->getProjectMapping();
 
-        $pull_html = "";
-        $push_html  = "";
+        $pull_html      = "";
+        $push_html      = "";
+        $push_html_opt  = "";
 
         //REDCap Data Dictionary Fields w/ generic 'xxx'name
         $event_fields = array();
@@ -509,7 +524,6 @@ class Mapping
         foreach($oncore_fields as $field => $field_details) {
             //ONLY SHOW THOSE IN THE CHOSEN SUBSET
 
-
             //each select will have different input['name']
             $rc_map_select     = str_replace("[ONCORE_FIELD]", $field, $rc_select);
 
@@ -529,11 +543,14 @@ class Mapping
                     $pull_value_map_html    = $this->makeValueMappingUI($field, $rc_field_name);
                     $pull_status            = $this->getPullStatus($field) ? "ok" : "";
                 }
+
+                $trash = $field !== "mrn" ? "<i class='fas fa-trash delete_pull_prop' data-oncore_prop='$field'></i>" : "";
                 $pull_html .= "<tr class='$field'>\r\n";
-                $pull_html .= "<td class='oc_field'>$field</td>";
+                $pull_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-right map_arrow'></i></td>";
                 $pull_html .= "<td class='rc_selects'>$pull_rc_map_select</td>";
                 $pull_html .= "<td class='rc_event centered'>$event_name</td>";
                 $pull_html .= "<td class='centered status pull $pull_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
+                $pull_html .= "<td>$trash</td>";
                 $pull_html .= "</tr>\r\n";
                 if (!empty($pull_value_map_html["html"])) {
                     $pull_html .= $pull_value_map_html["html"];
@@ -544,6 +561,7 @@ class Mapping
             $push_value_map_html    = "";
             $event_name             = "";
             $push_rc_map_select     = $rc_map_select;
+
             if (array_key_exists($field, $project_mappings["push"])) {
                 $rc_field_name          = $this->getMappedRedcapField($field,1 );
                 $oncore_field           = $field;
@@ -559,22 +577,37 @@ class Mapping
 
                 $push_status            = $this->getPushStatus($oncore_field) ? "ok" : "";
             }
+
             $push_rc_map_select = str_replace("[MAP_DIRECTION]", "push", $push_rc_map_select);
-            $push_html .= "<tr class='$field'>\r\n";
-            $push_html .= "<td class='oc_field'>$field</td>";
-            $push_html .= "<td class='rc_selects'>$push_rc_map_select</td>";
-            $push_html .= "<td class='rc_event centered'>$event_name</td>";
-            $push_html .= "<td class='centered status push $push_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
-            $push_html .= "</tr>\r\n";
-            if (!empty($push_value_map_html["html"])) {
-                $push_html .= $push_value_map_html["html"];
+
+            $required = $field_details["required"];
+            if($required === "true"){
+                $push_html .= "<tr class='$field'>\r\n";
+                $push_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></td>";
+                $push_html .= "<td class='rc_selects'>$push_rc_map_select</i></td>";
+                $push_html .= "<td class='rc_event centered'>$event_name</td>";
+                $push_html .= "<td class='centered status push $push_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
+                $push_html .= "</tr>\r\n";
+                if (!empty($push_value_map_html["html"])) {
+                    $push_html .= $push_value_map_html["html"];
+                }
+            }else{
+                $push_html_opt .= "<tr class='$field'>\r\n";
+                $push_html_opt .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></td>";
+                $push_html_opt .= "<td class='rc_selects'>$push_rc_map_select</td>";
+                $push_html_opt .= "<td class='rc_event centered'>$event_name</td>";
+                $push_html_opt .= "<td class='centered status push $push_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
+                $push_html_opt .= "</tr>\r\n";
+                if (!empty($push_value_map_html["html"])) {
+                    $push_html_opt .= $push_value_map_html["html"];
+                }
             }
         }
 
         return array(   "project_mappings"  => $project_mappings,
                         "oncore_fields"     => $oncore_fields,
                         "pull"  => $pull_html,
-                        "push"  => $push_html,
+                        "push"  => array("required" => $push_html, "optional" => $push_html_opt)
         );
     }
 
@@ -617,13 +650,13 @@ class Mapping
                     $value_map_status   = "ok";
                 }
                 $value_map_html .= "<tr>\r\n";
-                $value_map_html .= "<td>$oc_value</td>\r\n";
+                $value_map_html .= "<td>$oc_value <i class='fas fa-angle-double-right map_arrow'></td>\r\n";
                 $value_map_html .= "<td>$value_select</td>\r\n";
                 $value_map_html .= "<td class='centered value_map_status $value_map_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>\r\n";
                 $value_map_html .= "<td></td>\r\n";
                 $value_map_html .= "</tr>\r\n";
             }
-            $value_map_html .= "</table>\r\n</td><td colspan='2'></td></tr>\r\n";
+            $value_map_html .= "</table>\r\n</td><td colspan='3'></td></tr>\r\n";
         }
         return array("html" => $value_map_html);
     }
@@ -668,7 +701,7 @@ class Mapping
 
                 }
                 $value_map_html .= "<tr>\r\n";
-                $value_map_html .= "<td>$value_select</td>\r\n";
+                $value_map_html .= "<td>$value_select <i class='fas fa-angle-double-left map_arrow'></td>\r\n";
                 $value_map_html .= "<td>$rc_value</td>\r\n";
                 $value_map_html .= "<td class='centered value_map_status $value_map_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>\r\n";
                 $value_map_html .= "<td></td>\r\n";
