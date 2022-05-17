@@ -324,7 +324,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
         //SOME RESPONSIVE UI TO SEE
         //ON SELECT OF TOP LEVEL REDCAP FIELD
-        $("#oncore_mapping").on("change","select.redcap_field", function(){
+        $("#oncore_mapping, #redcap_mapping").on("change","select.redcap_field", function(){
             if($(this).find("option:selected")){
                 var _opt            = $(this).find("option:selected");
                 var map_direction   = $(this).data("mapdir") == "push" ? "push" : "pull";
