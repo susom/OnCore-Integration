@@ -55,8 +55,8 @@ class Protocols
         if ($redcapProjectId) {
             $this->prepareProtocol($redcapProjectId);
 
-            // get all protocol staff and find current user OnCore contact
-            if ($this->getEntityRecord()) {
+            // get all protocol staff and find current user OnCore contact. do not prepare for cron because no user will be found.
+            if ($this->getEntityRecord() && $this->getUser()->getRedcapUser()) {
                 $this->getUser()->prepareUser($this->getEntityRecord()['id'], $this->getEntityRecord()['oncore_protocol_id']);
             }
         }
