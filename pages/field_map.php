@@ -4,13 +4,20 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-$current_mapping        = $module->getMapping()->getProjectMapping();
-//$module->emDebug($current_mapping);
+$mapping                = $module->getMapping();
+
+//$mapping->setProjectOncoreSubset(["mrn", "firstName", "lastName", "gender"]);
+//exit;
+$current_mapping        = $mapping->getProjectMapping();
+$project_oncore_subset  = $mapping->getProjectOncoreSubset();
+
+$module->emDebug("current field maps", $current_mapping);
+$module->emDebug("current pull subset", $project_oncore_subset);
 
 $oncore_css             = $module->getUrl("assets/styles/field_mapping.css");
 $ajax_endpoint          = $module->getUrl("ajax/handler.php");
 $icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
-$mapping                = $module->getMapping();
+
 
 $pushpull_pref          = $mapping->getProjectPushPullPref();
 $overall_pull_status    = $mapping->getOverallPullStatus() ? "ok" : "";
@@ -19,18 +26,40 @@ $overall_push_status    = $mapping->getOverallPushStatus() ? "ok" : "";
 $field_map_ui           = $mapping->makeFieldMappingUI();
 $oncore_fields          = $field_map_ui["oncore_fields"];
 $pull_html              = $field_map_ui["pull"];
-$push_html              = $field_map_ui["push"];
+$push_html              = $field_map_ui["push"]["required"];
+$push_html_optional     = $field_map_ui["push"]["optional"];
 
 //ONCORE FIELD SUB SET SELECTION
 $oncore_props           = $mapping->getOnCoreFieldDefinitions();
-$project_oncore_subset  = $mapping->getProjectOncoreSubset();
 $field_selection        = array();
 $field_selection[]      = "<ul>\r\n";
+
+
+$req_field = [];
+$opt_field = [];
 foreach($oncore_props as $field => $props){
+    $req        = $props["required"];
+    $selection  = "<button class='dropdown-item oncore_pull_prop' type='button' data-val='$field'>$field</button>";
+    if($req == "true"){
+        $req_field[] = $selection;
+    }else{
+        $opt_field[] = $selection;
+    }
     $checked            = in_array($field, $project_oncore_subset) ? "checked" : "";
-    $field_selection[]   = "<li><label><input type='checkbox' $checked name='oncore_field_subset' value='$field'><span>$field</span></label></li>\r\n";
+    $field_selection[]  = "<li><label><input type='checkbox' $checked name='oncore_field_subset' value='$field'><span>$field</span></label></li>\r\n";
 }
 $field_selection[]      = "</ul>\r\n";
+
+$bs_dropdown    = array();
+$bs_dropdown[]  = '<div class="dropdown-menu" aria-labelledby="dropdownMenu2">';
+$bs_dropdown[]  = '<h6 class="dropdown-header">Required</h6>';
+$bs_dropdown[]  = implode("\r\n",$req_field);
+$bs_dropdown[]  = '<div class="dropdown-divider"></div>';
+$bs_dropdown[]  = '<h6 class="dropdown-header">Optional</h6>';
+$bs_dropdown[]  = implode("\r\n",$opt_field);
+$bs_dropdown[]  = '</div>';
+$pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
+
 ?>
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
@@ -62,11 +91,6 @@ $field_selection[]      = "</ul>\r\n";
                 <label class="map_dir">
                     <input type="checkbox" class="pCheck" data-tab="push_mapping" value="2"> Do you want to PUSH subject data from REDCap to OnCore
                 </label>
-
-                <div id="oncore_fields">
-                    <h2>Choose which OnCore Properties will be used with this REDCap project</h2>
-                    <?=implode("", $field_selection) ?>
-                </div>
             </form>
         </div>
 
@@ -76,6 +100,14 @@ $field_selection[]      = "</ul>\r\n";
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
                     project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
                     Settings to be able to PULL.</p>
+
+                <div id="oncore_prop_selector" class="pull-right">
+                    <button class="btn btn-warning btn-lg dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Add an OnCore Property to Map
+                    </button>
+                    <?=$pull_oncore_prop_dd?>
+                </div>
+
                 <table class="table table-striped">
                     <thead>
                     <tr>
@@ -83,6 +115,7 @@ $field_selection[]      = "</ul>\r\n";
                         <th class="td_rc_field">REDCap Field</th>
                         <th class="td_rc_event centered">REDCap Event</th>
                         <th class="td_pull centered">Pull Status</th>
+                        <th></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -107,13 +140,21 @@ $field_selection[]      = "</ul>\r\n";
                         <th class="td_push centered">Push Status</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="required">
                     <?= $push_html ?>
+                    </tbody>
+
+                    <tfoot>
+                    <tr><td colspan="4"><button class="btn btn-secondary btn-lg " type="button" id="show_optional" ><b>Show</b> Optional OnCore Properties</button></td></tr>
+                    </tfoot>
+                    <tbody class="opt_props">
+                    <?= $push_html_optional ?>
                     </tbody>
                 </table>
             </form>
         </div>
     </div>
+
 </div>
 <style>
 #field_mapping .loading::after{
@@ -124,13 +165,38 @@ $field_selection[]      = "</ul>\r\n";
     background-size:contain;
 }
 
+.map_dir{
+    font-size:120%;
+    margin-bottom:20px;
+}
+
 #field_mapping .optional{
     display:none;
 }
 
-.map_dir{
-    font-size:120%;
-    margin-bottom:20px;
+#oncore_prop_selector {
+    position:initial;
+    display:block;
+    margin-bottom:10px;
+}
+#oncore_prop_selector .dropdown-menu{
+    max-width:300px;
+}
+
+#show_optional{
+    margin:5px 0;
+}
+
+.delete_pull_prop{
+    cursor:pointer;
+}
+
+.map_arrow{
+    float:right;
+    margin:5px;
+}
+.value_map .map_arrow{
+    margin: 5px 10px;
 }
 </style>
 <script>
@@ -169,6 +235,18 @@ $field_selection[]      = "</ul>\r\n";
 
         //SUPERFICIAL UI
         oncoreConfigVis(pushpull_pref);
+        $("#field_mapping .opt_props").hide();
+        $("#show_optional").click(function(e){
+            e.preventDefault();
+
+            if($("#field_mapping .opt_props").is(":visible")){
+                $("#field_mapping .opt_props").slideUp();
+                $(this).find("b").text("Show");
+            }else{
+                $("#field_mapping .opt_props").slideDown();
+                $(this).find("b").text("Hide");
+            }
+        });
 
         //TAB BEHAVIOR
         $("#field_mapping ul.nav-tabs a").on("click", function(){
@@ -246,7 +324,7 @@ $field_selection[]      = "</ul>\r\n";
 
         //SOME RESPONSIVE UI TO SEE
         //ON SELECT OF TOP LEVEL REDCAP FIELD
-        $("select.redcap_field").on("change",function(){
+        $("#oncore_mapping").on("change","select.redcap_field", function(){
             if($(this).find("option:selected")){
                 var _opt            = $(this).find("option:selected");
                 var map_direction   = $(this).data("mapdir") == "push" ? "push" : "pull";
@@ -326,7 +404,7 @@ $field_selection[]      = "</ul>\r\n";
                             _select.removeClass("second_level_trigger");
                         }
                         updateOverAllStatus();
-                        $("#field_mapping .loading").removeClass("loading");
+
                     }).fail(function (e) {
                         console.log("failed to save", e);
                     });
@@ -334,7 +412,7 @@ $field_selection[]      = "</ul>\r\n";
                     return new Promise(function (resolve, reject) {
                         setTimeout(function () {
                             resolve(data);
-                        }, 2000);
+                        }, 1000);
                     });
                 });
             }
@@ -411,14 +489,12 @@ $field_selection[]      = "</ul>\r\n";
         });
 
         //ONCORE SUBSET
-        $("#oncore_fields").on("change", "input[name='oncore_field_subset']",function(e){
+        $(".oncore_pull_prop").on("click", function(e){
             e.preventDefault();
-            var oncore_subset = $("#oncore_fields").find("input:checked").serializeArray();
+            var _this       = $(this);
+            var oncore_prop = _this.data("val");
 
-            var os = [];
-            $("#oncore_fields").find("input:checked").each(function(){
-                os.push($(this).val());
-            });
+            $("#oncore_prop_selector .dropdown-toggle").prop("disabled","disabled");
 
             ajaxQueue.addRequest(function () {
                 // -- your ajax request goes here --
@@ -427,11 +503,13 @@ $field_selection[]      = "</ul>\r\n";
                     method: 'POST',
                     data: {
                         "action": "saveOncoreSubset",
-                        "oncore_subset" : os
+                        "oncore_prop" : oncore_prop
                     },
                     dataType: 'json'
                 }).done(function (result) {
                     $("#oncore_mapping tbody").empty().append(result["pull"]);
+                    $("#oncore_prop_selector .dropdown-toggle").prop("disabled",false);
+                    _this.remove();
                     updateOverAllStatus();
                 }).fail(function (e) {
                     console.log("saveOncoreSubset failed to save", e);
@@ -444,6 +522,37 @@ $field_selection[]      = "</ul>\r\n";
                 });
             });
         });
+
+        //DELETE PULL PROP
+        $("#oncore_mapping").on("click", ".delete_pull_prop", function(e){
+            e.preventDefault(e);
+            var oncore_prop = $(this).data("oncore_prop");
+
+            ajaxQueue.addRequest(function () {
+                // -- your ajax request goes here --
+                return $.ajax({
+                    url: ajax_endpoint,
+                    method: 'POST',
+                    data: {
+                        "action": "deletePullField",
+                        "oncore_prop" : oncore_prop
+                    },
+                    dataType: 'json'
+                }).done(function (result) {
+                    $("#oncore_mapping tr."+oncore_prop).fadeOut(function(){
+                        $(this).remove();
+                    });
+                }).fail(function (e) {
+                    console.log("saveOncoreSubset failed to save", e);
+                });
+
+                return new Promise(function (resolve, reject) {
+                    setTimeout(function () {
+                        resolve(data);
+                    }, 1000);
+                });
+            });
+        })
     });
 
     function oncoreConfigVis(initial_pushpull){
@@ -547,6 +656,7 @@ $field_selection[]      = "</ul>\r\n";
                 //CLEAR EXISTING ROW BEFORE BUILDING NEW UI
                 $(parent_id + " tr.more." + oncore_field).remove();
                 $(result).insertAfter($(parent_id + " tr." + oncore_field));
+                $("#field_mapping .loading").removeClass("loading");
             }
         }).fail(function (e) {
             console.log("failed to get value mapping row", e);
