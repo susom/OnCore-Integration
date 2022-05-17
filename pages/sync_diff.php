@@ -61,21 +61,23 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null, $excluded=n
         foreach($rows as $row){
             $entity_id      = $row["entity_id"];
 
-            $oc_id          = $row["oc_id"];
-            $oc_pr_id       = $row["oc_pr_id"];
-            $rc_id          = $row["rc_id"];
+            $oc_id = $row["oc_id"];
+            $oc_pr_id = $row["oc_pr_id"];
+            $rc_id = $row["rc_id"];
 
-            $oc_field       = $row["oc_field"];
-            $rc_field       = $row["rc_field"];
+            $oc_field = $row["oc_field"];
+            $rc_field = $row["rc_field"];
 
-            $rc_data        = $row["rc_data"];
-            $oc_data        = $row["oc_data"];
+            $rc_data = $row["rc_data"];
+            $oc_data = $row["oc_data"];
 
-            $oc_alias       = $module->getMapping()->getOncoreAlias($oc_field);
+            $oc_status = $row['oc_status'];
+
+            $oc_alias = $module->getMapping()->getOncoreAlias($oc_field);
             $oc_description = $module->getMapping()->getOncoreDesc($oc_field);
-            $oc_type        = $module->getMapping()->getOncoreType($oc_field);
+            $oc_type = $module->getMapping()->getOncoreType($oc_field);
 
-            $ts_last_scan   = $row["ts_last_scan"];
+            $ts_last_scan = $row["ts_last_scan"];
 
             $rc = !empty($rc_field) ? $rc_data : "";
             $oc = !empty($oc_field) ? $oc_data : "";
@@ -103,22 +105,30 @@ function makeSyncTableHTML($records, $noredcap=null, $disabled=null, $excluded=n
             $html .= "<tr class='$diffmatch $showit'>";
             if(!$print_rowspan){
                 $print_rowspan  = true;
-                $id_info        = array();
-                if(!empty($mrn)) {
+                $id_info = array();
+                if (!empty($mrn)) {
                     $id_info[] = "MRN : $mrn";
                 }
-                if(!empty($rc_id)) {
+                if (!empty($rc_id)) {
                     $id_info[] = "REDCap ID : $rc_id";
                 }
                 if (!empty($oc_pr_id)) {
                     $id_info[] = "OnCore Subject ID : $oc_pr_id";
                 }
+                if (!empty($oc_status)) {
+                    $id_info[] = "OnCore Subject Status : $oc_status";
+                    $oc_status_class = '';
+                } else {
+                    $id_info[] = "<strong style='color: #e74c3c'>OnCore Subject Status : NULL(Assign status from OnCore UI)</strong>";
+                    $oc_status_class = 'missing-status';
+                }
+
                 $exclude_class = $excluded ? "include_subject" : "exclude_subject";
                 $exclude_text = $excluded ? "Re-Include" : "Exclude";
                 $id_info[] = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
                 $id_info = implode("<br>", $id_info);
                 $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id'  data-mrn='$mrn'  value='$oc_pr_id' checked/></td>";
-                $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
+                $html .= "<td class='rc_id $oc_status_class' rowspan=$rowspan>$id_info</td>";
             }
             $html .= "<td class='oc_data oc_field $showit'>$oc_alias</td>";
             $html .= "<td class='oc_data data $showit'>$oc</td>";
@@ -211,22 +221,29 @@ function makeOncoreTableHTML($records, $noredcap=null, $disabled=null, $excluded
             $html .= "<tr class='$diffmatch'>";
             if(!$print_rowspan){
                 $print_rowspan  = true;
-                $id_info        = array();
-                if(!empty($mrn)) {
+                $id_info = array();
+                if (!empty($mrn)) {
                     $id_info[] = "MRN : $mrn";
                 }
-                if(!empty($rc_id)) {
+                if (!empty($rc_id)) {
                     $id_info[] = "REDCap ID : $rc_id";
                 }
-                if(!empty($oc_pr_id)) {
+                if (!empty($oc_pr_id)) {
                     $id_info[] = "OnCore Subject ID : $oc_pr_id";
                 }
-                $exclude_class  = $excluded ? "include_subject" : "exclude_subject";
-                $exclude_text   = $excluded ? "Re-Include" : "Exclude";
-                $id_info[]      = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
+                if (!empty($oc_status)) {
+                    $id_info[] = "OnCore Subject Status : $oc_status";
+                    $oc_status_class = '';
+                } else {
+                    $id_info[] = "<strong style='color: #e74c3c'>OnCore Subject Status : NULL(Assign status from OnCore UI)</strong>";
+                    $oc_status_class = 'missing-status';
+                }
+                $exclude_class = $excluded ? "include_subject" : "exclude_subject";
+                $exclude_text = $excluded ? "Re-Include" : "Exclude";
+                $id_info[] = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
                 $id_info = implode("<br>", $id_info);
                 $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id' data-mrn='$mrn' value='$oc_pr_id' checked/></td>";
-                $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
+                $html .= "<td class='rc_id $oc_status_class' rowspan=$rowspan>$id_info</td>";
             }
             $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
             $html .= "<td class='oc_data data'>$oc</td>";
@@ -699,7 +716,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                         const rndInt = randomIntFromInterval(1000, 5000);
                         setTimeout(function () {
                             //some showman ship
-                            pushModal.setRowStatus(result.id, true, e.responseJSON.message);
+                            pushModal.setRowStatus(result.id, true, result.responseJSON.message);
                         }, rndInt);
                     }).fail(function (e) {
                         console.log("pushToOncore faile", e);

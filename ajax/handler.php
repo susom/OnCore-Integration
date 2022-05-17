@@ -189,6 +189,7 @@ try {
 } catch (\LogicException|ClientException|GuzzleException $e) {
     $response = $e->getResponse();
     $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+    $responseBodyAsString['message'] = $responseBodyAsString['field'] . ': ' . $responseBodyAsString['message'];
     Entities::createException($responseBodyAsString['message']);
     header("Content-type: application/json");
     http_response_code(404);

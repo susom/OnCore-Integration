@@ -46,12 +46,13 @@ tr td.oc_data.showit{
     display:table-cell;
 }
 
-tr.diff td:not(.rc_id, .import, .ts_last_scan, .link_status){
-    background:#f2dede !important;
+tr.diff td:not(.rc_id, .import, .ts_last_scan, .link_status), .missing-status {
+    background: #f2dede !important;
 }
-tr.diff td.data{
-    color:#e74c3c;
-    font-weight:bold;
+
+tr.diff td.data {
+    color: #e74c3c;
+    font-weight: bold;
 }
 
 .oc_field {
