@@ -45,10 +45,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const PARTIAL_MATCH = 3;
 
-    const REDCAP_ONCORE_FIELDS_MAPPING_NAME     = 'redcap-oncore-fields-mapping';
-    const REDCAP_ONCORE_PROJECT_SITE_STUDIES    = 'redcap-oncore-project-site-studies';
-    const REDCAP_ONCORE_PROJECT_ONCORE_SUBSET   = 'redcap-oncore-project-oncore-subset';
-    const REDCAP_ONCORE_PROJECT_PUSHPULL_PREF   = 'redcap-oncore-project-pushpull-pref';
+    const REDCAP_ONCORE_FIELDS_MAPPING_NAME = 'redcap-oncore-fields-mapping';
+    const REDCAP_ONCORE_PROJECT_SITE_STUDIES = 'redcap-oncore-project-site-studies';
+    const REDCAP_ONCORE_PROJECT_ONCORE_SUBSET = 'redcap-oncore-project-oncore-subset';
+    const REDCAP_ONCORE_PROJECT_PUSHPULL_PREF = 'redcap-oncore-project-pushpull-pref';
 
     const ONCORE_PROTOCOL_STATUS_NO = 0;
 
@@ -169,8 +169,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function initiateProtocol()
     {
-        if (!$this->users) {
-            $this->setUsers(new Users($this->PREFIX, $this->framework->getUser() ?: null, $this->getCSRFToken()));
+        try {
+            if (!$this->users) {
+                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser() ?: null, $this->getCSRFToken()));
+            }
+        } catch (\Exception $e) {
+            // this is a special case for cron no redcap user.
+            $this->setUsers(new Users($this->PREFIX, null, $this->getCSRFToken()));
         }
         if (!$this->protocols) {
             $this->setProtocols(new Protocols($this->getUsers(), $this->getMapping(), $this->getProjectId()));
@@ -551,34 +556,35 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $types;
     }
 
-    public function redcap_module_link_check_display($project_id, $link)
-    {
-        global $Proj;
-        // only project context
-        if ($Proj) {
-
-            //RACE CONDITIONs THIS FIRES BEFORE redcap_every_page_top
-            $entity_record = $this->hasOnCoreIntegration();
-            if (!empty($entity_record)) {
-                return $link;
-            }
-        }
-        //for control center to display CP links.
-        if (\ExternalModules\ExternalModules::isSuperUser()) {
-            // Super users can see all pages
-            return $link;
-        }
-    }
+    // this is not needed because EM is enabled per project is protocol exists.
+//    public function redcap_module_link_check_display($project_id, $link)
+//    {
+//        global $Proj;
+//        // only project context
+//        if ($Proj) {
+//
+//            //RACE CONDITIONs THIS FIRES BEFORE redcap_every_page_top
+//            $entity_record = $this->hasOnCoreIntegration();
+//            if (!empty($entity_record)) {
+//                return $link;
+//            }
+//        }
+//        //for control center to display CP links.
+//        if (\ExternalModules\ExternalModules::isSuperUser()) {
+//            // Super users can see all pages
+//            return $link;
+//        }
+//    }
 
 
     //ONCORE INTEGRATION/STATUS METHODS
     public function injectIntegrationUI()
     {
-        $field_map_url              = $this->getUrl("pages/field_map.php");
-        $ajax_endpoint              = $this->getUrl("ajax/handler.php");
+        $field_map_url = $this->getUrl("pages/field_map.php");
+        $ajax_endpoint = $this->getUrl("ajax/handler.php");
 
         $available_oncore_protocols = $this->getOnCoreProtocols();
-        $oncore_integrations        = $this->getOnCoreIntegrations();
+        $oncore_integrations = $this->getOnCoreIntegrations();
         $has_oncore_integration = $this->hasOnCoreIntegration();
         ?>
         <script>
@@ -601,7 +607,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     new_section.find(".chklisthdr span").text("OnCore Project Integration");
                     new_section.find(".chklisttext").empty();
 
-                    if(new_section.find("img#img-modules").length){
+                    if (new_section.find("img#img-modules").length) {
                         new_section.find("img#img-modules").attr("id", "img-oncore");
                         var img_src = new_section.find("img#img-oncore").attr("src");
                         var src_tmp = img_src.split("/");
@@ -629,7 +635,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         lead_text += "</ul>";
                     } else {
                         var lead_class = "oncore_mapping";
-                        var lead_text = "Please <a href='"+field_map_url+"'>Click Here</a> to map OnCore fields to this project.";
+                        var lead_text = "Please <a href='" + field_map_url + "'>Click Here</a> to map OnCore fields to this project.";
                     }
 
                     lead.addClass(lead_class);
@@ -639,31 +645,31 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
             //  this over document.ready because we need this last!
             $(window).on('load', function () {
-                if(has_oncore_integration){
+                if (has_oncore_integration) {
                     //BORROW UI FROM OTHER ELEMENT TO ADD A NEW MODULE TO PROJECT SETUP
                     make_oncore_module();
                 }
 
-                if(Object.keys(oncore_integrations).length){
-                    if($("#setupChklist-modify_project button:contains('Modify project title, purpose, etc.')").length){
+                if (Object.keys(oncore_integrations).length) {
+                    if ($("#setupChklist-modify_project button:contains('Modify project title, purpose, etc.')").length) {
                         //ADD LINE TO MAIN PROJECT SEETTINGS IF THERE IS POSSIBLE ONCORE INTEGRATION
-                        for(var protocolId in oncore_integrations){
-                            let integration         = oncore_integrations[protocolId];
-                            let protocol            = oncore_protocols[protocolId];
+                        for (var protocolId in oncore_integrations) {
+                            let integration = oncore_integrations[protocolId];
+                            let protocol = oncore_protocols[protocolId];
 
-                            let projectIntegrated   = integration["status"] == 2;
-                            let integration_entity  = integration["id"];
-                            let protocol_status     = protocol["protocolStatus"];
-                            let protocol_title      = protocol["shortTitle"];
+                            let projectIntegrated = integration["status"] == 2;
+                            let integration_entity = integration["id"];
+                            let protocol_status = protocol["protocolStatus"];
+                            let protocol_title = protocol["shortTitle"];
 
-                            let btn_text            = projectIntegrated ? "Unlink Project&nbsp;" : "Link Project&nbsp;";
-                            let integrated_class    = projectIntegrated ? "integrated" : "not_integrated";
-                            var line_text           = "with OnCore Protocol "+protocolId+" : "+protocol_title+" [<i>" + protocol_status.toLowerCase() + "</i>]";
-                            line_text               = projectIntegrated ?  "Linked " + line_text : "Link " + line_text;
+                            let btn_text = projectIntegrated ? "Unlink Project&nbsp;" : "Link Project&nbsp;";
+                            let integrated_class = projectIntegrated ? "integrated" : "not_integrated";
+                            var line_text = "with OnCore Protocol " + protocolId + " : " + protocol_title + " [<i>" + protocol_status.toLowerCase() + "</i>]";
+                            line_text = projectIntegrated ? "Linked " + line_text : "Link " + line_text;
 
-                            let integrate_text      = $("<span>").addClass("enable_oncore").html(line_text);
-                            let new_line            = $("<div>").addClass(integrated_class).attr("style","text-indent:-75px;margin-left:75px;padding:2px 0;font-size:13px;");
-                            let button              = $("<button>").data("entity_record_id", integration_entity).addClass("integrate_oncore").addClass("btn btn-defaultrc btn-xs fs11").html(btn_text);
+                            let integrate_text = $("<span>").addClass("enable_oncore").html(line_text);
+                            let new_line = $("<div>").addClass(integrated_class).attr("style", "text-indent:-75px;margin-left:75px;padding:2px 0;font-size:13px;");
+                            let button = $("<button>").data("entity_record_id", integration_entity).addClass("integrate_oncore").addClass("btn btn-defaultrc btn-xs fs11").html(btn_text);
                             new_line.append(button);
                             button.after(integrate_text);
 
@@ -677,21 +683,21 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 }
 
                 //INTEGRATE AJAX
-                $(".integrate_oncore").on("click",function(e){
+                $(".integrate_oncore").on("click", function (e) {
                     e.preventDefault();
 
-                    var _par                = $(this).parent("div");
-                    var need_to_integrate   = _par.hasClass("not_integrated") ? 1 : 0;
-                    var entity_record_id    = $(this).data("entity_record_id");
+                    var _par = $(this).parent("div");
+                    var need_to_integrate = _par.hasClass("not_integrated") ? 1 : 0;
+                    var entity_record_id = $(this).data("entity_record_id");
 
                     //LINKAGE AJAX
                     $.ajax({
-                        url : ajax_endpoint,
+                        url: ajax_endpoint,
                         method: 'POST',
                         data: {
-                            "action" : "integrateOnCore",
-                            "integrate" : need_to_integrate,
-                            "entity_record_id" : entity_record_id
+                            "action": "integrateOnCore",
+                            "integrate": need_to_integrate,
+                            "entity_record_id": entity_record_id
                         },
                         dataType: 'json'
                     }).done(function (oncore_integrated) {
@@ -703,15 +709,15 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 });
 
                 //TRIGGER CRON ON NEW IRB  INPUT
-                $("#project_irb_number").on("blur", function(){
+                $("#project_irb_number").on("blur", function () {
                     console.log("an IRB was input!");
                     var irb = $(this).val();
 
                     $.ajax({
-                        url : ajax_endpoint,
+                        url: ajax_endpoint,
                         method: 'POST',
                         data: {
-                            "action" : "triggerIRBSweep"
+                            "action": "triggerIRBSweep"
                         },
                         dataType: 'json'
                     }).done(function (e) {
@@ -722,38 +728,49 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     });
                 });
             });
-		</script>
+        </script>
         <style>
-            .not_integrated{
-                color:#800000;
+            .not_integrated {
+                color: #800000;
             }
-            .integrated{
-                color:green;
+
+            .integrated {
+                color: green;
             }
+
             .enable_oncore {
-                margin-left:5px;
+                margin-left: 5px;
             }
-            .oncore_mapping{
-                color:#9b5111
+
+            .oncore_mapping {
+                color: #9b5111
             }
-            .oncore_results{
-                color:#0098db
+
+            .oncore_results {
+                color: #0098db
             }
-            .summary_oncore_adjudication{
-                list-style:none;
-                margin:0; padding:0;
+
+            .summary_oncore_adjudication {
+                list-style: none;
+                margin: 0;
+                padding: 0;
             }
-            .summary_oncore_adjudication li { display:inline-block; }
-            .summary_oncore_adjudication li:after{
-                content:"|";
-                margin:0 5px;
+
+            .summary_oncore_adjudication li {
+                display: inline-block;
             }
-            .summary_oncore_adjudication li:last-child:after{
-                content:"";
-                margin:initial;
+
+            .summary_oncore_adjudication li:after {
+                content: "|";
+                margin: 0 5px;
+            }
+
+            .summary_oncore_adjudication li:last-child:after {
+                content: "";
+                margin: initial;
             }
         </style>
-		<?php
+        <?php
     }
 
     /**
@@ -773,16 +790,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getOnCoreProtocols(): array
     {
-        if(!$this->oncore_protocols){
+        if (!$this->oncore_protocols) {
             $this->initiateProtocol();
             $available_oncore_protocols = $this->getProtocols()->getOnCoreProtocol();
-            $this->oncore_protocols     = array();
+            $this->oncore_protocols = array();
             if (!empty($available_oncore_protocols)) {
-                if($this->isAssoc($available_oncore_protocols)){
+                if ($this->isAssoc($available_oncore_protocols)) {
                     $available_oncore_protocols = array($available_oncore_protocols);
                 }
             }
-            foreach($available_oncore_protocols as $oncore_project){
+            foreach ($available_oncore_protocols as $oncore_project) {
                 $this->oncore_protocols[$oncore_project["protocolId"]] = $oncore_project;
             }
         }
@@ -794,10 +811,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getOnCoreIntegrations()
     {
-        if(!$this->oncore_integrations){
+        if (!$this->oncore_integrations) {
             $this->initiateProtocol();
-            $entity_records             = $this->getProtocols()->getEntityRecord();
-            $this->oncore_integrations  = array();
+            $entity_records = $this->getProtocols()->getEntityRecord();
+            $this->oncore_integrations = array();
             if (!empty($entity_records)) {
                 if ($this->isAssoc($entity_records)) {
                     $entity_records = array($entity_records);
@@ -819,11 +836,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function hasOnCoreIntegration()
     {
-        if(!$this->has_oncore_integrations){
-            $this->has_oncore_integrations  = false;
-            $current_oncore_integrations    = $this->getOnCoreIntegrations();
-            foreach($current_oncore_integrations as $protocol_id => $oncore_integration){
-                if($oncore_integration["status"] == 2){
+        if (!$this->has_oncore_integrations) {
+            $this->has_oncore_integrations = false;
+            $current_oncore_integrations = $this->getOnCoreIntegrations();
+            foreach ($current_oncore_integrations as $protocol_id => $oncore_integration) {
+                if ($oncore_integration["status"] == 2) {
                     $this->has_oncore_integrations = true;
                     break;
                 }
@@ -837,12 +854,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     /**
      * @return date time Y-m-d H:i
      */
-    public function formatTS($ts){
+    public function formatTS($ts)
+    {
         return date("Y-m-d H:i", $ts);
     }
 
 
     //DATA SYNC METHODS
+
     /**
      * @return sync_diff
      */
@@ -851,36 +870,36 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $this->initiateProtocol();
         $this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
 
-        $records        = $this->getProtocols()->getSyncedRecords();
-        $mapped_fields  = $this->getMapping()->getProjectFieldMappings();
+        $records = $this->getProtocols()->getSyncedRecords();
+        $mapped_fields = $this->getMapping()->getProjectFieldMappings();
 
-        $sync_diff  = array();
-        $bin_match  = array("excluded" => array(), "included" => array());
+        $sync_diff = array();
+        $bin_match = array("excluded" => array(), "included" => array());
         $bin_oncore = array("excluded" => array(), "included" => array());
         $bin_redcap = array("excluded" => array(), "included" => array());
-        $bin_array  = array("bin_redcap", "bin_oncore", "bin_match", "bin_match");
-        $exclude    = array("mrn");
+        $bin_array = array("bin_redcap", "bin_oncore", "bin_match", "bin_match");
+        $exclude = array("mrn");
 
-        foreach($records as $record){
-            $link_status    = $record["status"];
-            $entity_id      = $record["entity_id"];
+        foreach ($records as $record) {
+            $link_status = $record["status"];
+            $entity_id = $record["entity_id"];
 
-            $excluded       = $record["excluded"] ?? 0;
-            $oncore         = null;
-            $redcap         = null;
+            $excluded = $record["excluded"] ?? 0;
+            $oncore = null;
+            $redcap = null;
 
-            $last_scan      = null;
-            $full           = false;
+            $last_scan = null;
+            $full = false;
 
-            $oc_id          = null;
-            $oc_pr_id       = null;
-            $rc_id          = null;
-            $oc_data        = null;
-            $rc_data        = null;
-            $rc_field       = null;
+            $oc_id = null;
+            $oc_pr_id = null;
+            $rc_id = null;
+            $oc_data = null;
+            $rc_data = null;
+            $rc_field = null;
             $rc_event = null;
             $oc_status = null;
-            switch($link_status){
+            switch ($link_status) {
                 case 2:
                     //full
                     $full = true;
@@ -889,16 +908,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
                 case 1:
                     //oncore only
-                    $oncore     = $record["oncore"];
-                    $oc_id      = $oncore["protocolId"];
+                    $oncore = $record["oncore"];
+                    $oc_id = $oncore["protocolId"];
                     $oc_pr_id = $oncore["protocolSubjectId"];
                     $oc_status = $oncore['status'];
                     $mrn = $oncore["demographics"]["mrn"];
-                    $last_scan  = date("Y-m-d H:i", $oncore["demographics"]["updated"]);
+                    $last_scan = date("Y-m-d H:i", $oncore["demographics"]["updated"]);
 
                 case 0:
                     //redcap only
-                    if(array_key_exists("redcap",$record)){
+                    if (array_key_exists("redcap", $record)) {
                         // set the keys for redcap array
                         $arr = current($record["redcap"]);
                         // this just to prepare the array to be displayed.
@@ -916,25 +935,25 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
                 default:
                     //partial
-                    $bin_var    = $bin_array[$link_status];
-                    $bin        = $excluded ? $$bin_var["excluded"] : $$bin_var["included"];
-                    if(!array_key_exists($mrn, $bin)){
-                        if($excluded){
+                    $bin_var = $bin_array[$link_status];
+                    $bin = $excluded ? $$bin_var["excluded"] : $$bin_var["included"];
+                    if (!array_key_exists($mrn, $bin)) {
+                        if ($excluded) {
                             $$bin_var["excluded"][$mrn] = array();
-                        }else{
+                        } else {
                             $$bin_var["included"][$mrn] = array();
                         }
                     }
-                    foreach($mapped_fields["pull"] as $oncore_field => $redcap_details){
-                        if(in_array($oncore_field, $exclude)){
+                    foreach ($mapped_fields["pull"] as $oncore_field => $redcap_details) {
+                        if (in_array($oncore_field, $exclude)) {
                             continue;
                         }
-                        $rc_field   = $redcap_details["redcap_field"];
-                        $rc_event   = $redcap_details["event"];
+                        $rc_field = $redcap_details["redcap_field"];
+                        $rc_event = $redcap_details["event"];
 
-                        $rc_data    = $redcap && isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
-                        $oc_data    = $oncore && isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
-                        $temp       = array(
+                        $rc_data = $redcap && isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
+                        $oc_data = $oncore && isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
+                        $temp = array(
                             "entity_id" => $entity_id
                         , "ts_last_scan" => $last_scan
                         , "oc_id" => $oc_id
@@ -948,9 +967,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         , "rc_event" => $rc_event
                         , "full" => $full
                         );
-                        if($excluded){
+                        if ($excluded) {
                             array_push($$bin_var["excluded"][$mrn], $temp);
-                        }else{
+                        } else {
                             array_push($$bin_var["included"][$mrn], $temp);
                         }
                     }
@@ -958,11 +977,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             }
         }
 
-        if(!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap)){
+        if (!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap)) {
             $sync_diff = array(
-                "match"     => $bin_match,
-                "oncore"    => $bin_oncore,
-                "redcap"    => $bin_redcap
+                "match" => $bin_match,
+                "oncore" => $bin_oncore,
+                "redcap" => $bin_redcap
             );
         }
 
@@ -972,7 +991,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     /**
      * @return array
      */
-    public function getSyncDiffSummary(){
+    public function getSyncDiffSummary()
+    {
         $last_adjudication = $this->getProtocols()->getSyncedRecordsSummaries();
         return $last_adjudication;
     }
@@ -980,7 +1000,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     /**
      * @return array
      */
-    public function pullSync(){
+    public function pullSync()
+    {
         $this->initiateProtocol();
         $this->getProtocols()->syncRecords();
         return $this->getSyncDiffSummary();
@@ -1070,10 +1091,25 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $id;
     }
 
+    public function enableExternalModuleForREDCapProject($pid)
+    {
+        $prefix = $this->PREFIX;
+        $record = db_query("SELECT * from redcap_external_module_settings WHERE project_id = $pid AND `key` = 'enabled' AND external_module_id = (SELECT external_module_id FROM redcap_external_modules WHERE directory_prefix = '$prefix')");
+        if ($record->num_rows == 0) {
+            $sql = db_query("SELECT external_module_id FROM redcap_external_modules WHERE directory_prefix = '$prefix'");
+            $em = db_fetch_assoc($sql);
+            db_query("INSERT INTO redcap_external_module_settings VALUES (" . $em['external_module_id'] . ", $pid, 'enabled', 'boolean', 'true')");
+            return true;
+        } else {
+            // either EM is enabled or disabled and no action needed.
+            return false;
+        }
+    }
+
     public function onCoreProtocolsScanCron()
     {
         try {
-            $projects = self::query("select project_id, project_irb_number from redcap_projects where project_irb_number is NOT NULL ", []);
+            $projects = self::query("select project_id, project_irb_number from redcap_projects where project_irb_number is NOT NULL AND project_id NOT IN (select redcap_project_id from redcap_entity_oncore_protocols)", []);
 
             // manually set users to make guzzle calls.
             if (!$this->users) {
@@ -1087,9 +1123,23 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 if (!$irb) {
                     continue;
                 }
-                $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id . '&action=protocols';
-                $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
-                $this->emDebug("running cron for $url on project " . $project['app_title']);
+
+                // check if irb has a protocol in oncore.
+                $response = $this->getUsers()->get('protocolManagementDetails?irbNo=' . $irb);
+
+                if ($response->getStatusCode() < 300) {
+                    $data = json_decode($response->getBody(), true);
+                    if (empty($data)) {
+                        // if no protocol do nothing
+                        continue;
+                    } else {
+                        // enable oncore EM for that project. then run the cron.
+                        $this->enableExternalModuleForREDCapProject($id);
+                        $url = $this->getUrl("ajax/cron.php", true, true) . '&pid=' . $id . '&action=protocols';
+                        $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
+                        $this->emDebug("running cron for $url on project " . $project['app_title']);
+                    }
+                }
             }
 
         } catch (\Exception $e) {
@@ -1104,7 +1154,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function onCoreProtocolsSubjectsScanCron()
     {
         try {
-            $projects = self::query("select project_id, project_irb_number from redcap_projects where project_irb_number is NOT NULL ", []);
+            $projects = self::query("select project_id, project_irb_number from redcap_projects where project_irb_number is NOT NULL", []);
 
             // manually set users to make guzzle calls.
             if (!$this->users) {
