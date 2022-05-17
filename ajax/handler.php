@@ -89,21 +89,58 @@ try {
 
                 if($push_pull){
                     $current_mapping[$push_pull] = array();
+
+                    if($push_pull == "pull"){
+                        //empty it
+                        $module->getMapping()->setProjectOncoreSubset(array());
+                    }
                 }
 
                 $result = $module->getMapping()->setProjectFieldMappings($current_mapping);
                 break;
 
+            case "deletePullField":
+                //DELETE ENTIRE MAPPING FOR PUSH Or PULL
+                $current_mapping        = $module->getMapping()->getProjectMapping();
+                $pull_field             = !empty($_POST["oncore_prop"]) ? filter_var($_POST["oncore_prop"], FILTER_SANITIZE_STRING) : null;
+
+                //REMOVE FROM PULL SUBSET
+                $project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
+                $unset_idx = array_search($pull_field, $project_oncore_subset);
+                unset($project_oncore_subset[$unset_idx]);
+                $module->getMapping()->setProjectOncoreSubset($project_oncore_subset);
+
+                if(array_key_exists($pull_field, $current_mapping["pull"]) ){
+                    //REMOVE FROM MAPPING
+                    unset($current_mapping["pull"][$pull_field]);
+                }
+
+                $module->emDebug("new mapping less $pull_field", $current_mapping["pull"], $project_oncore_subset);
+                $result = $module->getMapping()->setProjectFieldMappings($current_mapping);
+                break;
+
             case "saveOncoreSubset":
-                $result = !empty($_POST["oncore_subset"]) ? filter_var_array($_POST["oncore_subset"], FILTER_SANITIZE_STRING) : array();
-                $module->getMapping()->setProjectOncoreSubset($result);
+                $oncore_prop    = !empty($_POST["oncore_prop"]) ? filter_var($_POST["oncore_prop"], FILTER_SANITIZE_STRING) : array();
+                $subtract       = !empty($_POST["subtract"]) ? filter_var($_POST["subtract"], FILTER_SANITIZE_NUMBER_INT) : 0;
+
+                $project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
+
+                if($subtract){
+                    $unset_idx = array_search($oncore_prop, $project_oncore_subset);
+                    unset($project_oncore_subset[$unset_idx]);
+                }else{
+                    if(!in_array($oncore_prop,$project_oncore_subset)) {
+                        array_push($project_oncore_subset, $oncore_prop);
+                    }
+                }
+                $module->getMapping()->setProjectOncoreSubset($project_oncore_subset);
 
                 $result = $module->getMapping()->makeFieldMappingUI();
                 break;
 
             case "savePushPullPref":
                 $result = !empty($_POST["pushpull_pref"]) ? filter_var_array($_POST["pushpull_pref"], FILTER_SANITIZE_STRING) : array();
-                $result = $module->getMapping()->setProjectPushPullPref($result);
+                $module->getMapping()->setProjectPushPullPref($result);
                 break;
 
             case "integrateOnCore":
