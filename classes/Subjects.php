@@ -689,7 +689,7 @@ class Subjects extends SubjectDemographics
 //                            throw new \Exception('cant find map for redcap value ' . $redcapValue);
                             continue;
                         }
-                        $data[$key] = $map['oc'];
+                        $data[$key] = array($map['oc']);
                     }
                 } else {
                     $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);

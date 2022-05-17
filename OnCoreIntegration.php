@@ -147,6 +147,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         }
     }
 
+    public function redcap_module_project_enable($version, $project_id)
+    {
+        global $Proj;
+        if ($Proj->project['project_irb_number']) {
+            $this->getProtocols()->processCron($this->getProjectId(), $Proj->project['project_irb_number']);
+        }
+    }
+
     public function redcap_module_system_enable($version)
     {
         $enabled = $this->isModuleEnabled('redcap_entity');
@@ -870,8 +878,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             $oc_data        = null;
             $rc_data        = null;
             $rc_field       = null;
-            $rc_event       = null;
-
+            $rc_event = null;
+            $oc_status = null;
             switch($link_status){
                 case 2:
                     //full
@@ -883,8 +891,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     //oncore only
                     $oncore     = $record["oncore"];
                     $oc_id      = $oncore["protocolId"];
-                    $oc_pr_id   = $oncore["protocolSubjectId"];
-                    $mrn        = $oncore["demographics"]["mrn"];
+                    $oc_pr_id = $oncore["protocolSubjectId"];
+                    $oc_status = $oncore['status'];
+                    $mrn = $oncore["demographics"]["mrn"];
                     $last_scan  = date("Y-m-d H:i", $oncore["demographics"]["updated"]);
 
                 case 0:
@@ -926,17 +935,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $rc_data    = $redcap && isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
                         $oc_data    = $oncore && isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
                         $temp       = array(
-                             "entity_id"    => $entity_id
-                            ,"ts_last_scan" => $last_scan
-                            ,"oc_id"        => $oc_id
-                            ,"oc_pr_id"     => $oc_pr_id
-                            ,"rc_id"        => $rc_id
-                            ,"oc_data"      => $oc_data
-                            ,"rc_data"      => $rc_data
-                            ,"oc_field"     => $oncore_field
-                            ,"rc_field"     => $rc_field
-                            ,"rc_event"     => $rc_event
-                            ,"full"         => $full
+                            "entity_id" => $entity_id
+                        , "ts_last_scan" => $last_scan
+                        , "oc_id" => $oc_id
+                        , "oc_status" => $oc_status
+                        , "oc_pr_id" => $oc_pr_id
+                        , "rc_id" => $rc_id
+                        , "oc_data" => $oc_data
+                        , "rc_data" => $rc_data
+                        , "oc_field" => $oncore_field
+                        , "rc_field" => $rc_field
+                        , "rc_event" => $rc_event
+                        , "full" => $full
                         );
                         if($excluded){
                             array_push($$bin_var["excluded"][$mrn], $temp);
