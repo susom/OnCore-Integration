@@ -615,7 +615,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
     function updatePushPullStatus(oncore_field, redcap_field){
         var _el     = $("#oncore_mapping tr."+oncore_field);
-        var _el2    = $("#redcap_mapping tr."+redcap_field);
+        var _el2    = $("#redcap_mapping tr."+oncore_field);
 
         _el.find("td.status.pull").removeClass("ok");
         _el2.find("td.status.push").removeClass("ok");
