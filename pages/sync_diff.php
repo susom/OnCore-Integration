@@ -286,7 +286,7 @@ function makeRedcapTableHTML($records, $noredcap = null, $disabled = null, $excl
     $html .= "<tr>";
     $html .= "<th style='width: 6%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
     $html .= "<th style='width: 22%'>Subject Details</th>";
-    $html .= "<th style='width: 25%'>Study Site</th>";
+//    $html .= "<th style='width: 25%'>Study Site</th>";
     $html .= "<th style='width: 22%'>OnCore Property</th>";
     $html .= "<th style='width: 25%'>REDCap Data</th>";
     $html .= "</tr>";
@@ -343,7 +343,7 @@ function makeRedcapTableHTML($records, $noredcap = null, $disabled = null, $excl
                 $id_info = implode("<br>", $id_info);
                 $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' value='$rc_id' data-redcap='$rc_id' data-oncore='' data-mrn='$mrn' checked/></td>";
                 $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
-                $html .= "<td class='rc_study' rowspan=$rowspan></td>";
+//                $html .= "<td class='rc_study' rowspan=$rowspan></td>";
             }
             $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
             $html .= "<td class='rc_data data'>$rc</td>";
@@ -361,7 +361,12 @@ function makeRedcapTableHTML($records, $noredcap = null, $disabled = null, $excl
 //            $html .= "<button type='submit' class='btn btn-warning download_partial_redcap_csv'>Download CSV</button>";
         } else {
 //            $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button> <button type='submit' class='btn btn-warning download_partial_oncore_csv'>Download CSV</button>";
-            $html .= "<button type='submit' class='btn btn-success'>Push to OnCore</button>";
+            if ($module->getProtocols()->getSubjects()->isCanPush()) {
+                $html .= "<button type='submit' class='btn btn-success'>Push to OnCore</button>";
+            } else {
+                $html .= "<div class='alert alert-warning'>You cant push REDCap records to OnCore Protocol. Because Protocol is not approved or its status is not valid.</div>";
+            }
+
         }
     }
 

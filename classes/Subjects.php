@@ -187,14 +187,15 @@ class Subjects extends SubjectDemographics
     {
         foreach ($fields as $key => $field) {
             // has mapped values
+            $onCoreValue = isset($onCoreSubject['demographics'][$key]) ? $onCoreSubject['demographics'][$key] : $onCoreSubject[$key];
             if (isset($field['value_mapping'])) {
                 // oncore is array of text ie. race
                 $onCoreType = $this->getMapping()->getOncoreType($key);
                 if ($onCoreType == 'array') {
-                    if (is_array($onCoreSubject['demographics'][$key])) {
-                        $parsed = $onCoreSubject['demographics'][$key];
+                    if (is_array($onCoreValue)) {
+                        $parsed = $onCoreValue;
                     } else {
-                        $parsed = json_decode($onCoreSubject['demographics'][$key], true);
+                        $parsed = json_decode($onCoreValue, true);
                     }
                 } else {
                     $parsed = null;
@@ -213,7 +214,7 @@ class Subjects extends SubjectDemographics
                         }
                     } else {
                         // if redcap is text or radio then every race must match the redcap value
-                        foreach ($onCoreSubject['demographics'][$key] as $item) {
+                        foreach ($onCoreValue as $item) {
                             $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
                             // if the oncore value mapped redcap checkbox is not check then partial match
                             if ($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']] != $map['rc']) {
@@ -222,13 +223,18 @@ class Subjects extends SubjectDemographics
                         }
                     }
                 } else {
-                    $map = $this->getMapping()->getOnCoreMappedValue($onCoreSubject['demographics'][$key], $field);
+                    $map = $this->getMapping()->getOnCoreMappedValue($onCoreValue, $field);
                     if ($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']] != $map['rc']) {
+                        return OnCoreIntegration::PARTIAL_MATCH;
+                    }
+                    // no map defined
+                    if (empty($map)) {
+                        Entities::createLog("$field: Cant Find mapping for $onCoreValue");
                         return OnCoreIntegration::PARTIAL_MATCH;
                     }
                 }
             } else {
-                if ($onCoreSubject['demographics'][$key] != $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']]) {
+                if ($onCoreValue != $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']]) {
                     return OnCoreIntegration::PARTIAL_MATCH;
                 }
             }
@@ -503,7 +509,7 @@ class Subjects extends SubjectDemographics
         }
 
         if (!$this->isCanPush()) {
-            throw new \Exception('You cant push REDCap records to this Protocol. Because Protocol is not approved or its status is not valid.');
+            throw new \Exception('You cant push REDCap records to OnCore Protocol. Because Protocol is not approved or its status is not valid.');
         }
 
         if ($subjectDemographics) {
@@ -715,7 +721,7 @@ class Subjects extends SubjectDemographics
     {
         $data = [];
         foreach ($fields as $key => $field) {
-            $onCoreValue = $OnCoreSubject[$key];
+            $onCoreValue = isset($OnCoreSubject['demographics'][$key]) ? $OnCoreSubject['demographics'][$key] : $OnCoreSubject[$key];;
             if (!isset($field['value_mapping'])) {
                 $data[$field['event']][$field['redcap_field']] = $onCoreValue;
             } else {
@@ -770,7 +776,7 @@ class Subjects extends SubjectDemographics
                 throw new \Exception('No Subject record found for ' . $record['oncore']);
             }
         $id = $record['redcap'];
-        $data = $this->prepareOnCoreRecordForSync($subject['demographics'], $fields);
+        $data = $this->prepareOnCoreRecordForSync($subject, $fields);
             // loop over every event defined in the field mapping.
             foreach ($data as $event => $array) {
                 if (!$id) {
