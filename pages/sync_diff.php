@@ -2,7 +2,7 @@
 
 namespace Stanford\OnCoreIntegration;
 
-/** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
+/** @var OnCoreIntegration $module */
 
 $oncore_css = $module->getUrl("assets/styles/oncore.css");
 $batch_css = $module->getUrl("assets/styles/batch_modal.css");
@@ -148,7 +148,11 @@ function makeSyncTableHTML($records, $noredcap = null, $disabled = null, $exclud
 //            $html .= "<button type='submit' class='btn btn-warning download_partial_redcap_csv'>Download CSV</button>";
         } else {
 //            $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button> <button type='submit' class='btn btn-warning download_partial_oncore_csv'>Download CSV</button>";
-            $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button>";
+            if (!empty($module->getMapping()->getProjectFieldMappings()['pull'])) {
+                $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button>";
+            } else {
+                $html .= "<div class='alert alert-warning'>You can`t pull OnCore Subjects. To pull you must define pull fields on <a href='" . $module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
+            }
         }
     }
 
@@ -264,7 +268,11 @@ function makeOncoreTableHTML($records, $noredcap = null, $disabled = null, $excl
 //            $html .= "<button type='submit' class='btn btn-warning download_partial_redcap_csv'>Download CSV</button>";
         } else {
 //            $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button> <button type='submit' class='btn btn-warning download_partial_oncore_csv'>Download CSV</button>";
-            $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button>";
+            if (!empty($module->getMapping()->getProjectFieldMappings()['pull'])) {
+                $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button>";
+            } else {
+                $html .= "<div class='alert alert-warning'>You can`t pull OnCore Subjects. To pull you must define pull fields on <a href='" . $module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
+            }
         }
     }
 
@@ -361,8 +369,11 @@ function makeRedcapTableHTML($records, $noredcap = null, $disabled = null, $excl
 //            $html .= "<button type='submit' class='btn btn-warning download_partial_redcap_csv'>Download CSV</button>";
         } else {
 //            $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button> <button type='submit' class='btn btn-warning download_partial_oncore_csv'>Download CSV</button>";
-            if ($module->getProtocols()->getSubjects()->isCanPush()) {
+
+            if ($module->getProtocols()->getSubjects()->isCanPush() && !empty($module->getMapping()->getProjectFieldMappings()['push'])) {
                 $html .= "<button type='submit' class='btn btn-success'>Push to OnCore</button>";
+            } elseif (empty($module->getMapping()->getProjectFieldMappings()['push'])) {
+                $html .= "<div class='alert alert-warning'>You can`t push REDCap records Subjects. To push you must define push fields on <a href='" . $module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
             } else {
                 $html .= "<div class='alert alert-warning'>You cant push REDCap records to OnCore Protocol. Because Protocol is not approved or its status is not valid.</div>";
             }
@@ -395,6 +406,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         <h3>REDCap/OnCore Interaction</h3>
         <p class="lead">Data Stored in OnCore must be synced and adjudicated periodically. The data will be pulled into
             an entity table and then matched against this projects REDCap data on the mapped fields.</p>
+
 
         <?php
         $html = "<table class='table table-striped'>";
@@ -469,9 +481,18 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                         Number of Partially Matched Records:
                         <span
                             class="badge badge-primary badge-pill"><?php echo $sync_summ['partial_match_count'] ?></span>
+
                     </li>
                 </ul>
             </li>
+        </ul>
+
+        <ul class="mt-2 ">
+            <li class="list-group-item  ">Number of Records available for adjudication: <span
+                    class="badge badge-primary badge-pill"><?php echo $sync_summ['total_count'] - $sync_summ['excluded_count'] ?></span>
+            </li>
+            <li class="list-group-item  ">Number of Records in excluded list: <span
+                    class="badge badge-primary badge-pill"><?php echo $sync_summ['excluded_count'] ?></span></li>
         </ul>
 
         <h3>Adjudication required for following Subjects</h3>
@@ -486,54 +507,93 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         <div class="tab-content">
             <div class="tab-pane active" id="fullmatch">
                 <h2>Linked Subjects</h2>
-                <p>This REDCap project has <?= $total_subjects ?> Subjects linked to the OnCore Protocol ID</p>
+                <?php
+                if (empty($module->getMapping()->getProjectFieldMappings()['pull'])) {
+                    ?>
+                    <div class="alert alert-danger">You can`t pull OnCore Data because Pull Mapping is not defined.
+                        Please define Pull Mapping from <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">mapping
+                            page</a>.
+                    </div>
+                    <?php
+                } else {
+                    ?>
+                    <p>This REDCap project has <?= $total_subjects ?> Subjects linked to the OnCore Protocol ID</p>
 
-                <form id="syncFromOncore" class="oncore_match">
-                    <input type="hidden" name="matchtype" value="fullmatch"/>
-                    <?= makeSyncTableHTML($sync_diff["match"]["included"]); ?>
+                    <form id="syncFromOncore" class="oncore_match">
+                        <input type="hidden" name="matchtype" value="fullmatch"/>
+                        <?= makeSyncTableHTML($sync_diff["match"]["included"]); ?>
 
-                    <br>
+                        <br>
 
-                    <h2>Excluded Subjects</h2>
-                    <p>The following subjects have been excluded from syncing with Oncore</p>
-                    <?= makeSyncTableHTML($sync_diff["match"]["excluded"], null, "disabled", true); ?>
-                </form>
+                        <h2>Excluded Subjects</h2>
+                        <p>The following subjects have been excluded from syncing with Oncore</p>
+                        <?= makeSyncTableHTML($sync_diff["match"]["excluded"], null, "disabled", true); ?>
+                    </form>
+                    <?php
+                }
+                ?>
             </div>
 
             <div class="tab-pane" id="oncore">
                 <h2>Unlinked Oncore Subjects not linked in this REDCap Project</h2>
-                <p>The following Subjects were found in the OnCore Protocol. Click "Import Subjects" to create the
-                    following subjects in this project.</p>
+                <?php
+                if (empty($module->getMapping()->getProjectFieldMappings()['pull'])) {
+                    ?>
+                    <div class="alert alert-danger">You can`t pull OnCore Data because Pull Mapping is not defined.
+                        Please define Pull Mapping from <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">mapping
+                            page</a>.
+                    </div>
+                    <?php
+                } else {
+                    ?>
+                    <p>The following Subjects were found in the OnCore Protocol. Click "Import Subjects" to create the
+                        following subjects in this project.</p>
 
-                <form id="pullFromOncore" class="oncore_match">
-                    <input type="hidden" name="matchtype" value="oncoreonly"/>
-                    <?= makeOncoreTableHTML($sync_diff["oncore"]["included"], true); ?>
+                    <form id="pullFromOncore" class="oncore_match">
+                        <input type="hidden" name="matchtype" value="oncoreonly"/>
+                        <?= makeOncoreTableHTML($sync_diff["oncore"]["included"], true); ?>
 
-                    <br>
+                        <br>
 
-                    <h2>Excluded Subjects</h2>
-                    <p>The following subjects have been excluded from syncing with REDCap</p>
-                    <?= makeOncoreTableHTML($sync_diff["oncore"]["excluded"], true, "disabled", true); ?>
-                </form>
+                        <h2>Excluded Subjects</h2>
+                        <p>The following subjects have been excluded from syncing with REDCap</p>
+                        <?= makeOncoreTableHTML($sync_diff["oncore"]["excluded"], true, "disabled", true); ?>
+                    </form>
+                    <?php
+                }
+                ?>
             </div>
 
             <div class="tab-pane" id="redcap">
                 <h2>Unlinked REDCap Subjects not found in OnCore Protocol</h2>
-                <p>The following REDCap records do not have a matching MRN with subjects in the OnCore Protocol</p>
-                <p>In order to import these records into OnCore , download the CSV and submit to your OnCore
-                    administrator</p>
-                <em>This functionality is not available for Phase 1</em>
+                <?php
+                if (empty($module->getMapping()->getProjectFieldMappings()['push'])) {
+                    ?>
+                    <div class="alert alert-danger">You can`t push REDCap Records because Push Mapping is not defined.
+                        Please define Push Mapping from <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">mapping
+                            page</a>.
+                    </div>
+                    <?php
+                } else {
+                    ?>
+                    <p>The following REDCap records do not have a matching MRN with subjects in the OnCore Protocol</p>
+                    <p>In order to import these records into OnCore , download the CSV and submit to your OnCore
+                        administrator</p>
+                    <em>This functionality is not available for Phase 1</em>
 
-                <form id="pushToOncore" class="oncore_match">
-                    <input type="hidden" name="matchtype" value="redcaponly"/>
-                    <?= makeRedcapTableHTML($sync_diff["redcap"]["included"], false); ?>
+                    <form id="pushToOncore" class="oncore_match">
+                        <input type="hidden" name="matchtype" value="redcaponly"/>
+                        <?= makeRedcapTableHTML($sync_diff["redcap"]["included"], false); ?>
 
-                    <br>
+                        <br>
 
-                    <h2>Excluded Subjects</h2>
-                    <p>The following subjects have been excluded from syncing with Oncore</p>
-                    <?= makeRedcapTableHTML($sync_diff["redcap"]["excluded"], false, "disabled", true); ?>
-                </form>
+                        <h2>Excluded Subjects</h2>
+                        <p>The following subjects have been excluded from syncing with Oncore</p>
+                        <?= makeRedcapTableHTML($sync_diff["redcap"]["excluded"], false, "disabled", true); ?>
+                    </form>
+                    <?php
+                }
+                ?>
             </div>
         </div>
     </div>
