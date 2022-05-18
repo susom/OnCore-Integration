@@ -578,7 +578,7 @@ class Subjects extends SubjectDemographics
         $studySite = $this->getOnCoreStudySite($record, $fields['studySites']);
         $onCoreRecord = $this->searchOnCoreSubjectUsingMRN($redcapMRN);
         if (empty($onCoreRecord)) {
-            $demographics = $this->prepareREDCapRecordForOnCorePush($redcapId, $fields, $oncoreFieldsDef);
+            $demographics = $this->prepareREDCapRecordForSync($redcapId, $fields, $oncoreFieldsDef);
             $message = "No subject found for $redcapMRN. Using REDCap data to create new Subject.";
             Entities::createLog($message);
             $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
@@ -650,7 +650,7 @@ class Subjects extends SubjectDemographics
      * @return array
      * @throws Exception
      */
-    public function prepareREDCapRecordForOnCorePush($redcapId, $fields, $oncoreFieldsDef)
+    public function prepareREDCapRecordForSync($redcapId, $fields, $oncoreFieldsDef)
     {
         $record = $this->getRedcapProjectRecords()[$redcapId];
         $data = [];
@@ -711,7 +711,7 @@ class Subjects extends SubjectDemographics
      * @param $fields
      * @return array
      */
-    public function prepareOnCoreSubjectForREDCapPull($OnCoreSubject, $fields)
+    public function prepareOnCoreRecordForSync($OnCoreSubject, $fields)
     {
         $data = [];
         foreach ($fields as $key => $field) {
@@ -769,8 +769,8 @@ class Subjects extends SubjectDemographics
         if (empty($subject)) {
                 throw new \Exception('No Subject record found for ' . $record['oncore']);
             }
-            $id = $record['redcap'];
-            $data = $this->prepareOnCoreSubjectForREDCapPull($subject['demographics'], $fields);
+        $id = $record['redcap'];
+        $data = $this->prepareOnCoreRecordForSync($subject['demographics'], $fields);
             // loop over every event defined in the field mapping.
             foreach ($data as $event => $array) {
                 if (!$id) {
