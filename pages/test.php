@@ -33,7 +33,7 @@ try {
 
 //try {
 //    $module->initiateProtocol();
-////    $demographics = $module->getProtocols()->getSubjects()->prepareREDCapRecordForOnCorePush(6, $module->getProtocols()->getFieldsMap(), $module->getMapping()->getOnCoreFieldDefinitions());
+////    $demographics = $module->getProtocols()->getSubjects()->prepareREDCapRecordForSync(6, $module->getProtocols()->getFieldsMap(), $module->getMapping()->getOnCoreFieldDefinitions());
 ////    $records = $module->getProtocols()->getSubjects()->createOnCoreProtocolSubject( $module->getProtocols()->getEntityRecord()['oncore_protocol_id'], 'SHC Main Hosp, Welch Rd & campus/nearby clinics',  null, $demographics);
 //    $records = $module->getProtocols()->pushREDCapRecordToOnCore(11, 'SHC Main Hosp, Pasteur, Welch & campus/nearby clinics', $module->getMapping()->getOnCoreFieldDefinitions());
 //
@@ -105,7 +105,7 @@ try {
 //try {
 //    $module->initiateProtocol();
 //    $records = $module->getProtocols()->getSyncedRecords();
-//    $data = $module->getProtocols()->getSubjects()->prepareOnCoreSubjectForREDCapPull($records[5]['oncore']['demographics'], $module->getProtocols()->getFieldsMap());
+//    $data = $module->getProtocols()->getSubjects()->prepareOnCoreRecordForSync($records[5]['oncore']['demographics'], $module->getProtocols()->getFieldsMap());
 //    $id = 7;
 //    foreach ($data as $event => $array){
 //        if(is_null($id)){
