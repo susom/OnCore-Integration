@@ -929,8 +929,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             $redcapField = $this->getMapping()->getMappedRedcapField($onCoreField);
                             $redcap[$redcapField ?: $onCoreField] = $value;
                         }
-                        $rc_id = $arr["record_id"];
-                        $mrn = $redcap["mrn"];
+                        $rc_id = $arr[\REDCap::getRecordIdField()];
+                        $mrn = $redcap[$this->getMapping()->getProjectFieldMappings()['push']['mrn']['redcap_field']];
                     }
 
                 default:
