@@ -332,15 +332,34 @@ class Protocols
             $results['oncore_only_count'] = 0;
             $results['full_match_count'] = 0;
             $results['partial_match_count'] = 0;
+            $results['total_redcap_count'] = 0;
+            $results['total_oncore_count'] = 0;
+            $results['match_count'] = 0;
+            $results['excluded_count'] = 0;
+            $results['missing_oncore_status_count'] = 0;
             foreach ($records as $record) {
                 if (isset($record['redcap']) && !isset($record['oncore'])) {
                     $results['redcap_only_count'] += 1;
+                    $results['total_redcap_count'] += 1;
                 } elseif (!isset($record['redcap']) && isset($record['oncore'])) {
                     $results['oncore_only_count'] += 1;
+                    $results['total_oncore_count'] += 1;
                 } elseif (isset($record['redcap']) && isset($record['oncore']) && $record['status'] == OnCoreIntegration::FULL_MATCH) {
                     $results['full_match_count'] += 1;
+                    $results['total_oncore_count'] += 1;
+                    $results['total_redcap_count'] += 1;
+                    $results['match_count'] += 1;
                 } elseif (isset($record['redcap']) && isset($record['oncore']) && $record['status'] == OnCoreIntegration::PARTIAL_MATCH) {
                     $results['partial_match_count'] += 1;
+                    $results['total_oncore_count'] += 1;
+                    $results['total_redcap_count'] += 1;
+                    $results['match_count'] += 1;
+                }
+                if (isset($record['excluded']) && $record['excluded'] == '1') {
+                    $results['excluded_count'] += 1;
+                }
+                if (isset($record['oncore']) && $record['oncore']['status'] == null) {
+                    $results['missing_oncore_status_count'] += 1;
                 }
             }
             return $results;
