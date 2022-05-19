@@ -844,7 +844,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             const rndInt = randomIntFromInterval(1000, 5000);
                             setTimeout(function () {
                                 //some showman ship
-                                pushModal.setRowStatus(result.id, true, result.responseJSON.message);
+                                pushModal.setRowStatus(result.id, true, result.message);
                             }, rndInt);
                         }).fail(function (e) {
                             console.log("pushToOncore faile", e);
