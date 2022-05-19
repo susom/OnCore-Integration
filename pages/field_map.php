@@ -38,6 +38,9 @@ $field_selection[]      = "<ul>\r\n";
 $req_field = [];
 $opt_field = [];
 foreach($oncore_props as $field => $props){
+    if(in_array($field, $project_oncore_subset)){
+        continue;
+    }
     $req        = $props["required"];
     $selection  = "<button class='dropdown-item oncore_pull_prop' type='button' data-val='$field'>$field</button>";
     if($req == "true"){
@@ -78,7 +81,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         <li class=""><a data-toggle="tab" href="#pull_mapping" class="optional pull_mapping <?=$overall_pull_status?>">Pull Data From OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
         <li class=""><a data-toggle="tab" href="#push_mapping" class="optional push_mapping <?=$overall_push_status?>">Push Data To OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
     </ul>
-    <div class="tab-content">
+    <div class="tab-content pull-left">
         <div class="tab-pane active" id="oncore_config">
             <form id="oncore_config" class="container">
                 <h2>Oncore Project Linked</h2>
@@ -102,13 +105,13 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     Settings to be able to PULL.</p>
 
                 <div id="oncore_prop_selector" class="pull-right">
-                    <button class="btn btn-warning btn-lg dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Add an OnCore Property to Map
+                    <button class="btn btn-success btn-lg dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        + Add an OnCore Property to Map
                     </button>
                     <?=$pull_oncore_prop_dd?>
                 </div>
 
-                <table class="table table-striped">
+                <table class="table">
                     <thead>
                     <tr>
                         <th class="td_oc_field">OnCore Property</th>
@@ -131,7 +134,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
                     project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
                     Settings to be able to PUSH.</p>
-                <table class="table table-striped">
+                <table class="table">
                     <thead>
                     <tr>
                         <th class="td_oc_field">OnCore Property</th>
@@ -165,39 +168,6 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     background-size:contain;
 }
 
-.map_dir{
-    font-size:120%;
-    margin-bottom:20px;
-}
-
-#field_mapping .optional{
-    display:none;
-}
-
-#oncore_prop_selector {
-    position:initial;
-    display:block;
-    margin-bottom:10px;
-}
-#oncore_prop_selector .dropdown-menu{
-    max-width:300px;
-}
-
-#show_optional{
-    margin:5px 0;
-}
-
-.delete_pull_prop{
-    cursor:pointer;
-}
-
-.map_arrow{
-    float:right;
-    margin:5px;
-}
-.value_map .map_arrow{
-    margin: 5px 10px;
-}
 </style>
 <script>
     $(document).ready(function () {
@@ -384,6 +354,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
                 $(this).parent().addClass("loading");
 
+                disableSelects();
                 ajaxQueue.addRequest(function () {
                     // -- your ajax request goes here --
                     return $.ajax({
@@ -397,6 +368,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     }).done(function (result) {
                         //remove spinners
                         updatePushPullStatus(oncore_field, redcap_field);
+                        enableSelects();
 
                         if(!no_refresh || true){
                             makeValueMappingRow(oncore_field, redcap_field, 0);
@@ -412,7 +384,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     return new Promise(function (resolve, reject) {
                         setTimeout(function () {
                             resolve(data);
-                        }, 1000);
+                        }, 500);
                     });
                 });
             }
@@ -496,6 +468,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
             $("#oncore_prop_selector .dropdown-toggle").prop("disabled","disabled");
 
+            disableSelects();
             ajaxQueue.addRequest(function () {
                 // -- your ajax request goes here --
                 return $.ajax({
@@ -507,6 +480,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     },
                     dataType: 'json'
                 }).done(function (result) {
+                    enableSelects();
                     $("#oncore_mapping tbody").empty().append(result["pull"]);
                     $("#oncore_prop_selector .dropdown-toggle").prop("disabled",false);
                     _this.remove();
@@ -528,6 +502,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             e.preventDefault(e);
             var oncore_prop = $(this).data("oncore_prop");
 
+            disableSelects();
             ajaxQueue.addRequest(function () {
                 // -- your ajax request goes here --
                 return $.ajax({
@@ -539,6 +514,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     },
                     dataType: 'json'
                 }).done(function (result) {
+                    enableSelects();
                     $("#oncore_mapping tr."+oncore_prop).fadeOut(function(){
                         $(this).remove();
                     });
@@ -554,6 +530,16 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             });
         })
     });
+    function disableSelects(){
+        $("#field_mapping select").each(function(){
+            $(this).prop("disabled","disabled");
+        });
+    }
+    function enableSelects(){
+        $("#field_mapping select").each(function(){
+            $(this).prop("disabled",false);
+        });
+    }
 
     function oncoreConfigVis(initial_pushpull){
         var show = false;
@@ -631,7 +617,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             var pull_status = result["pull"] ? "ok" : "";
             var push_status = result["push"] ? "ok" : "";
             _el.find("td.status.pull").addClass(pull_status);
+            _el.find(".property_select").removeClass("ok").addClass(pull_status);
             _el2.find("td.status.push").addClass(push_status);
+            _el2.find(".property_select").removeClass("ok").addClass(push_status);
         }).fail(function (e) {
             console.log("failed to get push pull status?", e);
         });

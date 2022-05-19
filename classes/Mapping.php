@@ -46,7 +46,7 @@ class Mapping
                             "FOLLOW UP, OFF",
                             "STUDY, EXPIRED");
         $field_list["studySites"]       = array("oncore_valid_values" => $study_sites , "oncore_field_type" => array("text"), "required" => "true");
-        $field_list["subjectStatus"]    = array("oncore_valid_values" => $subject_status , "oncore_field_type" => array("text"), "required" => "true");
+//        $field_list["subjectStatus"]    = array("oncore_valid_values" => $subject_status , "oncore_field_type" => array("text"), "required" => "true");
         return $field_list;
     }
 
@@ -497,6 +497,8 @@ class Mapping
         $oncore_fields      = $this->getOnCoreFields();
         $project_mappings   = $this->getProjectMapping();
 
+        $pull_temp      = array();
+
         $pull_html      = "";
         $push_html      = "";
         $push_html_opt  = "";
@@ -511,7 +513,7 @@ class Mapping
             $field_choices                  = !empty($field["select_choices"]) ? $field["select_choices"] : array();
             $event_fields[$event_name][]    = "<option data-eventname='$event_name' data-value_set='" . json_encode($field_choices) . "' data-type='{$field["redcap_field_type"]}' value='$rc_field_name' 'vmap-{$rc_field_name}'>$rc_field_name</option>\r\n";
         }
-        $rc_select = "<select class='form-select form-select-sm mrn_field redcap_field' name='[ONCORE_FIELD]' data-mapdir='[MAP_DIRECTION]'>\r\n";
+        $rc_select = "<select class='form-select form-select-sm mrn_field redcap_field property_select' name='[ONCORE_FIELD]' data-mapdir='[MAP_DIRECTION]'>\r\n";
         $rc_select .= "<option value=-99>-Map REDCap Field-</option>\r\n";
         foreach($event_fields as $event_name => $fields){
             $rc_select .= "<optgroup label='$event_name'>\r\n";
@@ -541,20 +543,26 @@ class Mapping
                     $pull_rc_map_select     = str_replace("'$rc_field_name'", "'$rc_field_name' selected ", $pull_rc_map_select);
                     $pull_rc_map_select     = str_replace("'vmap-$rc_field_name'", $data_value_mapping, $pull_rc_map_select);
                     $pull_value_map_html    = $this->makeValueMappingUI($field, $rc_field_name);
+
                     $pull_status            = $this->getPullStatus($field) ? "ok" : "";
+                    $pull_rc_map_select     = str_replace("property_select", "property_select $pull_status", $pull_rc_map_select);
                 }
 
                 $trash = $field !== "mrn" ? "<i class='fas fa-trash delete_pull_prop' data-oncore_prop='$field'></i>" : "";
-                $pull_html .= "<tr class='$field'>\r\n";
-                $pull_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-right map_arrow'></i></td>";
-                $pull_html .= "<td class='rc_selects'>$pull_rc_map_select</td>";
-                $pull_html .= "<td class='rc_event centered'>$event_name</td>";
-                $pull_html .= "<td class='centered status pull $pull_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
-                $pull_html .= "<td>$trash</td>";
-                $pull_html .= "</tr>\r\n";
+
+                $temp = array();
+                $temp[] = "<tr class='$field'>";
+                $temp[] = "<td class='oc_field'>$field <i class='fas fa-angle-double-right map_arrow'></i></td>";
+                $temp[] = "<td class='rc_selects'>$pull_rc_map_select</td>";
+                $temp[] = "<td class='rc_event centered'>$event_name</td>";
+                $temp[] = "<td class='centered status pull $pull_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
+                $temp[] = "<td>$trash</td>";
+                $temp[] = "</tr>";
                 if (!empty($pull_value_map_html["html"])) {
-                    $pull_html .= $pull_value_map_html["html"];
+                    $temp[] = $pull_value_map_html["html"];
                 }
+
+                $pull_temp[$field] = implode("\r\n", $temp);
             }
 
             $push_status            = "";
@@ -576,6 +584,7 @@ class Mapping
                 $push_rc_map_select     = str_replace("'vmap-$rc_field_name'", $data_value_mapping, $push_rc_map_select);
 
                 $push_status            = $this->getPushStatus($oncore_field) ? "ok" : "";
+                $push_rc_map_select     = str_replace("property_select", "property_select $push_status", $push_rc_map_select);
             }
 
             $push_rc_map_select = str_replace("[MAP_DIRECTION]", "push", $push_rc_map_select);
@@ -604,9 +613,16 @@ class Mapping
             }
         }
 
+        $html_pull = array();
+        foreach($project_oncore_sub as $prop){
+            $html_pull[] =  $pull_temp[$prop];
+        }
+
+        $this->module->emDebug($project_oncore_sub, current($pull_temp));
+
         return array(   "project_mappings"  => $project_mappings,
                         "oncore_fields"     => $oncore_fields,
-                        "pull"  => $pull_html,
+                        "pull"  => implode("\r\n", $html_pull),
                         "push"  => array("required" => $push_html, "optional" => $push_html_opt)
         );
     }
@@ -627,19 +643,26 @@ class Mapping
         //MAKE GENERIC REDCAP VALUE DROP DOWN
         $v_select   = "";
         if (!empty($rc_values)) {
-            $v_select = "<select class='form-select form-select-sm redcap_value' name='[ONCORE_FIELD_VALUE]'>\r\n";
+            $v_select = "<select class='form-select form-select-sm redcap_value value_select' name='[ONCORE_FIELD_VALUE]'>\r\n";
             $v_select .= "<option value=-99>-Map REDCap Value-</option>\r\n";
             foreach ($rc_values as $rc_idx => $rc_value) {
-                $v_select .= "<option value='$rc_idx'>$rc_value</option>\r\n";
+                $v_select .= "<option value='$rc_idx'>$rc_idx, $rc_value</option>\r\n";
             }
             $v_select .= "</select>\r\n";
         }
 
         //IF ONCORE FIELD IS NOT TEXT or HAS FIXED VALUE SET THEN NEED TO MAP
         if ($special_oncore) {
+            $wrong_type = $this->getRedcapType($redcap_field) == "text";
+
             // IF OVER LAPPING MAPPING OF VALUES THEN PULL AND PUSH IS POSSIBLE
-            $value_map_html .= "<tr class='$oncore_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
-            $value_map_html .= "<tr><th class='td_oc_vset'>Oncore Valid Values</th><th class='td_rc_vset'>Redcap Valid Values</th><th class='centered td_map_status'>Map Status</th><th class='td_vset_spacer'></th></tr>\r\n";
+            $value_map_html .= "<tr class='$oncore_field more'><td colspan='4'>\r\n<table class='value_map table-nostriped'>\r\n";
+            if($wrong_type) {
+                $value_map_html .= "<tr><th colspan=4 class='info'><i class='alert alert-info'>The OnCore property has the following valid values. Mapping to a REDCap <b>text field</b> is valid for <b>Pulling data only</b>.</i></th></tr>\r\n";
+            }else{
+                $value_map_html .= "<tr><th colspan=4 class='info'><i>The OnCore property has the following valid values. Each must be mapped in order to Pull data from OnCore into REDCap.</i></th></tr>\r\n";
+            }
+            $value_map_html .= "<tr><th class='td_oc_vset'>Oncore Valid Values for <b>$oncore_field</b></th><th class='td_rc_vset'>Redcap Enumerated Values for <b>$redcap_field</b></th><th class='centered td_map_status'>Map Status</th><th class='td_vset_spacer'></th></tr>\r\n";
 
             foreach ($oc_values as $idx => $oc_value) {
                 $value_map_status   = "";
@@ -648,6 +671,7 @@ class Mapping
                     $rc_val             = $value_mapping[$oc_value];
                     $value_select       = str_replace("'$rc_val'", "'$rc_val' selected", $value_select);
                     $value_map_status   = "ok";
+                    $value_select       = str_replace("value_select", "value_select ok", $value_select);
                 }
                 $value_map_html .= "<tr>\r\n";
                 $value_map_html .= "<td>$oc_value <i class='fas fa-angle-double-right map_arrow'></td>\r\n";
@@ -672,11 +696,14 @@ class Mapping
         $rc_values      = $this->getRedcapValueSet($redcap_field);
         $oc_values      = $this->getOncoreValueSet($oncore_field);
         $special_redcap = !empty($rc_values);
+        $special_oncore = !empty($oc_values);
+
+        $wrong_type     = $this->getRedcapType($redcap_field) == "text";
 
         //MAKE GENERIC REDCAP VALUE DROP DOWN
         $v_select   = "";
         if(!empty($oc_values)){
-            $v_select = "<select class='form-select form-select-sm oncore_value' name='[REDCAP_FIELD_VALUE]'>\r\n";
+            $v_select = "<select class='form-select form-select-sm oncore_value value_select' name='[REDCAP_FIELD_VALUE]'>\r\n";
             $v_select .= "<option value=-99>-Map OnCore Value-</option>\r\n";
             foreach ($oc_values as $oc_idx => $oc_value) {
                 $v_select .= "<option value='$oc_idx'>$oc_value</option>\r\n";
@@ -687,7 +714,8 @@ class Mapping
         if ($special_redcap) {
             // IF OVER LAPPING MAPPING OF VALUES THEN PULL AND PUSH IS POSSIBLE
             $value_map_html .= "<tr class='$oncore_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
-            $value_map_html .= "<tr><th class='td_oc_vset'>Oncore Valid Values</th><th class='td_rc_vset'>Redcap Valid Values</th><th class='centered td_map_status'>Map Status</th><th class='td_vset_spacer'></th></tr>\r\n";
+            $value_map_html .= "<tr><th colspan=4 class='info'><i >The REDCap field selected has the following enumerated values. Each must be mapped in order to Push data from REDCap to OnCore.</i></th></tr>\r\n";
+            $value_map_html .= "<tr><th class='td_oc_vset'>Oncore Valid Values for <b>$oncore_field</b></th><th class='td_rc_vset'>Redcap Enumerated Values for <b>$redcap_field</b></th><th class='centered td_map_status'>Map Status</th><th class='td_vset_spacer'></th></tr>\r\n";
 
             foreach ($rc_values as $idx => $rc_value) {
                 $value_map_status   = "";
@@ -697,16 +725,20 @@ class Mapping
                     $oc_val         = $value_mapping[$idx];
                     $value_select   = str_replace(">$oc_val", " selected>$oc_val", $value_select);
                     $value_map_status = "ok";
-
-
+                    $value_select   = str_replace("value_select", "value_select ok", $value_select);
                 }
                 $value_map_html .= "<tr>\r\n";
                 $value_map_html .= "<td>$value_select <i class='fas fa-angle-double-left map_arrow'></td>\r\n";
-                $value_map_html .= "<td>$rc_value</td>\r\n";
+                $value_map_html .= "<td>$idx, $rc_value</td>\r\n";
                 $value_map_html .= "<td class='centered value_map_status $value_map_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>\r\n";
                 $value_map_html .= "<td></td>\r\n";
                 $value_map_html .= "</tr>\r\n";
             }
+            $value_map_html .= "</table>\r\n</td><td colspan='2'></td></tr>\r\n";
+        }elseif($special_oncore && $wrong_type){
+            $value_map_html .= "<tr class='$oncore_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
+            $value_map_html .= "<tr><th colspan=4 class='info'><i class='alert alert-danger'>The OnCore field has enumerated values. Mapping to a REDCap <b>Text Field</b> is <b>NOT valid for Pushing Data</b>.</i></th></tr>\r\n";
+            $value_map_html .= "</tr>\r\n";
             $value_map_html .= "</table>\r\n</td><td colspan='2'></td></tr>\r\n";
         }
         return array("html" => $value_map_html);

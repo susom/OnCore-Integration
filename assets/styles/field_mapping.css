@@ -5,6 +5,9 @@
     position:relative;
 }
 
+#field_mapping .required{
+    color:darkred;
+}
 
 #oncore_fields{
     margin:50px 0 50px;
@@ -71,10 +74,37 @@
 .td_pull{ width:15% }
 .td_push{ width:15% }
 
-.td_oc_vset{ width:35% }
-.td_rc_vset{ width:35% }
-.td_map_status{ width:15% }
+.td_oc_vset,
+.td_rc_vset{
+    width:35%;
+    font-size:100%;
+
+}
+.td_map_status{
+    width:15%;
+    font-size:100%;
+}
 .td_vset_spacer {width:15%}
+
+.td_oc_vset,
+.td_rc_vset,
+.td_map_status,
+.td_vset_spacer{
+    padding-bottom:5px;
+    border-bottom:1px solid #000 !important;
+}
+
+.value_map .info{
+    font-size:92%;
+    color:darkgoldenrod;
+}
+.value_map .info .alert{
+    display:inline-block;
+    margin-bottom:10px;
+}
+.value_map .info .alert-danger{
+    color:darkred;
+}
 
 tr.required td{
     color:initial;
@@ -124,4 +154,56 @@ table.value_map td{
 table.value_map th {
     background: #fff !important;
     border: initial !important;
+}
+
+
+
+#field_mapping tr.more{
+
+}
+.table-nostriped tbody tr:nth-of-type(odd) {
+    background-color:transparent;
+}
+#field_mapping select{
+    background-color:#F5E4CD;
+    background-color:#E9CACB;
+}
+#field_mapping select.ok{
+    background-color:#DDE9D3;
+}
+
+
+
+.map_dir{
+    font-size:120%;
+    margin-bottom:20px;
+}
+
+#field_mapping .optional{
+    display:none;
+}
+
+#oncore_prop_selector {
+    position:initial;
+    display:block;
+    margin-bottom:10px;
+}
+#oncore_prop_selector .dropdown-menu{
+    max-width:300px;
+}
+
+#show_optional{
+    margin:5px 0;
+}
+
+.delete_pull_prop{
+    cursor:pointer;
+}
+
+.map_arrow{
+    float:right;
+    margin:5px;
+}
+.value_map .map_arrow{
+    margin: 5px 10px;
 }
