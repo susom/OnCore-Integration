@@ -381,6 +381,12 @@ class Mapping
                 //has value set mapping
                 $rc_coded_values = array_keys($rc_vset);
                 $redcap_coverage = array_diff($rc_coded_values, array_keys($vmap_format));
+
+                if($field_key == "studySites"){
+                    //TODO THIS NEEDS A CUSTOM CALC, BUT CAN WE TRUST THE ONCORE PROP KEY TO REMAIN CONSTANT?
+                    $redcap_coverage = array_diff(array_keys($vmap_format), $rc_coded_values);
+                }
+
                 if (empty($redcap_coverage)) {
                     //this means all valid redcap values have been mapped to an oncore value
                     $push_status = true;
