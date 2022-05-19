@@ -18,10 +18,10 @@ class Mapping
 
     public function __construct($module)
     {
-        $this->module           = $module;
-        $this->oncore_fields    = $this->getOnCoreFieldDefinitions();
-        $this->redcap_fields    = $this->getProjectFieldDictionary();
-        $this->project_mapping  = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull"=>array(),"push"=>array());
+        $this->module               = $module;
+        $this->oncore_fields        = $this->getOnCoreFieldDefinitions();
+        $this->redcap_fields        = $this->getProjectFieldDictionary();
+        $this->project_mapping      = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull"=>array(),"push"=>array());
     }
 
     //GATHER THE REQUISITE DATAs INTO ARRAYS (Oncore, Redcap, FieldMappings)
@@ -30,23 +30,15 @@ class Mapping
      */
     public function getOnCoreFieldDefinitions()
     {
-        $field_list     = json_decode(trim($this->module->getSystemSetting("oncore-field-definition")), true);
-        $study_sites    = $this->module->getUsers()->getOnCoreStudySites();
-        //TODO PUT THIS SOMEWHERE ELSE
-        $subject_status = array("CONSENT",
-                            "WAIVED, CONSENT",
-                            "REFUSED",
-                            "CONSENTED",
-                            "WITHDRAWN",
-                            "ELIGIBLE",
-                            "ELIGIBLE(O), NOT",
-                            "ELIGIBLE, ON STUDY",
-                            "ON TREATMENT, OFF",
-                            "TREATMENT, ON",
-                            "FOLLOW UP, OFF",
-                            "STUDY, EXPIRED");
+        $field_list             = json_decode(trim($this->module->getSystemSetting("oncore-field-definition")), true);
+        $study_sites            = $this->module->getUsers()->getOnCoreStudySites();
+        $project_study_sites    = $this->getProjectSiteStudies();
+
+        if(!empty($project_study_sites)){
+            $study_sites = array_intersect($study_sites,$project_study_sites);
+        }
+
         $field_list["studySites"]       = array("oncore_valid_values" => $study_sites , "oncore_field_type" => array("text"), "required" => "true");
-//        $field_list["subjectStatus"]    = array("oncore_valid_values" => $subject_status , "oncore_field_type" => array("text"), "required" => "true");
         return $field_list;
     }
 
@@ -118,7 +110,9 @@ class Mapping
         if ($this->project_mapping) {
             return $this->project_mapping;
         } else {
-            $this->project_mapping = json_decode(ExternalModules::getProjectSetting($this->module->PREFIX, $this->module->getProjectId(), OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
+//            $this->project_mapping = json_decode(ExternalModules::getProjectSetting($this->module->PREFIX, $this->module->getProjectId(), OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
+            $this->project_mapping = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
+
             return $this->project_mapping ?: [];
         }
     }
@@ -129,7 +123,8 @@ class Mapping
     public function setProjectFieldMappings($mappings = array())
     {
         $mappings = is_null($mappings) ? array() : $mappings;
-        ExternalModules::setProjectSetting($this->module->PREFIX, $this->module->getProjectId(), OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, json_encode($mappings));
+//        ExternalModules::setProjectSetting($this->module->PREFIX, $this->module->getProjectId(), OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, json_encode($mappings));
+        $this->module->setProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, json_encode($mappings));
         $this->project_mapping = $mappings;
     }
 
@@ -456,14 +451,16 @@ class Mapping
     //ONCORE SUBSET
     public function setProjectOncoreSubset(array $oncore_subset): void
     {
-        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_ONCORE_SUBSET, json_encode($oncore_subset));
+//        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_ONCORE_SUBSET, json_encode($oncore_subset));
+        $this->module->setProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_ONCORE_SUBSET, json_encode($oncore_subset));
         $this->oncore_subset = $oncore_subset;
     }
 
     public function getProjectOncoreSubset()
     {
         if(empty($this->oncore_subset)){
-            $arr = json_decode(ExternalModules::getProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_ONCORE_SUBSET), true);
+//            $arr = json_decode(ExternalModules::getProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_ONCORE_SUBSET), true);
+            $arr = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_ONCORE_SUBSET), true);
             $this->oncore_subset = $arr ?: ["mrn"];
         }
         return $this->oncore_subset;
@@ -472,19 +469,37 @@ class Mapping
     //Porject PUSH PULL PREF
     public function setProjectPushPullPref(array $pushpull_state): void
     {
-        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_PUSHPULL_PREF, json_encode($pushpull_state));
+//        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_PUSHPULL_PREF, json_encode($pushpull_state));
+        $this->module->setProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_PUSHPULL_PREF, json_encode($pushpull_state));
         $this->pushpull_pref = $pushpull_state;
     }
 
     public function getProjectPushPullPref()
     {
         if(empty($this->pushpull_pref)){
-            $arr = json_decode(ExternalModules::getProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_PUSHPULL_PREF), true);
+//            $arr = json_decode(ExternalModules::getProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_PUSHPULL_PREF), true);
+            $arr = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_PUSHPULL_PREF), true);
             $this->pushpull_pref = $arr ?: [];
         }
         return $this->pushpull_pref;
     }
 
+    //SITE STUDIES
+    public function setProjectSiteStudies(array $site_studies_subset): void
+    {
+//        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, json_encode($site_studies_subset));
+        $this->module->setProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, json_encode($site_studies_subset));
+        $this->site_studies_subset = $site_studies_subset;
+    }
+
+    public function getProjectSiteStudies()
+    {
+        if(empty($this->site_studies_subset)){
+            $arr = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES), true);
+            $this->site_studies_subset = $arr ?: [];
+        }
+        return $this->site_studies_subset;
+    }
 
     //DRAW UI
     /**
@@ -618,7 +633,6 @@ class Mapping
             $html_pull[] =  $pull_temp[$prop];
         }
 
-        $this->module->emDebug($project_oncore_sub, current($pull_temp));
 
         return array(   "project_mappings"  => $project_mappings,
                         "oncore_fields"     => $oncore_fields,

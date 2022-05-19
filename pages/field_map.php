@@ -11,13 +11,12 @@ $mapping                = $module->getMapping();
 $current_mapping        = $mapping->getProjectMapping();
 $project_oncore_subset  = $mapping->getProjectOncoreSubset();
 
-$module->emDebug("current field maps", $current_mapping);
-$module->emDebug("current pull subset", $project_oncore_subset);
+//$module->emDebug("current field maps", $current_mapping);
+//$module->emDebug("current pull subset", $project_oncore_subset);
 
 $oncore_css             = $module->getUrl("assets/styles/field_mapping.css");
 $ajax_endpoint          = $module->getUrl("ajax/handler.php");
 $icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
-
 
 $pushpull_pref          = $mapping->getProjectPushPullPref();
 $overall_pull_status    = $mapping->getOverallPullStatus() ? "ok" : "";
@@ -29,14 +28,22 @@ $pull_html              = $field_map_ui["pull"];
 $push_html              = $field_map_ui["push"]["required"];
 $push_html_optional     = $field_map_ui["push"]["optional"];
 
-//ONCORE FIELD SUB SET SELECTION
-$oncore_props           = $mapping->getOnCoreFieldDefinitions();
-$field_selection        = array();
-$field_selection[]      = "<ul>\r\n";
+//ONCORE STUDY SITE SUBSET SELECTION
+$study_sites            = $module->getUsers()->getOnCoreStudySites();
+$project_study_sites    = $mapping->getProjectSiteStudies();
+$site_selection         = array();
+$site_selection[]       = "<ul>\r\n";
+foreach($study_sites as $site){
+    $checked            = in_array($site, $project_study_sites) ? "checked" : "";
+    $site_selection[]   = "<li><label><input type='checkbox' $checked name='site_study_subset' value='$site'><span>$site</span></label></li>\r\n";
+}
+$site_selection[]       = "</ul>\r\n";
 
 
-$req_field = [];
-$opt_field = [];
+//ONCORE PROPERTY DROP DOWN PICKER FOR PULL SIDE
+$oncore_props   = $mapping->getOnCoreFieldDefinitions();
+$req_field      = [];
+$opt_field      = [];
 foreach($oncore_props as $field => $props){
     if(in_array($field, $project_oncore_subset)){
         continue;
@@ -51,8 +58,6 @@ foreach($oncore_props as $field => $props){
     $checked            = in_array($field, $project_oncore_subset) ? "checked" : "";
     $field_selection[]  = "<li><label><input type='checkbox' $checked name='oncore_field_subset' value='$field'><span>$field</span></label></li>\r\n";
 }
-$field_selection[]      = "</ul>\r\n";
-
 $bs_dropdown    = array();
 $bs_dropdown[]  = '<div class="dropdown-menu" aria-labelledby="dropdownMenu2">';
 $bs_dropdown[]  = '<h6 class="dropdown-header">Required</h6>';
@@ -62,7 +67,6 @@ $bs_dropdown[]  = '<h6 class="dropdown-header">Optional</h6>';
 $bs_dropdown[]  = implode("\r\n",$opt_field);
 $bs_dropdown[]  = '</div>';
 $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
-
 ?>
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
@@ -94,6 +98,11 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 <label class="map_dir">
                     <input type="checkbox" class="pCheck" data-tab="push_mapping" value="2"> Do you want to PUSH subject data from REDCap to OnCore
                 </label>
+            </form>
+            <form id="study_sites" class="container">
+                <h2>Select subset of study sites for this project</h2>
+                <p class="lead">No selections will default to using the entire set.</p>
+                <?=implode("", $site_selection) ?>
             </form>
         </div>
 
@@ -167,7 +176,6 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     margin-left:10px; width:30px; height:30px;
     background-size:contain;
 }
-
 </style>
 <script>
     $(document).ready(function () {
@@ -529,6 +537,34 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 });
             });
         })
+
+        //SAVE SITE STUDIES SUB SET
+        $("#study_sites").on("change", "input[name='site_study_subset']",function(){
+            $("#study_sites").submit();
+        });
+        $("#study_sites").submit(function(e){
+            e.preventDefault();
+            var site_study_subset = $(this).find("input:checked").serializeArray();
+
+            var sss = [];
+            $(this).find("input:checked").each(function(){
+                sss.push($(this).val());
+            });
+
+            $.ajax({
+                url: ajax_endpoint,
+                method: 'POST',
+                data: {
+                    "action": "saveSiteStudies",
+                    "site_studies_subset" : sss
+                },
+                dataType: 'json'
+            }).done(function (result) {
+                //done
+            }).fail(function (e) {
+                console.log("failed to save", e);
+            });
+        });
     });
     function disableSelects(){
         $("#field_mapping select").each(function(){
