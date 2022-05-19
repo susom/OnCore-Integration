@@ -96,7 +96,7 @@
 
 .value_map .info{
     font-size:92%;
-    color:darkgoldenrod;
+    color:grey;
 }
 .value_map .info .alert{
     display:inline-block;
@@ -192,6 +192,8 @@ table.value_map th {
     max-width:300px;
 }
 
+
+
 #show_optional{
     margin:5px 0;
 }
@@ -206,4 +208,54 @@ table.value_map th {
 }
 .value_map .map_arrow{
     margin: 5px 10px;
+}
+
+
+
+#study_sites{
+    margin-bottom:50px;
+}
+#study_sites ul {
+    margin:0;
+    padding:10px;
+    list-style:none;
+    box-shadow: 0 0 3px 1px #ccc;
+    border-radius: 3px;
+}
+
+#study_sites li {
+    display:inline-block;
+    width:33%;
+    position:relative;
+    padding:0;
+    margin:0 0 10px 0;
+    vertical-align: top;
+}
+
+#study_sites li label{}
+
+#study_sites li input{
+    position:absolute;
+    top:50%; left:15px;
+    transform: translateY(-30%)
+}
+
+#study_sites li span{
+    display: flex;
+    justify-content:center;
+    flex-direction: column;
+
+    width:95%;
+    min-height:54px;
+    line-height:100%;
+    border-radius: 3px;
+    padding:10px 10px 10px 35px;
+    font-size:120%;
+    color:#aaa;
+    background:#F7F7FA;
+}
+
+#study_sites input:checked + span{
+    background:#E9F4F4;
+    color:#1B2E2E;
 }

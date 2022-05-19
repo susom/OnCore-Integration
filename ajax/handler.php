@@ -17,6 +17,11 @@ try {
                 $result =  $module->getMapping()->makeFieldMappingUI();
                 break;
 
+            case "saveSiteStudies":
+                $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : null;
+                $module->getMapping()->setProjectSiteStudies($result);
+                break;
+
             case "saveMapping":
                 //Saves to em project settings
                 //MAKE THIS A MORE GRANULAR SAVE.  GET
