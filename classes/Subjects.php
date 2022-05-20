@@ -556,7 +556,12 @@ class Subjects extends SubjectDemographics
             throw new \Exception(implode('<br>', $errors));
         }
 
-        $response = $this->getUser()->post('protocolSubjects', ['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographics' => $subjectDemographics, 'subjectDemographicsId' => $subjectDemographicsId, 'status' => 'ON STUDY']);
+        // when creating new subject. the EM must pass subjectSource OnCore
+        if (!$subjectDemographicsId && !empty($subjectDemographics)) {
+            $subjectDemographics = $this->addSubjectSource($subjectDemographics);
+        }
+
+        $response = $this->getUser()->post('protocolSubjects', ['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographics' => $subjectDemographics, 'subjectDemographicsId' => $subjectDemographicsId]);
 
 
         if ($response->getStatusCode() == 201) {
@@ -565,6 +570,12 @@ class Subjects extends SubjectDemographics
             $data = json_decode($response->getBody(), true);
             return $data;
         }
+    }
+
+    private function addSubjectSource($subjectDemographics)
+    {
+        $subjectDemographics['subjectSource'] = OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONCORE;
+        return $subjectDemographics;
     }
 
     public function searchOnCoreProtocolSubjectViaMRN($protocolId, $redcapMRN)
@@ -603,7 +614,7 @@ class Subjects extends SubjectDemographics
             return $result;
         } else {
             // if subject is in different protocol then just add subject to protocol
-            if ($onCoreRecord['subjectSource'] == 'OnCore') {
+            if ($onCoreRecord['subjectSource'] == OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE) {
                 $message = "OnCore Subject " . $onCoreRecord['subjectDemographicsId'] . " found for $redcapMRN. REDCap data will be ignored and OnCore subject will be used.";
                 Entities::createLog($message);
                 $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, $onCoreRecord['subjectDemographicsId'], null);
@@ -612,7 +623,7 @@ class Subjects extends SubjectDemographics
             }
             // if subject is in Onstage this mean not part of any protocol
             // Onstage data has priority except null
-            elseif ($onCoreRecord['subjectSource'] == 'Onstage') {
+            elseif ($onCoreRecord['subjectSource'] == OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE) {
                 // fill Onstage missing data from redcap record.
                 $demographics = $this->fillMissingData($record, $onCoreRecord, $fields);
                 $message = "No OnCore Subject found for $redcapMRN but a Record found on OnStage table. REDCap data will be used ONLY for missing data from OnStage.";

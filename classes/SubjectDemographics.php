@@ -116,8 +116,8 @@ class SubjectDemographics
             if ($response->getStatusCode() < 300) {
                 $data = json_decode($response->getBody(), true);
                 if (empty($data)) {
-                    if ($subjectSource == 'OnCore') {
-                        return $this->searchOnCoreSubjectUsingMRN($mrn, 'Onstage');
+                    if ($subjectSource == OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONCORE) {
+                        return $this->searchOnCoreSubjectUsingMRN($mrn, OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE);
                     } else {
                         return [];
                     }
@@ -150,7 +150,7 @@ class SubjectDemographics
     public function setSubjectSource($subjectSource)
     {
         if ($this->validateFields) {
-            $this->subjectSource = ((($subjectSource == "OnCore") or ($subjectSource == "Onstage")) ? $subjectSource : null);
+            $this->subjectSource = ((($subjectSource == OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONCORE) or ($subjectSource == OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE)) ? $subjectSource : null);
         } else {
             $this->subjectSource = $subjectSource;
         }
