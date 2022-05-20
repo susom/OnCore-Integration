@@ -112,18 +112,20 @@ class batchModal{
             this.setRowNote(id, note)
         }
         this.incFinished();
-        $(".pushTBL td[data-status_rowid='"+id+"']").text(status_txt);
+        $(".pushTBL td[data-status_rowid='" + id + "']").html(status_txt);
     }
 
     setRowNote(id, note){
         this.logMessage(note);
-        $(".pushTBL td[data-note_rowid='"+id+"']").text(note);
+        $(".pushTBL td[data-note_rowid='" + id + "']").html(note);
     }
 
-    logMessage(msg){
-        var existing_msg    = $("#modal_msg").val();
-        var new_msg         = existing_msg.length? existing_msg + "\r\n" + msg:msg;
-        $("#modal_msg").val(new_msg);
+    logMessage(msg) {
+        var existing_msg = $("#modal_msg").val();
+        var new_msg = existing_msg.length ? existing_msg + "\r\n" + msg : msg;
+        var cleanText = new_msg.replace(/<\/?[^>]+(>|$)/g, " ");
+
+        $("#modal_msg").val(cleanText);
     }
 
     randomIntFromInterval(min, max) { // min and max included

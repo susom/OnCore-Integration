@@ -497,19 +497,24 @@ class Subjects extends SubjectDemographics
      */
     public function createOnCoreProtocolSubject($protocolId, $studySite, $subjectDemographicsId = null, $subjectDemographics = null): array
     {
+        $errors = [];
         if (!$protocolId) {
-            throw new \Exception('Protocol is missing');
+//            throw new \Exception('Protocol is missing');
+            $errors[] = 'Protocol is missing';
         }
 
         if (!$studySite) {
-            throw new \Exception('Study site is missing');
+//            throw new \Exception('Study site is missing');
+            $errors[] = 'Study site is missing';
         }
         if (!$subjectDemographicsId && !$subjectDemographics) {
-            throw new \Exception('You must have either Subject demographic ID or Subject Demographics Object');
+//            throw new \Exception('You must have either Subject demographic ID or Subject Demographics Object');
+            $errors[] = 'You must have either Subject demographic ID or Subject Demographics Object';
         }
 
         if (!$this->isCanPush()) {
-            throw new \Exception('You cant push REDCap records to OnCore Protocol. Because Protocol is not approved or its status is not valid.');
+//            throw new \Exception('You cant push REDCap records to OnCore Protocol. Because Protocol is not approved or its status is not valid.');
+            $errors[] = 'You cant push REDCap records to OnCore Protocol. Because Protocol is not approved or its status is not valid.';
         }
 
         if ($subjectDemographics) {
@@ -527,22 +532,28 @@ class Subjects extends SubjectDemographics
                 } else {
                     $diff = array_diff(OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS, $intersect);
                 }
-                throw new \Exception("Following field/s are missing: " . implode(',', $diff));
+//                throw new \Exception("Following field/s are missing: " . implode(',', $diff));
+                $errors[] = "<strong>Following field/s are missing:</strong> " . implode(', ', $diff);
             }
 
             /**
              * make sure all required fields have values
              */
-            $errors = [];
+            $e = [];
             foreach (OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS as $field) {
                 if ($subjectDemographics[$field] == '') {
-                    $errors[] = $field;
+                    $e[] = $field;
                 }
             }
 
             if (!empty($errors)) {
-                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
+//                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
+                $errors[] = "<strong>Following field/s are missing values:</strong> " . implode(', ', $e);
             }
+        }
+
+        if (!empty($errors)) {
+            throw new \Exception(implode('<br>', $errors));
         }
 
         $response = $this->getUser()->post('protocolSubjects', ['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographics' => $subjectDemographics, 'subjectDemographicsId' => $subjectDemographicsId, 'status' => 'ON STUDY']);
