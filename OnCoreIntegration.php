@@ -900,13 +900,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             $rc_event = null;
             $oc_status = null;
             switch ($link_status) {
-                case 2:
+                case OnCoreIntegration::FULL_MATCH:
                     //full
                     $full = true;
 
-                case 3:
+                case OnCoreIntegration::PARTIAL_MATCH:
 
-                case 1:
+                case OnCoreIntegration::ONCORE_ONLY:
                     //oncore only
                     $oncore = $record["oncore"];
                     $oc_id = $oncore["protocolId"];
@@ -915,18 +915,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     $mrn = $oncore["demographics"]["mrn"];
                     $last_scan = date("Y-m-d H:i", $oncore["demographics"]["updated"]);
 
-                case 0:
+                case OnCoreIntegration::REDCAP_ONLY:
                     //redcap only
                     if (array_key_exists("redcap", $record)) {
                         // set the keys for redcap array
                         $arr = current($record["redcap"]);
                         // we are using pull fields to map redcap data
-                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($arr["record_id"], $this->getMapping()->getProjectFieldMappings()['pull'], $this->getMapping()->getOnCoreFieldDefinitions());
+                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($arr["record_id"], $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
                         // handle data scattered over multiple events
                         $redcap = [];
                         foreach ($temp as $onCoreField => $value) {
                             // Use redcap fields name instead of oncore to work with Irvin UI.
-                            $redcapField = $this->getMapping()->getMappedRedcapField($onCoreField);
+                            $redcapField = $this->getMapping()->getMappedRedcapField($onCoreField, true);
                             $redcap[$redcapField ?: $onCoreField] = $value;
                         }
                         $rc_id = $arr[\REDCap::getRecordIdField()];
@@ -944,10 +944,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             $$bin_var["included"][$mrn] = array();
                         }
                     }
-                    foreach ($mapped_fields["pull"] as $oncore_field => $redcap_details) {
-                        if (in_array($oncore_field, $exclude)) {
-                            continue;
-                        }
+                    $fields = $link_status == OnCoreIntegration::REDCAP_ONLY ? $mapped_fields["push"] : $mapped_fields["pull"];
+                    foreach ($fields as $oncore_field => $redcap_details) {
+//                        if (in_array($oncore_field, $exclude)) {
+//                            continue;
+//                        }
                         $rc_field = $redcap_details["redcap_field"];
                         $rc_event = $redcap_details["event"];
 
