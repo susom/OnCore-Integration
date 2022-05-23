@@ -274,7 +274,9 @@ class Users extends Clients
                 }
             }
         } catch (\Exception $e) {
-            Entities::createException($e->getMessage());
+            $data['errorType'] = 'exception';
+            $data['message'] = $e->getMessage();
+            return $data;
         }
     }
 

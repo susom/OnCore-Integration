@@ -614,7 +614,7 @@ class Subjects extends SubjectDemographics
             return $result;
         } else {
             // if subject is in different protocol then just add subject to protocol
-            if ($onCoreRecord['subjectSource'] == OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE) {
+            if ($onCoreRecord['subjectSource'] == OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONCORE) {
                 $message = "OnCore Subject " . $onCoreRecord['subjectDemographicsId'] . " found for $redcapMRN. REDCap data will be ignored and OnCore subject will be used.";
                 Entities::createLog($message);
                 $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, $onCoreRecord['subjectDemographicsId'], null);
