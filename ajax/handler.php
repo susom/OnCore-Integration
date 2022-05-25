@@ -223,7 +223,10 @@ try {
                 break;
 
             case "triggerIRBSweep":
-                $result = $module->onCoreProtocolsScanCron();
+                if (isset($_POST['irb']) && $_POST['irb'] != '') {
+                    $module->getProtocols()->processCron($module->getProjectId(), filter_var($_POST['irb'], FILTER_SANITIZE_STRING));
+                }
+
                 break;
         }
         echo json_encode($result);

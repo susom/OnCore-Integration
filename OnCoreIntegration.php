@@ -717,7 +717,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         url: ajax_endpoint,
                         method: 'POST',
                         data: {
-                            "action": "triggerIRBSweep"
+                            "action": "triggerIRBSweep",
+                            "irb": irb
                         },
                         dataType: 'json'
                     }).done(function (e) {
