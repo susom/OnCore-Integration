@@ -9,7 +9,7 @@ use GuzzleHttp\Exception\GuzzleException;
 
 try {
     if (isset($_POST["action"])) {
-        $action = filter_var($_POST["action"], FILTER_SANITIZE_STRING);
+        $action = htmlspecialchars($_POST["action"]);
         $result = null;
         $module->initiateProtocol();
         switch ($action) {
@@ -161,17 +161,18 @@ try {
                 break;
 
             case "getSyncDiff":
-                $bin        = !empty($_POST["bin"]) ? filter_var($_POST["bin"], FILTER_SANITIZE_STRING) : null;
-                $sync_diff  = $module->getSyncDiff();
+                $bin = htmlspecialchars($_POST["bin"]);
+                $bin = $bin ?: null;
+                $sync_diff = $module->getSyncDiff();
 
                 $result = array("included" => "", "excluded" => "");
-                if ($bin == "partial"){
+                if ($bin == "partial") {
                     $result["included"] = $module->getMapping()->makeSyncTableHTML($sync_diff["match"]["included"]);
                     $result["excluded"] = $module->getMapping()->makeSyncTableHTML($sync_diff["match"]["excluded"], null, "disabled", true);
-                }elseif($bin == "redcap"){
+                } elseif ($bin == "redcap") {
                     $result["included"] = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["included"]);
                     $result["excluded"] = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["excluded"], null, "disabled", true);
-                }elseif($bin == "oncore"){
+                } elseif ($bin == "oncore") {
                     $result["included"] = $module->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["included"], false);
                     $result["excluded"] = $module->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["excluded"], false, "disabled", true);
                 }
@@ -189,7 +190,8 @@ try {
                 break;
 
             case "pushToOncore":
-                $record = !empty($_POST["record"]) ? filter_var_array($_POST["record"], FILTER_SANITIZE_STRING) : null;
+                $record = htmlspecialchars($_POST["record"]);
+                $record = $record ?: null;
                 $module->emDebug("push to oncore approved ids(redcap?)", $record);
                 if (!$record["value"] || $record["value"] == '') {
                     throw new \Exception('REDCap Record ID is missing.');
@@ -206,16 +208,18 @@ try {
 
             case "excludeSubject":
                 //flips excludes flag on entitry record
-                $result = !empty($_POST["entity_record_id"]) ? filter_var($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
-                if($result){
+                $entity_record_id = htmlentities($_POST["entity_record_id"], ENT_QUOTES);
+                $result = $entity_record_id ?: null;
+                if ($result) {
                     $module->updateLinkage($result, array("excluded" => 1));
                 }
                 break;
 
             case "includeSubject":
                 //flips excludes flag on entitry record
-                $result = !empty($_POST["entity_record_id"]) ? filter_var($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
-                if($result){
+                $entity_record_id = htmlentities($_POST["entity_record_id"], ENT_QUOTES);
+                $result = $entity_record_id ?: null;
+                if ($result) {
                     $module->updateLinkage($result, array("excluded" => 0));
                 }
                 break;
@@ -227,31 +231,39 @@ try {
                 break;
 
             case "checkPushPullStatus":
-                $oncore_field   = !empty($_POST["oncore_field"]) ? filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) : null;
-                $result         = $module->getMapping()->calculatePushPullStatus($oncore_field);
+                $oncore_field = htmlspecialchars($_POST["oncore_field"]);
+                $oncore_field = $oncore_field ?: null;
+                $result = $module->getMapping()->calculatePushPullStatus($oncore_field);
                 break;
 
             case "getValueMappingUI":
-                $redcap_field   = !empty($_POST["redcap_field"]) ? filter_var($_POST["redcap_field"], FILTER_SANITIZE_STRING) : null;
-                $oncore_field   = !empty($_POST["oncore_field"]) ? filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) : null;
-                $rc_mapping     = !empty($_POST["rc_mapping"]) ? filter_var($_POST["rc_mapping"], FILTER_SANITIZE_NUMBER_INT) : null;
-                if($rc_mapping){
-                    $result         = $module->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
-                }else{
-                    $result         = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
+                $redcap_field = htmlspecialchars($_POST["redcap_field"]);
+                $redcap_field = $redcap_field ?: null;
+                $oncore_field = htmlspecialchars($_POST["oncore_field"]);
+                $oncore_field = $oncore_field ?: null;
+//                $redcap_field   = !empty($_POST["redcap_field"]) ? filter_var($_POST["redcap_field"], FILTER_SANITIZE_STRING) : null;
+//                $oncore_field   = !empty($_POST["oncore_field"]) ? filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) : null;
+//                $rc_mapping     = !empty($_POST["rc_mapping"]) ? filter_var($_POST["rc_mapping"], FILTER_SANITIZE_NUMBER_INT) : null;
+                $rc_mapping = htmlspecialchars($_POST["rc_mapping"]);
+                $rc_mapping = $rc_mapping ?: null;
+                if ($rc_mapping) {
+                    $result = $module->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
+                } else {
+                    $result = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
                 }
 
-                $result         = $result["html"];
+                $result = $result["html"];
                 break;
 
             case "triggerIRBSweep":
                 if (isset($_POST['irb']) && $_POST['irb'] != '') {
-                    $module->getProtocols()->processCron($module->getProjectId(), filter_var($_POST['irb'], FILTER_SANITIZE_STRING));
+                    $irb = htmlspecialchars($_POST['irb']);
+                    $module->getProtocols()->processCron($module->getProjectId(), $irb);
                 }
 
                 break;
         }
-        echo json_encode($result);
+        echo htmlentities(json_encode($result, JSON_THROW_ON_ERROR), ENT_NOQUOTES);
     }
 } catch (\LogicException|ClientException|GuzzleException $e) {
     $response = $e->getResponse();
@@ -264,12 +276,13 @@ try {
     if ($id) {
         $responseBodyAsString['id'] = $id;
     }
-    echo json_encode($responseBodyAsString);
+    echo(json_encode($responseBodyAsString, JSON_THROW_ON_ERROR));
 } catch (\Exception $e) {
     Entities::createException($e->getMessage());
     header("Content-type: application/json");
     http_response_code(404);
-    echo json_encode(array('status' => 'error', 'message' => $e->getMessage(), 'id' => $id));
+    $result = json_encode(array('status' => 'error', 'message' => $e->getMessage(), 'id' => $id));
+    echo(json_encode($result, JSON_THROW_ON_ERROR));
 }
 
 
