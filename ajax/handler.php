@@ -166,10 +166,10 @@ try {
                 $sync_diff = $module->getSyncDiff();
 
                 $result = array("included" => "", "excluded" => "");
-                if ($bin == "partial") {
-                    $result["included"] = $module->getMapping()->makeSyncTableHTML($sync_diff["match"]["included"]);
-                    $result["excluded"] = $module->getMapping()->makeSyncTableHTML($sync_diff["match"]["excluded"], null, "disabled", true);
-                } elseif ($bin == "redcap") {
+                if ($bin == "partial"){
+                    $result["included"] = $module->getMapping()->makeSyncTableHTML($sync_diff["partial"]["included"]);
+                    $result["excluded"] = $module->getMapping()->makeSyncTableHTML($sync_diff["partial"]["excluded"], null, "disabled", true);
+                }elseif($bin == "redcap"){
                     $result["included"] = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["included"]);
                     $result["excluded"] = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["excluded"], null, "disabled", true);
                 } elseif ($bin == "oncore") {
