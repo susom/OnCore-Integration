@@ -12,7 +12,6 @@ $batch_js               = $module->getUrl("assets/scripts/batch_modal.js");
 $icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
 $ajax_endpoint          = $module->getUrl("ajax/handler.php");
 
-$sync_diff              = $module->getSyncDiff();
 
 $sync_summ              = $module->getSyncDiffSummary();
 $total_subjects         = $sync_summ["total_count"];
@@ -24,18 +23,20 @@ $excluded_count         = $sync_summ['excluded_count'];
 $oncore_count           = $sync_summ["oncore_only_count"];
 $redcap_count           = $sync_summ["redcap_only_count"];
 
-$sample_ts = null;
-if ($full_match_count || $partial_match_count || $oncore_count) {
-    if ($full_match_count || $partial_match_count) {
-        $sample_ts = current(current($sync_diff["match"]["included"]));
-    } elseif ($oncore_count) {
-        $sample_ts = current(current($sync_diff["oncore"]["included"]));
-    }
 
-    if (!empty($sample_ts)) {
-        $sample_ts = $sample_ts["ts_last_scan"];
-    }
-}
+//$sync_diff              = $module->getSyncDiff();
+//$sample_ts = null;
+//if ($full_match_count || $partial_match_count || $oncore_count) {
+//    if ($full_match_count || $partial_match_count) {
+//        $sample_ts = current(current($sync_diff["match"]["included"]));
+//    } elseif ($oncore_count) {
+//        $sample_ts = current(current($sync_diff["oncore"]["included"]));
+//    }
+//
+//    if (!empty($sample_ts)) {
+//        $sample_ts = $sample_ts["ts_last_scan"];
+//    }
+//}
 
 require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 ?>

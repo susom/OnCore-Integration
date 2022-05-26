@@ -1037,33 +1037,31 @@ class Mapping
         $html .= "</tr>";
         $html .= "</thead>";
 
-        $this->module->emDebug("redcap records shoudld be 38?", count($records), array_keys($records));
+
 
         foreach ($records as $mrn => $rows) {
             if ($noredcap) {
                 $rc_id = "";
             }
-            $rowspan = count($rows);
-            $print_rowspan = false;
-
-            $ts_last_scan = null;
-
+            $rowspan        = count($rows);
+            $print_rowspan  = false;
+            $ts_last_scan   = null;
 
             $html .= "<tbody class='$mrn' data-subject_mrn='$mrn'>";
 
             foreach ($rows as $row) {
-                $entity_id = $row["entity_id"];
-                $rc_id = $row["rc_id"];
-                $oc_field = $row["oc_field"];
-                $rc_field = $row["rc_field"];
-                $rc_data = $row["rc_data"];
+                $entity_id  = $row["entity_id"];
+                $rc_id      = $row["rc_id"];
+                $oc_field   = $row["oc_field"];
+                $rc_field   = $row["rc_field"];
+                $rc_data    = $row["rc_data"];
 
-                $oc_alias = $this->getOncoreAlias($oc_field);
+                $oc_alias       = $this->getOncoreAlias($oc_field);
                 $oc_description = $this->getOncoreDesc($oc_field);
-                $oc_type = $this->getOncoreType($oc_field);
-                $ts_last_scan = $row["ts_last_scan"];
+                $oc_type        = $this->getOncoreType($oc_field);
+                $ts_last_scan   = $row["ts_last_scan"];
 
-                $diffmatch = "diff";
+                $diffmatch      = "diff";
 
                 $rc = !empty($rc_field) ? $rc_data : "";
 
@@ -1083,13 +1081,12 @@ class Mapping
                     }
 
 
-                    $exclude_class = $excluded ? "include_subject" : "exclude_subject";
-                    $exclude_text = $excluded ? "Re-Include" : "Exclude";
-                    $id_info[] = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
-                    $id_info = implode("<br>", $id_info);
+                    $exclude_class  = $excluded ? "include_subject" : "exclude_subject";
+                    $exclude_text   = $excluded ? "Re-Include" : "Exclude";
+                    $id_info[]      = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
+                    $id_info        = implode("<br>", $id_info);
                     $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' value='$rc_id' data-redcap='$rc_id' data-oncore='' data-mrn='$mrn' checked/></td>";
                     $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
-//                $html .= "<td class='rc_study' rowspan=$rowspan></td>";
                 }
                 $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
                 $html .= "<td class='rc_data data'>$rc</td>";
