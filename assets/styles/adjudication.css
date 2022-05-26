@@ -1,0 +1,129 @@
+#filters{
+    display:flex;
+    justify-content:space-around;
+}
+
+#overview .stat{
+    border-width:5px;
+    border-style: solid;
+    border-radius:200px;
+    min-width:200px;
+    min-height:200px;
+    text-decoration:none;
+    border-color: transparent;
+    text-align:center;
+    color:#333;
+    box-shadow: 0 0 5px #bbb;
+}
+
+
+.stat-group{
+    max-width:200px;
+}
+#overview .all_linked .stat{
+    border-color: transparent;
+    box-shadow:none;
+    width:180px; min-width:initial;
+    min-height:initial;
+}
+
+.stat .fas{
+    font-size: 140%;
+    vertical-align:middle;
+    cursor:pointer;
+}
+
+.all_linked.stat-group {
+    width:366px;
+    max-width:initial;
+}
+.all_linked .stat-body{
+    position:relative;
+}
+
+ul.adjudication {
+    margin:3px auto 0; padding:0;
+    list-style:none;
+    font-size:92%;
+}
+
+
+.make_invis{
+    visibility:hidden;
+}
+
+#refresh_sync_diff{
+    /*position: absolute;*/
+    /*top:-44px;*/
+    /*transform: translateX(-50%);*/
+    margin-top:5px;
+    width:100%;
+    max-width:190px;
+}
+
+
+/*.stat-group.all_linked{*/
+/*    max-width:366px;*/
+/*}*/
+
+.stat i{ font-style:normal;  }
+.stat .h1{
+    font-size:500%;
+    text-align:center;
+}
+
+.stat-title{
+    line-height:100%;
+}
+.stat-text{
+    font-style:normal;
+    font-size:85%;
+}
+
+.redcap_summ .stat-text,
+.oncore_summ .stat-text{
+    font-size:160%;
+}
+
+
+.stat i {
+    color:#2f5f73;
+}
+
+#overview .picked.redcap_summ .stat{ border-color:#A03037; position:relative;  }
+.redcap_summ .h1,
+.redcap_summ .stat i,
+.redcap_summ.filtered {color:#A03037; }
+
+#overview .picked.oncore_summ .stat{ border-color:#4374DD; }
+.oncore_summ .h1,
+.oncore_summ .stat i,
+.oncore_summ.filtered{color:#4374DD; }
+
+#overview .picked.misc_summ .stat{ border-color:#D9B12B; position:relative; }
+.misc_summ .h1,
+.misc_summ .stat i,
+.misc_summ.filtered {color:#D9B12B; }
+
+.tab-content{
+    margin:50px 0;
+    padding:40px 20px;
+    border:1px solid #999;
+    border-radius:5px;
+}
+
+#oncore_mapping button.loading{
+    position:relative;
+    padding-right:35px;
+}
+
+.no_content {
+    color:#999;
+    font-style:italic;
+    text-align:center;
+}
+
+.getadjudication{
+    font-size:77%;
+    padding:4px 8px;
+}

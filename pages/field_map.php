@@ -183,7 +183,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         var oncore_fields       = <?=json_encode($oncore_fields)?>;
         var pushpull_pref       = <?=json_encode($pushpull_pref)?>;
 
-        //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACHOTHER
+        //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACH OTHER
+        //TODO NEED TO OPTIMIZE
         var ajaxQueue = {
             queuedRequests: [],
             addRequest: function (req) {
@@ -317,8 +318,17 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 var _select         = $(this);
 
                 //UI UPDATE
+                var _update_oppo    = true;
                 $("select.redcap_field[name='"+oncore_field+"']").each(function(){
                     var temp_map_direction   = $(this).data("mapdir") == "push" ? "push" : "pull";
+
+                    if(map_direction !== temp_map_direction){
+                        //THIS MEANS THIS ITERATION IS THE OPPOSITE NUMBER SO WE MUST BE CAREFUL
+                        if( $(this).find(":checked").length && $(this).find(":checked").val() !== "-99"){
+                            _update_oppo = false;
+                            return false;
+                        }
+                    }
 
                     if(redcap_field !== "-99"){
                         $(this).find("option[value='"+redcap_field+"']").prop("selected","selected");
@@ -363,6 +373,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 $(this).parent().addClass("loading");
 
                 disableSelects();
+
                 ajaxQueue.addRequest(function () {
                     // -- your ajax request goes here --
                     return $.ajax({
@@ -371,20 +382,29 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         data: {
                             "action": "saveMapping",
                             "field_mappings": field_maps,
+                            "update_oppo" : _update_oppo
                         },
                         dataType: 'json'
                     }).done(function (result) {
+                        console.log("if upddate oppo,then update the vmaps too", _update_oppo);
                         //remove spinners
                         updatePushPullStatus(oncore_field, redcap_field);
                         enableSelects();
 
-                        if(!no_refresh || true){
-                            makeValueMappingRow(oncore_field, redcap_field, 0);
+                        if(is_rc_mapping){
                             makeValueMappingRow(oncore_field, redcap_field, 1);
-                            _select.removeClass("second_level_trigger");
+                            if(_update_oppo){
+                                makeValueMappingRow(oncore_field, redcap_field, 0);
+                            }
+                        }else{
+                            makeValueMappingRow(oncore_field, redcap_field, 0);
+                            if(_update_oppo){
+                                makeValueMappingRow(oncore_field, redcap_field, 1);
+                            }
                         }
-                        updateOverAllStatus();
+                        _select.removeClass("second_level_trigger");
 
+                        updateOverAllStatus();
                     }).fail(function (e) {
                         console.log("failed to save", e);
                     });
@@ -566,11 +586,13 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             });
         });
     });
+
     function disableSelects(){
         $("#field_mapping select").each(function(){
             $(this).prop("disabled","disabled");
         });
     }
+
     function enableSelects(){
         $("#field_mapping select").each(function(){
             $(this).prop("disabled",false);

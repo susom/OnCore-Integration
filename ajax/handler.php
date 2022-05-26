@@ -28,6 +28,7 @@ try {
                 $project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
                 $current_mapping        = $module->getMapping()->getProjectMapping();
                 $result             = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
+                $update_oppo        = !empty($_POST["update_oppo"]) ? filter_var($_POST["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
 
                 $pull_mapping       = !empty($result["mapping"]) ? $result["mapping"] : null;
                 $oncore_field       = !empty($result["oncore_field"]) && $result["oncore_field"] !== "-99" ? $result["oncore_field"] : null;
@@ -36,12 +37,13 @@ try {
                 $ftype              = !empty($result["field_type"]) ? $result["field_type"] : null;
                 $vmap               = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
 
+                //$pull_mapping tells me the actual click (pull or push side)... doing the opposite side is more just a convenience..
                 if($pull_mapping == "pull"){
                     //pull side
                     if(!$redcap_field){
                         unset($current_mapping[$pull_mapping][$oncore_field]);
                     }else{
-                        if(!$vmap){
+                        if(!$vmap && $update_oppo){
                             //if its just a one to one mapping, then just go ahead and map the other direction
                             $current_mapping["push"][$oncore_field] = array(
                                 "redcap_field"  => $redcap_field,
@@ -63,7 +65,7 @@ try {
                     if(!$redcap_field){
                         unset($current_mapping[$pull_mapping][$oncore_field]);
                     }else{
-                        if(!$vmap && in_array($oncore_field, $project_oncore_subset)){
+                        if(!$vmap && in_array($oncore_field, $project_oncore_subset) && $update_oppo){
                             //if its just a one to one mapping, then just go ahead and map the other direction
                             $current_mapping["pull"][$oncore_field] = array(
                                 "redcap_field"  => $redcap_field,
@@ -81,8 +83,6 @@ try {
                         );
                     }
                 }
-
-                $module->emDebug($current_mapping);
 
                 $result = $module->getMapping()->setProjectFieldMappings($current_mapping);
                 break;
@@ -160,10 +160,31 @@ try {
                 $result = $module->pullSync();
                 break;
 
+            case "getSyncDiff":
+                $bin        = !empty($_POST["bin"]) ? filter_var($_POST["bin"], FILTER_SANITIZE_STRING) : null;
+                $sync_diff  = $module->getSyncDiff();
+
+                $result = array("included" => "", "excluded" => "");
+                if ($bin == "partial"){
+                    $result["included"] = $module->getMapping()->makeSyncTableHTML($sync_diff["match"]["included"]);
+                    $result["excluded"] = $module->getMapping()->makeSyncTableHTML($sync_diff["match"]["excluded"], null, "disabled", true);
+                }elseif($bin == "redcap"){
+                    $result["included"] = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["included"]);
+                    $result["excluded"] = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["excluded"], null, "disabled", true);
+                }elseif($bin == "oncore"){
+                    $result["included"] = $module->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["included"], false);
+                    $result["excluded"] = $module->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["excluded"], false, "disabled", true);
+                }
+
+                break;
+
             case "approveSync":
-                $result = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
-                $id = $result['oncore'];
-                $result = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($result);
+                $temp   = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
+                $id     = $temp['oncore'];
+                $result = $temp["mrn"];
+
+                unset($temp["mrn"]);
+                $res    = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($temp);
                 break;
 
             case "pushToOncore":
