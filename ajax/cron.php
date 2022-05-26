@@ -9,7 +9,7 @@ use GuzzleHttp\Exception\GuzzleException;
 
 try {
     global $Proj;
-    $action = filter_var($_GET['action'], FILTER_SANITIZE_STRING);
+    $action = htmlspecialchars($_GET['action']);
     if (!$module->users) {
         $module->setUsers(new Users($module->PREFIX, null, $module->getCSRFToken()));
     }

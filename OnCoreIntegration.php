@@ -633,13 +633,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         //ADD LINE TO MAIN PROJECT SEETTINGS IF THERE IS POSSIBLE ONCORE INTEGRATION
                         for (var protocolId in oncore_integrations) {
                             let integration = oncore_integrations[protocolId];
-                            let protocol    = oncore_protocols[protocolId];
+                            let protocol = oncore_protocols[protocolId];
 
-                            let projectIntegrated   = integration["status"] == 2;
-                            let integration_entity  = integration["id"];
-                            let protocol_status     = protocol["protocolStatus"];
-                            let protocol_title      = protocol["shortTitle"];
-                            let irb                 = integration["irb_number"];
+                            let projectIntegrated = integration["status"] == 2;
+                            let integration_entity = integration["id"];
+                            let protocol_status = protocol["protocolStatus"];
+                            let protocol_title = protocol["shortTitle"];
+                            let irb = integration["irb_number"];
 
                             let btn_text = projectIntegrated ? "Unlink Project&nbsp;" : "Link Project&nbsp;";
                             let integrated_class = projectIntegrated ? "integrated" : "not_integrated";
@@ -953,10 +953,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         } else {
                             array_push($$bin_var["included"][$mrn], $temp);
                         }
-                    }
-                    break;
+                        break;
+                }
             }
-        }
 
         if (!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap) || !empty($bin_partial)) {
             $sync_diff = array(
@@ -969,6 +968,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
 //        $this->emDebug("sync diff redcap", $sync_diff["redcap"]["included"]);
         return $sync_diff;
+
     }
 
     /**

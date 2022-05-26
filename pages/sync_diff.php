@@ -331,15 +331,17 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 },
                 dataType: 'json'
             }).done(function (html) {
+                html.excluded = unescape(html.excluded)
+                html.included = unescape(html.included)
                 _this.removeClass("loading");
 
-                $(".getadjudication").prop("disabled",false);
+                $(".getadjudication").prop("disabled", false);
                 par.addClass("picked");
 
                 $("p.no_content").hide();
-                $("#"+bin).addClass("active");
-                $("#"+bin).find(".included").empty().append(html["included"]);
-                $("#"+bin).find(".excluded").empty().append(html["excluded"]);
+                $("#" + bin).addClass("active");
+                $("#" + bin).find(".included").empty().append(html["included"]);
+                $("#" + bin).find(".excluded").empty().append(html["excluded"]);
             }).fail(function (e) {
                 console.log("failed to getSyncDiff", e);
             });
@@ -477,6 +479,24 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
     function randomIntFromInterval(min, max) { // min and max included
         return Math.floor(Math.random() * (max - min + 1) + min)
+    }
+
+    function escape(str) {
+        str = str.replace(/&/g, "&amp;");
+        str = str.replace(/>/g, "&gt;");
+        str = str.replace(/</g, "&lt;");
+        str = str.replace(/"/g, "&quot;");
+        str = str.replace(/'/g, "&#039;");
+        console.log(str)
+        return str;
+    }
+
+    function unescape(s) {
+        return s.replace(/&amp;/g, "&")
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&#39;/g, "'")
+            .replace(/&quot;/g, '"');
     }
 </script>
 <?php
