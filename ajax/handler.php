@@ -180,11 +180,12 @@ try {
 
             case "approveSync":
                 $temp   = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
-                $id     = $temp['oncore'];
-                $result = $temp["mrn"];
-
+                $mrn    = $temp['mrn'];
                 unset($temp["mrn"]);
+
                 $res    = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($temp);
+                $result = array("mrn" => $mrn, "id" => $res["id"]) ;
+
                 break;
 
             case "pushToOncore":
