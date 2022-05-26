@@ -102,7 +102,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
 
     public static $ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS = array(
-        "subjectSource",
         "mrn",
         "gender",
         "ethnicity",
@@ -556,27 +555,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $types;
     }
 
-    // this is not needed because EM is enabled per project is protocol exists.
-//    public function redcap_module_link_check_display($project_id, $link)
-//    {
-//        global $Proj;
-//        // only project context
-//        if ($Proj) {
-//
-//            //RACE CONDITIONs THIS FIRES BEFORE redcap_every_page_top
-//            $entity_record = $this->hasOnCoreIntegration();
-//            if (!empty($entity_record)) {
-//                return $link;
-//            }
-//        }
-//        //for control center to display CP links.
-//        if (\ExternalModules\ExternalModules::isSuperUser()) {
-//            // Super users can see all pages
-//            return $link;
-//        }
-//    }
-
-
     //ONCORE INTEGRATION/STATUS METHODS
     public function injectIntegrationUI()
     {
@@ -655,16 +633,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         //ADD LINE TO MAIN PROJECT SEETTINGS IF THERE IS POSSIBLE ONCORE INTEGRATION
                         for (var protocolId in oncore_integrations) {
                             let integration = oncore_integrations[protocolId];
-                            let protocol = oncore_protocols[protocolId];
+                            let protocol    = oncore_protocols[protocolId];
 
-                            let projectIntegrated = integration["status"] == 2;
-                            let integration_entity = integration["id"];
-                            let protocol_status = protocol["protocolStatus"];
-                            let protocol_title = protocol["shortTitle"];
+                            let projectIntegrated   = integration["status"] == 2;
+                            let integration_entity  = integration["id"];
+                            let protocol_status     = protocol["protocolStatus"];
+                            let protocol_title      = protocol["shortTitle"];
+                            let irb                 = integration["irb_number"];
 
                             let btn_text = projectIntegrated ? "Unlink Project&nbsp;" : "Link Project&nbsp;";
                             let integrated_class = projectIntegrated ? "integrated" : "not_integrated";
-                            var line_text = "with OnCore Protocol " + protocolId + " : " + protocol_title + " [<i>" + protocol_status.toLowerCase() + "</i>]";
+                            var line_text = "with OnCore Protocol IRB #" + irb + " : <b>" + protocol_title + "</b> [<i>" + protocol_status.toLowerCase() + "</i>]";
                             line_text = projectIntegrated ? "Linked " + line_text : "Link " + line_text;
 
                             let integrate_text = $("<span>").addClass("enable_oncore").html(line_text);

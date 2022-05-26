@@ -764,6 +764,367 @@ class Mapping
         return array("html" => $value_map_html);
     }
 
+    /**
+     * @return html
+     */
+    public function makeSyncTableHTML($records, $noredcap = null, $disabled = null, $excluded = null)
+    {
+        $overall_pull_status = $this->getOverallPullStatus();
+
+        $show_all_btn = !$noredcap && !$disabled ? "<button class='btn btn-info show_all_matched'>Show All</button>" : "";
+        $excludes_cls = $excluded ? "excludes" : "includes";
+        $html = "$show_all_btn<table class='table table-striped $disabled $excludes_cls'>";
+        $html .= "<thead>";
+        $html .= "<tr>";
+        $html .= "<th style='width: 6%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
+        $html .= "<th style='width: 25%'>Subject Details</th>";
+        $html .= "<th style='width: 25%'>OnCore Property</th>";
+        $html .= "<th style='width: 22%'>OnCore Data</th>";
+        $html .= "<th style='width: 22%'>REDCap Data</th>";
+        $html .= "</tr>";
+        $html .= "</thead>";
+
+        foreach ($records as $mrn => $rows) {
+            if ($noredcap) {
+                $rc_id = "";
+            }
+            $rowspan = count($rows);
+            $print_rowspan = false;
+
+            $ts_last_scan = null;
+
+            $html .= "<tbody class='$mrn' data-subject_mrn='$mrn'>";
+            foreach ($rows as $row) {
+                $entity_id = $row["entity_id"];
+
+                $oc_id = $row["oc_id"];
+                $oc_pr_id = $row["oc_pr_id"];
+                $rc_id = $row["rc_id"];
+
+                $oc_field = $row["oc_field"];
+                $rc_field = $row["rc_field"];
+
+                $rc_data = $row["rc_data"];
+                $oc_data = $row["oc_data"];
+
+                $oc_status = $row['oc_status'];
+
+                $oc_alias = $this->getOncoreAlias($oc_field);
+                $oc_description = $this->getOncoreDesc($oc_field);
+                $oc_type = $this->getOncoreType($oc_field);
+
+                $ts_last_scan = $row["ts_last_scan"];
+
+                $rc = !empty($rc_field) ? $rc_data : "";
+                $oc = !empty($oc_field) ? $oc_data : "";
+
+                if ($oc_type == "array") {
+                    if (!is_array($oc)) {
+                        $oc = json_decode($oc, 1);
+                    }
+
+                    // race values are array for redcap and oncore need to decode oncore and compare the arrays.
+                    $diff = array_diff($oc ?: [], $rc_data ?: []);
+                    $diffmatch = empty($diff) ? "match" : "diff";
+
+                    $oc = implode(", ", array_filter($oc));
+
+                } else {
+                    $diffmatch = $oc_data == $rc_data ? "match" : "diff";
+                }
+                $showit = $diffmatch == 'diff' ? 'showit' : '';
+                if (is_array($rc)) {
+                    $rc = implode(", ", array_filter($rc));
+
+                }
+
+                $html .= "<tr class='$diffmatch $showit'>";
+                if (!$print_rowspan) {
+                    $print_rowspan = true;
+                    $id_info = array();
+                    if (!empty($mrn)) {
+                        $id_info[] = "MRN : $mrn";
+                    }
+                    if (!empty($rc_id)) {
+                        $id_info[] = "REDCap ID : $rc_id";
+                    }
+                    if (!empty($oc_pr_id)) {
+                        $id_info[] = "OnCore Subject ID : $oc_pr_id";
+                    }
+                    if (!empty($oc_status)) {
+                        $id_info[] = "OnCore Subject Status : $oc_status";
+                        $oc_status_class = '';
+                    } else {
+                        $id_info[] = "<strong style='color: #e74c3c'>OnCore Subject Status : NULL(Assign status from OnCore UI)</strong>";
+                        $oc_status_class = 'missing-status';
+                    }
+
+                    $exclude_class = $excluded ? "include_subject" : "exclude_subject";
+                    $exclude_text = $excluded ? "Re-Include" : "Exclude";
+                    $id_info[] = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
+                    $id_info = implode("<br>", $id_info);
+                    $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id'  data-mrn='$mrn'  value='$oc_pr_id' checked/></td>";
+                    $html .= "<td class='rc_id $oc_status_class' rowspan=$rowspan>$id_info</td>";
+                }
+                $html .= "<td class='oc_data oc_field $showit'>$oc_alias</td>";
+                $html .= "<td class='oc_data data $showit'>$oc</td>";
+                $html .= "<td class='rc_data data $showit'>$rc</td>";
+                $html .= "</tr>";
+            }
+            $html .= "</tbody>";
+        }
+
+        $html .= "<tfoot>";
+        $html .= "<tr>";
+        $html .= "<td colspan=6 align='right'>";
+
+        if (!$excluded) {
+            if ($disabled) {
+            } else {
+                if ($overall_pull_status) {
+                    $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button>";
+                } else {
+                    $html .= "<div class='alert alert-warning'>You can't pull OnCore Subjects. To pull you must define pull fields on <a href='" . $this->module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
+                }
+            }
+        }
+
+        $html .= "</td>";
+        $html .= "</tr>";
+        $html .= "</tfoot>";
+        $html .= "</table>";
+        return $html;
+    }
+
+    /**
+     * @return html
+     */
+    public function makeOncoreTableHTML($records, $noredcap = null, $disabled = null, $excluded = null)
+    {
+        $overall_pull_status = $this->getOverallPullStatus();
+
+        $show_all_btn = !$disabled ? "<button class='btn btn-info show_all_matched'>Show All</button>" : "";
+        $excludes_cls = $excluded ? "excludes" : "includes";
+        $html = "$show_all_btn<table class='table table-striped $disabled $excludes_cls'>";
+        $html .= "<thead>";
+        $html .= "<tr>";
+        $html .= "<th style='width: 6%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
+        $html .= "<th style='width: 32%'>Subject Details</th>";
+        $html .= "<th style='width: 32%'>OnCore Property</th>";
+        $html .= "<th style='width: 30%'>OnCore Data</th>";
+        $html .= "</tr>";
+        $html .= "</thead>";
+
+        foreach ($records as $mrn => $rows) {
+            if ($noredcap) {
+                $rc_id = "";
+            }
+            $rowspan = count($rows);
+            $print_rowspan = false;
+
+            $ts_last_scan = null;
+
+            $html .= "<tbody class='$mrn' data-subject_mrn='$mrn'>";
+            foreach ($rows as $row) {
+                $entity_id = $row["entity_id"];
+
+                $oc_id = $row["oc_id"];
+                $oc_pr_id = $row["oc_pr_id"];
+                $rc_id = $row["rc_id"];
+
+                $oc_field = $row["oc_field"];
+                $rc_field = $row["rc_field"];
+
+                $rc_data = $row["rc_data"];
+                $oc_data = $row["oc_data"];
+
+                $oc_alias = $this->getOncoreAlias($oc_field);
+                $oc_description = $this->getOncoreDesc($oc_field);
+                $oc_type = $this->getOncoreType($oc_field);
+
+                $ts_last_scan = $row["ts_last_scan"];
+
+                $diffmatch = $oc_data == $rc_data ? "match" : "diff";
+
+                $rc = !empty($rc_field) ? $rc_data : "";
+                $oc = !empty($oc_field) ? $oc_data : "";
+
+                if ($oc_type == "array") {
+                    if (!is_array($oc)) {
+                        $oc = json_decode($oc, 1);
+                    }
+                    $oc = implode(", ", array_filter($oc));
+                }
+
+                if (is_array($rc)) {
+                    $rc = implode(", ", array_filter($rc));
+
+                }
+
+                $html .= "<tr class='$diffmatch'>";
+                if (!$print_rowspan) {
+                    $print_rowspan = true;
+                    $id_info = array();
+                    if (!empty($mrn)) {
+                        $id_info[] = "MRN : $mrn";
+                    }
+                    if (!empty($rc_id)) {
+                        $id_info[] = "REDCap ID : $rc_id";
+                    }
+                    if (!empty($oc_pr_id)) {
+                        $id_info[] = "OnCore Subject ID : $oc_pr_id";
+                    }
+                    if (!empty($oc_status)) {
+                        $id_info[] = "OnCore Subject Status : $oc_status";
+                        $oc_status_class = '';
+                    } else {
+                        $id_info[] = "<strong style='color: #e74c3c'>OnCore Subject Status : NULL(Assign status from OnCore UI)</strong>";
+                        $oc_status_class = 'missing-status';
+                    }
+                    $exclude_class = $excluded ? "include_subject" : "exclude_subject";
+                    $exclude_text = $excluded ? "Re-Include" : "Exclude";
+                    $id_info[] = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
+                    $id_info = implode("<br>", $id_info);
+                    $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id' data-mrn='$mrn' value='$oc_pr_id' checked/></td>";
+                    $html .= "<td class='rc_id $oc_status_class' rowspan=$rowspan>$id_info</td>";
+                }
+                $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
+                $html .= "<td class='oc_data data'>$oc</td>";
+                $html .= "</tr>";
+            }
+            $html .= "</tbody>";
+        }
+
+        $html .= "<tfoot>";
+        $html .= "<tr>";
+        $html .= "<td colspan=6 align='right'>";
+
+        if (!$excluded) {
+            if ($disabled) {
+            } else {
+                if ($overall_pull_status) {
+                    $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button>";
+                } else {
+                    $html .= "<div class='alert alert-warning'>You can't pull OnCore Subjects. To pull you must define pull fields on <a href='" . $this->module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
+                }
+            }
+        }
+
+        $html .= "</td>";
+        $html .= "</tr>";
+        $html .= "</tfoot>";
+        $html .= "</table>";
+        return $html;
+    }
+
+    /**
+     * @return html
+     */
+    public function makeRedcapTableHTML($records, $noredcap = null, $disabled = null, $excluded = null)
+    {
+        $overall_push_status = $this->getOverallPushStatus();
+
+        $show_all_btn = !$noredcap && !$disabled ? "<button class='btn btn-info show_all_matched'>Show All</button>" : "";
+        $excludes_cls = $excluded ? "excludes" : "includes";
+        $html = "$show_all_btn<table class='table table-striped $disabled $excludes_cls'>";
+        $html .= "<thead>";
+        $html .= "<tr>";
+        $html .= "<th style='width: 6%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
+        $html .= "<th style='width: 22%'>Subject Details</th>";
+//    $html .= "<th style='width: 25%'>Study Site</th>";
+        $html .= "<th style='width: 22%'>OnCore Property</th>";
+        $html .= "<th style='width: 25%'>REDCap Data</th>";
+        $html .= "</tr>";
+        $html .= "</thead>";
+
+        $this->module->emDebug("redcap records shoudld be 38?", count($records), array_keys($records));
+
+        foreach ($records as $mrn => $rows) {
+            if ($noredcap) {
+                $rc_id = "";
+            }
+            $rowspan = count($rows);
+            $print_rowspan = false;
+
+            $ts_last_scan = null;
+
+
+            $html .= "<tbody class='$mrn' data-subject_mrn='$mrn'>";
+
+            foreach ($rows as $row) {
+                $entity_id = $row["entity_id"];
+                $rc_id = $row["rc_id"];
+                $oc_field = $row["oc_field"];
+                $rc_field = $row["rc_field"];
+                $rc_data = $row["rc_data"];
+
+                $oc_alias = $this->getOncoreAlias($oc_field);
+                $oc_description = $this->getOncoreDesc($oc_field);
+                $oc_type = $this->getOncoreType($oc_field);
+                $ts_last_scan = $row["ts_last_scan"];
+
+                $diffmatch = "diff";
+
+                $rc = !empty($rc_field) ? $rc_data : "";
+
+                if (is_array($rc)) {
+                    $rc = implode(", ", array_filter($rc));
+                }
+
+                $html .= "<tr class='$diffmatch'>";
+                if (!$print_rowspan) {
+                    $print_rowspan = true;
+                    $id_info = array();
+                    if (!empty($mrn)) {
+                        $id_info[] = "MRN : $mrn";
+                    }
+                    if (!empty($rc_id)) {
+                        $id_info[] = "REDCap ID : $rc_id";
+                    }
+
+
+                    $exclude_class = $excluded ? "include_subject" : "exclude_subject";
+                    $exclude_text = $excluded ? "Re-Include" : "Exclude";
+                    $id_info[] = "<button class='btn btn-sm btn-danger $exclude_class' data-entity_id='$entity_id' data-subject_mrn='$mrn'>$exclude_text</button>";
+                    $id_info = implode("<br>", $id_info);
+                    $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' value='$rc_id' data-redcap='$rc_id' data-oncore='' data-mrn='$mrn' checked/></td>";
+                    $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
+//                $html .= "<td class='rc_study' rowspan=$rowspan></td>";
+                }
+                $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
+                $html .= "<td class='rc_data data'>$rc</td>";
+                $html .= "</tr>";
+            }
+            $html .= "</tbody>";
+        }
+
+        $html .= "<tfoot>";
+        $html .= "<tr>";
+        $html .= "<td colspan=6 align='right'>";
+
+        if (!$excluded) {
+            if ($disabled) {
+            } else {
+                if ($this->module->getProtocols()->getSubjects()->isCanPush()) {
+                    if($overall_push_status){
+                        $html .= "<button type='submit' class='btn btn-success'>Push REDCap data to OnCore</button>";
+                    }else{
+                        $html .= "<div class='alert alert-warning'>You can't push REDCap records Subjects. To push you must define push fields on <a href='" . $this->module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
+                    }
+                } else {
+                    $html .= "<div class='alert alert-warning'>You can't push REDCap records to OnCore Protocol. Because Protocol is not approved or its status is not valid.</div>";
+                }
+            }
+        }
+
+        $html .= "</td>";
+        $html .= "</tr>";
+        $html .= "</tfoot>";
+        $html .= "</table>";
+        return $html;
+    }
+
+
 
 
     /**
