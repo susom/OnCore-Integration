@@ -47,6 +47,11 @@ class SubjectDemographics
     private $mrnValid;
     private $validateFields = true;
 
+    /**
+     * @var array
+     */
+    private $allSubjects;
+
     public function __construct($validateFields)
     {
         $this->$validateFields = $validateFields;
@@ -66,6 +71,35 @@ class SubjectDemographics
     }
 
     /**
+     * @return array
+     */
+    public function getAllSubjects(): array
+    {
+        if (!$this->allSubjects) {
+            $this->setAllSubjects();
+        }
+        return $this->allSubjects;
+    }
+
+    /**
+     * @param array $allSubjects
+     */
+    public function setAllSubjects(): void
+    {
+        $records = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS . " ");
+        if (db_num_rows($records) == 0) {
+            $this->allSubjects = [];
+        } else {
+            $result = [];
+            while ($record = db_fetch_assoc($records)) {
+                $result[$record['subjectDemographicsId']] = $record;
+            }
+            $this->allSubjects = $result;
+        }
+    }
+
+
+    /**
      * @param $mrn
      * @param $subjectSource
      * @return array|mixed|void
@@ -75,7 +109,7 @@ class SubjectDemographics
     {
         try {
             // check if entity table already has that subject otherwise go to API to get info
-            $demo = $this->getOnCoreSubjectDemographicsEntityRecord($subjectDemographicsId);
+            $demo = $this->getAllSubjects()[$subjectDemographicsId];
             if (empty($demo)) {
                 $response = $this->getUser()->get('subjectDemographics/' . $subjectDemographicsId);
 
@@ -85,8 +119,14 @@ class SubjectDemographics
                         return [];
                     } else {
                         // create entity table record before return.
-                        (new Entities)->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
-                        return $data;
+                        $entity = (new Entities)->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
+                        if ($entity) {
+                            return $data;
+                        } else {
+                            Entities::createLog('cant create subject record for ' . $data['subjectDemographicsId']);
+                            Entities::createLog(implode('<br>', $data));
+                        }
+
                     }
                 }
             } else {

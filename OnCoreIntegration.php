@@ -398,27 +398,27 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 'subjectDemographicsId' => [
                     'name' => 'OnCore Subject Demographics Id',
                     'type' => 'integer',
-                    'required' => true,
+                    'required' => false,
                 ],
                 'subjectSource' => [
                     'name' => 'Subject Source',
                     'type' => 'text',
-                    'required' => true,
+                    'required' => false,
                 ],
                 'mrn' => [
                     'name' => 'OnCore MRN',
                     'type' => 'text',
-                    'required' => true,
+                    'required' => false,
                 ],
                 'lastName' => [
                     'name' => 'OnCore Lastname',
                     'type' => 'text',
-                    'required' => true,
+                    'required' => false,
                 ],
                 'firstName' => [
                     'name' => 'OnCore Firstname',
                     'type' => 'text',
-                    'required' => true,
+                    'required' => false,
                 ],
                 'middleName' => [
                     'name' => 'OnCore middle Name',
@@ -447,7 +447,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 ],
                 'expiredDate' => [
                     'name' => 'OnCore Expired Date',
-                    'type' => 'date',
+                    'type' => 'text',
                     'required' => false,
                 ],
                 'approximateExpiredDate' => [
@@ -457,7 +457,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 ],
                 'lastDateKnownAlive' => [
                     'name' => 'OnCore Last date known alive',
-                    'type' => 'date',
+                    'type' => 'text',
                     'required' => false,
                 ],
                 'ssn' => [
@@ -468,17 +468,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 'gender' => [
                     'name' => 'OnCore Gender',
                     'type' => 'text',
-                    'required' => true,
+                    'required' => false,
                 ],
                 'ethnicity' => [
                     'name' => 'OnCore Ethnicity',
                     'type' => 'text',
-                    'required' => true,
+                    'required' => false,
                 ],
                 'race' => [
                     'name' => 'OnCore Race',
                     'type' => 'json',
-                    'required' => true,
+                    'required' => false,
                 ],
                 'subjectComments' => [
                     'name' => 'OnCore SubjectComments',
@@ -862,24 +862,24 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $exclude        = array("mrn");
 
         foreach ($records as $record) {
-            $link_status    = $record["status"];
-            $entity_id      = $record["entity_id"];
-            $excluded       = $record["excluded"] ?? 0;
+            $link_status = $record["status"];
+            $entity_id = $record["entity_id"];
+            $excluded = $record["excluded"] ?? 0;
 
-            $oncore         = null;
-            $redcap         = null;
+            $oncore = null;
+            $redcap = null;
 
-            $last_scan      = null;
-            $full           = false;
+            $last_scan = null;
+            $full = false;
 
-            $oc_id          = null;
-            $oc_pr_id       = null;
-            $rc_id          = null;
-            $oc_data        = null;
-            $rc_data        = null;
-            $rc_field       = null;
-            $rc_event       = null;
-            $oc_status      = null;
+            $oc_id = null;
+            $oc_pr_id = null;
+            $rc_id = null;
+            $oc_data = null;
+            $rc_data = null;
+            $rc_field = null;
+            $rc_event = null;
+            $oc_status = null;
 
             switch ($link_status) {
                 case OnCoreIntegration::FULL_MATCH:
@@ -890,21 +890,21 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
                 case OnCoreIntegration::ONCORE_ONLY:
                     //oncore only
-                    $oncore     = $record["oncore"];
-                    $oc_id      = $oncore["protocolId"];
-                    $oc_pr_id   = $oncore["protocolSubjectId"];
-                    $oc_status  = $oncore['status'];
-                    $mrn        = $oncore["demographics"]["mrn"];
-                    $last_scan  = date("Y-m-d H:i", $oncore["demographics"]["updated"]);
+                    $oncore = $record["oncore"];
+                    $oc_id = $oncore["protocolId"];
+                    $oc_pr_id = $oncore["protocolSubjectId"];
+                    $oc_status = $oncore['status'];
+                    $mrn = $oncore["demographics"]["mrn"];
+                    $last_scan = date("Y-m-d H:i", $oncore["demographics"]["updated"]);
 
                 case OnCoreIntegration::REDCAP_ONLY:
                     //redcap only
                     if (array_key_exists("redcap", $record)) {
                         // set the keys for redcap array
-                        $arr    = current($record["redcap"]);
-                        $mrn    = $arr["mrn"];
+                        $arr = current($record["redcap"]);
+                        $mrn = $arr["mrn"];
                         // we are using pull fields to map redcap data
-                        $temp   = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($arr["record_id"], $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
+                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($arr["record_id"], $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
                         // handle data scattered over multiple events
                         $redcap = [];
                         foreach ($temp as $onCoreField => $value) {
@@ -912,13 +912,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             $redcapField = $this->getMapping()->getMappedRedcapField($onCoreField, true);
                             $redcap[$redcapField ?: $onCoreField] = $value;
                         }
-                        $rc_id  = $arr[\REDCap::getRecordIdField()];
+                        $rc_id = $arr[\REDCap::getRecordIdField()];
                     }
 
                 default:
                     //partial
-                    $bin_var    = $bin_array[$link_status];
-                    $bin        = $excluded ? $$bin_var["excluded"] : $$bin_var["included"];
+                    $bin_var = $bin_array[$link_status];
+                    $bin = $excluded ? $$bin_var["excluded"] : $$bin_var["included"];
                     if (!array_key_exists($mrn, $bin)) {
                         if ($excluded) {
                             $$bin_var["excluded"][$mrn] = array();
@@ -926,27 +926,27 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             $$bin_var["included"][$mrn] = array();
                         }
                     }
-                    $fields     = $link_status == OnCoreIntegration::REDCAP_ONLY ? $mapped_fields["push"] : $mapped_fields["pull"];
+                    $fields = $link_status == OnCoreIntegration::REDCAP_ONLY ? $mapped_fields["push"] : $mapped_fields["pull"];
 
                     foreach ($fields as $oncore_field => $redcap_details) {
-                        $rc_field   = $redcap_details["redcap_field"];
-                        $rc_event   = $redcap_details["event"];
+                        $rc_field = $redcap_details["redcap_field"];
+                        $rc_event = $redcap_details["event"];
 
-                        $rc_data    = $redcap && isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
-                        $oc_data    = $oncore && isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
+                        $rc_data = $redcap && isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
+                        $oc_data = $oncore && isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
                         $temp = array(
-                              "entity_id" => $entity_id
-                            , "ts_last_scan" => $last_scan
-                            , "oc_id" => $oc_id
-                            , "oc_status" => $oc_status
-                            , "oc_pr_id" => $oc_pr_id
-                            , "rc_id" => $rc_id
-                            , "oc_data" => $oc_data
-                            , "rc_data" => $rc_data
-                            , "oc_field" => $oncore_field
-                            , "rc_field" => $rc_field
-                            , "rc_event" => $rc_event
-                            , "full" => $full
+                            "entity_id" => $entity_id
+                        , "ts_last_scan" => $last_scan
+                        , "oc_id" => $oc_id
+                        , "oc_status" => $oc_status
+                        , "oc_pr_id" => $oc_pr_id
+                        , "rc_id" => $rc_id
+                        , "oc_data" => $oc_data
+                        , "rc_data" => $rc_data
+                        , "oc_field" => $oncore_field
+                        , "rc_field" => $rc_field
+                        , "rc_event" => $rc_event
+                        , "full" => $full
                         );
                         if ($excluded) {
                             array_push($$bin_var["excluded"][$mrn], $temp);
@@ -954,18 +954,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             array_push($$bin_var["included"][$mrn], $temp);
                         }
                         break;
-                }
+                    }
             }
 
-        if (!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap) || !empty($bin_partial)) {
-            $sync_diff = array(
-                "match" => $bin_match,
-                "oncore" => $bin_oncore,
-                "redcap" => $bin_redcap,
-                "partial" => $bin_partial
-            );
+            if (!empty($bin_match) || !empty($bin_oncore) || !empty($bin_redcap) || !empty($bin_partial)) {
+                $sync_diff = array(
+                    "match" => $bin_match,
+                    "oncore" => $bin_oncore,
+                    "redcap" => $bin_redcap,
+                    "partial" => $bin_partial
+                );
+            }
         }
-
 //        $this->emDebug("sync diff redcap", $sync_diff["redcap"]["included"]);
         return $sync_diff;
 
