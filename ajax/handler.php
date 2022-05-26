@@ -161,17 +161,18 @@ try {
                 break;
 
             case "getSyncDiff":
-                $bin        = !empty($_POST["bin"]) ? filter_var($_POST["bin"], FILTER_SANITIZE_STRING) : null;
-                $sync_diff  = $module->getSyncDiff();
+                $bin = htmlspecialchars($_POST["bin"]);
+                $bin = $bin ?: null;
+                $sync_diff = $module->getSyncDiff();
 
                 $result = array("included" => "", "excluded" => "");
-                if ($bin == "partial"){
+                if ($bin == "partial") {
                     $result["included"] = $module->getMapping()->makeSyncTableHTML($sync_diff["match"]["included"]);
                     $result["excluded"] = $module->getMapping()->makeSyncTableHTML($sync_diff["match"]["excluded"], null, "disabled", true);
-                }elseif($bin == "redcap"){
+                } elseif ($bin == "redcap") {
                     $result["included"] = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["included"]);
                     $result["excluded"] = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["excluded"], null, "disabled", true);
-                }elseif($bin == "oncore"){
+                } elseif ($bin == "oncore") {
                     $result["included"] = $module->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["included"], false);
                     $result["excluded"] = $module->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["excluded"], false, "disabled", true);
                 }
@@ -262,7 +263,7 @@ try {
 
                 break;
         }
-        echo htmlentities(json_encode($result, JSON_THROW_ON_ERROR), ENT_QUOTES);
+        echo htmlentities(json_encode($result, JSON_THROW_ON_ERROR), ENT_NOQUOTES);
     }
 } catch (\LogicException|ClientException|GuzzleException $e) {
     $response = $e->getResponse();
@@ -275,13 +276,13 @@ try {
     if ($id) {
         $responseBodyAsString['id'] = $id;
     }
-    echo htmlentities(json_encode($responseBodyAsString, JSON_THROW_ON_ERROR), ENT_QUOTES);
+    echo(json_encode($responseBodyAsString, JSON_THROW_ON_ERROR));
 } catch (\Exception $e) {
     Entities::createException($e->getMessage());
     header("Content-type: application/json");
     http_response_code(404);
     $result = json_encode(array('status' => 'error', 'message' => $e->getMessage(), 'id' => $id));
-    echo htmlentities(json_encode($result, JSON_THROW_ON_ERROR), ENT_QUOTES);
+    echo(json_encode($result, JSON_THROW_ON_ERROR));
 }
 
 
