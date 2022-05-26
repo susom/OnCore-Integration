@@ -384,13 +384,11 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             "approved_ids": temp,
                         },
                         dataType: 'json'
-                    }).done(function (mrn) {
-                        console.log(mrn);
+                    }).done(function (result) {
                         const rndInt = randomIntFromInterval(1000, 5000);
                         setTimeout(function () {
                             //some showman ship
-                            console.log("is found mrn" , mrn, $("tbody[data-subject_mrn='"+mrn+"']").length);
-                            $("tbody[data-subject_mrn='"+mrn+"']").remove();
+                            $("tbody[data-subject_mrn='"+result.mrn+"']").remove();
                             $("#refresh_sync_diff").trigger("click");
                             pullModal.setRowStatus(result.id, true);
 
