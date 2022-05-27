@@ -902,7 +902,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     if (array_key_exists("redcap", $record)) {
                         // set the keys for redcap array
                         $arr = current($record["redcap"]);
-                        $mrn = $arr["mrn"];
+                        $mrn = $arr[$this->getMapping()->getProjectFieldMappings()['pull']['mrn']['redcap_field']];
                         // we are using pull fields to map redcap data
                         $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($arr["record_id"], $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
                         // handle data scattered over multiple events
