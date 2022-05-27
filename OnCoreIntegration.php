@@ -936,24 +936,23 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $oc_data = $oncore && isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
                         $temp = array(
                             "entity_id" => $entity_id
-                        , "ts_last_scan" => $last_scan
-                        , "oc_id" => $oc_id
-                        , "oc_status" => $oc_status
-                        , "oc_pr_id" => $oc_pr_id
-                        , "rc_id" => $rc_id
-                        , "oc_data" => $oc_data
-                        , "rc_data" => $rc_data
-                        , "oc_field" => $oncore_field
-                        , "rc_field" => $rc_field
-                        , "rc_event" => $rc_event
-                        , "full" => $full
+                            , "ts_last_scan" => $last_scan
+                            , "oc_id" => $oc_id
+                            , "oc_status" => $oc_status
+                            , "oc_pr_id" => $oc_pr_id
+                            , "rc_id" => $rc_id
+                            , "oc_data" => $oc_data
+                            , "rc_data" => $rc_data
+                            , "oc_field" => $oncore_field
+                            , "rc_field" => $rc_field
+                            , "rc_event" => $rc_event
+                            , "full" => $full
                         );
                         if ($excluded) {
                             array_push($$bin_var["excluded"][$mrn], $temp);
                         } else {
                             array_push($$bin_var["included"][$mrn], $temp);
                         }
-                        break;
                     }
             }
 
