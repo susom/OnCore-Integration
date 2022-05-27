@@ -7,11 +7,12 @@ namespace Stanford\OnCoreIntegration;
 $oncore_css             = $module->getUrl("assets/styles/oncore.css");
 $batch_css              = $module->getUrl("assets/styles/batch_modal.css");
 $adjude_css             = $module->getUrl("assets/styles/adjudication.css");
+$notif_css              = $module->getUrl("assets/styles/notif_modal.css");
 $oncore_js              = $module->getUrl("assets/scripts/oncore.js");
 $batch_js               = $module->getUrl("assets/scripts/batch_modal.js");
+$notif_js               = $module->getUrl("assets/scripts/notif_modal.js");
 $icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
 $ajax_endpoint          = $module->getUrl("ajax/handler.php");
-
 
 $sync_summ              = $module->getSyncDiffSummary();
 $total_subjects         = $sync_summ["total_count"];
@@ -22,7 +23,6 @@ $partial_match_count    = $sync_summ["partial_match_count"];
 $excluded_count         = $sync_summ['excluded_count'];
 $oncore_count           = $sync_summ["oncore_only_count"];
 $redcap_count           = $sync_summ["redcap_only_count"];
-
 
 //$sync_diff              = $module->getSyncDiff();
 //$sample_ts = null;
@@ -51,6 +51,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
 <link rel="stylesheet" href="<?= $oncore_css ?>">
 <link rel="stylesheet" href="<?= $batch_css ?>">
+<link rel="stylesheet" href="<?= $notif_css ?>">
 <link rel="stylesheet" href="<?= $adjude_css ?>">
 
 <div id="oncore_mapping" class="container pull-left">
@@ -183,6 +184,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
     </div>
 
 </div>
+
 <style>
 #oncore_mapping button.loading:after{
     content: "";
@@ -197,6 +199,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 }
 </style>
 <script src="<?= $batch_js ?>" type="text/javascript"></script>
+<script src="<?= $notif_js ?>" type="text/javascript"></script>
 <script>
     $(document).ready(function () {
         var ajax_endpoint = "<?=$ajax_endpoint?>";
@@ -283,7 +286,11 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 _parent_clone.find(".loading").removeClass("loading").prop("disabled", false);
                 $("#refresh_sync_diff").trigger("click");
             }).fail(function (e) {
-                console.log("failed to save", e);
+                _this.removeClass("loading").prop("disabled", false);
+                var headline    = "Record status failed to save";
+                var lead        = "Please refresh page and try again";
+                var notif       = new notifModal(lead,headline);
+                notif.show();
             });
         });
 
@@ -304,7 +311,11 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 updateOverview(syncsummary);
                 // location.reload();
             }).fail(function (e) {
-                console.log("failed to save", e);
+                _this.removeClass("loading").prop("disabled",false);
+                var headline    = "Failed to sync records";
+                var lead        = "Please try again";
+                var notif       = new notifModal(lead,headline);
+                notif.show();
             });
         });
 
@@ -343,7 +354,12 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 $("#" + bin).find(".included").empty().append(html["included"]);
                 $("#" + bin).find(".excluded").empty().append(html["excluded"]);
             }).fail(function (e) {
-                console.log("failed to getSyncDiff", e);
+                _this.removeClass("loading");
+                $(".getadjudication").prop("disabled", false);
+                var headline    = "Failed to load adjudication records";
+                var lead        = "Please try again";
+                var notif       = new notifModal(lead,headline);
+                notif.show();
             });
         });
 

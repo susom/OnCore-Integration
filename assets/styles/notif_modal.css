@@ -1,0 +1,79 @@
+#blockingOverlay{
+    position: fixed; /* Sit on top of the page content */
+    width: 100%; /* Full width (cover the whole page) */
+    height: 100%; /* Full height (cover the whole page) */
+    top: 0; left: 0; right: 0; bottom: 0;
+    border:1px transparent #fff;
+}
+#blockingOverlay:before{
+    content:"";
+    border:1px transparent #fff;
+    background-color: #000;
+    position: absolute; /* Sit on top of the page content */
+    width: 100%; /* Full width (cover the whole page) */
+    height: 100%; /* Full height (cover the whole page) */
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-repeat:no-repeat;
+    background-position:50% 40%;
+    background-size:10%;
+    background-color: rgba(0,0,0,0.5); /* Black background with opacity */
+    z-index: 20; /* Specify a stack order in case you're using a different order for other elements */
+    cursor: pointer; /* Add a pointer on hover */
+}
+#notifModal{
+    position: absolute;
+    width: 380px;
+
+    border: 1px solid #999;
+    border-radius: 5px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    z-index: 21;
+}
+
+
+.notif_bdy{
+    text-align:center;
+    padding:0 0 20px;
+}
+
+.notif_bdy .headline{
+
+}
+
+.notif_bdy .lead{
+
+}
+
+.notif_hdr{
+    text-align:center;
+    color: #D75757;
+    padding:20px 0;
+}
+.notif_hdr i {
+    font-size:360%;
+}
+
+.notif_ftr button{
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 0 0 3px 3px;
+    padding: 10px 0;
+    cursor: pointer;
+    background: #D75757;
+    color: #fff;
+}
+
+::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: 7px;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, .5);
+    box-shadow: 0 0 1px rgba(255, 255, 255, .5);
+}
