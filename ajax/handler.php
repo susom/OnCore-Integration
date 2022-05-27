@@ -190,7 +190,7 @@ try {
                 break;
 
             case "pushToOncore":
-                $record = htmlspecialchars($_POST["record"]);
+                $record = filter_var_array($_POST["record"]);
                 $record = $record ?: null;
                 $module->emDebug("push to oncore approved ids(redcap?)", $record);
                 if (!$record["value"] || $record["value"] == '') {
