@@ -5,18 +5,14 @@ namespace Stanford\OnCoreIntegration;
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
 $mapping                = $module->getMapping();
-
-//$mapping->setProjectOncoreSubset(["mrn", "firstName", "lastName", "gender"]);
-//exit;
 $current_mapping        = $mapping->getProjectMapping();
 $project_oncore_subset  = $mapping->getProjectOncoreSubset();
-
-//$module->emDebug("current field maps", $current_mapping);
-//$module->emDebug("current pull subset", $project_oncore_subset);
 
 $oncore_css             = $module->getUrl("assets/styles/field_mapping.css");
 $ajax_endpoint          = $module->getUrl("ajax/handler.php");
 $icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
+$notif_css              = $module->getUrl("assets/styles/notif_modal.css");
+$notif_js               = $module->getUrl("assets/scripts/notif_modal.js");
 
 $pushpull_pref          = $mapping->getProjectPushPullPref();
 $overall_pull_status    = $mapping->getOverallPullStatus() ? "ok" : "";
@@ -76,6 +72,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
 <link rel="stylesheet" href="<?=$oncore_css?>">
+<link rel="stylesheet" href="<?= $notif_css ?>">
 
 <div id="field_mapping">
     <h1>REDCap - OnCore Field Mapping</h1>
@@ -177,6 +174,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     background-size:contain;
 }
 </style>
+<script src="<?= $notif_js ?>" type="text/javascript"></script>
 <script>
     $(document).ready(function () {
         var ajax_endpoint       = "<?=$ajax_endpoint?>";
@@ -261,7 +259,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                             //done
                             console.log("deleteMapping done");
                         }).fail(function (e) {
-                            console.log("deleteMapping failed to save", e);
+                            var headline    = e.status;
+                            var lead        = e.message;
+                            var notif = new notifModal(lead,headline);
+                            notif.show();
                         });
 
                         return new Promise(function (resolve, reject) {
@@ -290,7 +291,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     //done
                     console.log("savePushPullPref done");
                 }).fail(function (e) {
-                    console.log("savePushPullPref failed to save", e);
+                    var headline    = e.status;
+                    var lead        = e.message;
+                    var notif = new notifModal(lead,headline);
+                    notif.show();
                 });
 
                 return new Promise(function (resolve, reject) {
@@ -406,7 +410,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
                         updateOverAllStatus();
                     }).fail(function (e) {
-                        console.log("failed to save", e);
+                        var headline    = e.status + ". Failed to save Mapping";
+                        var lead        = e.message + "\r\nPlease refresh page and try again";
+                        var notif       = new notifModal(lead,headline);
+                        notif.show();
                     });
 
                     return new Promise(function (resolve, reject) {
@@ -515,7 +522,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     _this.remove();
                     updateOverAllStatus();
                 }).fail(function (e) {
-                    console.log("saveOncoreSubset failed to save", e);
+                    var headline    = e.status + ". Failed to add property";
+                    var lead        = e.message + "\r\nPlease refresh page and try again";
+                    var notif       = new notifModal(lead,headline);
+                    notif.show();
                 });
 
                 return new Promise(function (resolve, reject) {
@@ -548,7 +558,11 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         $(this).remove();
                     });
                 }).fail(function (e) {
-                    console.log("saveOncoreSubset failed to save", e);
+                    enableSelects();
+                    var headline    = e.status + ". Failed to delete field";
+                    var lead        = e.message + "\r\nPlease refresh page and try again";
+                    var notif       = new notifModal(lead,headline);
+                    notif.show();
                 });
 
                 return new Promise(function (resolve, reject) {
@@ -583,7 +597,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             }).done(function (result) {
                 //done
             }).fail(function (e) {
-                console.log("failed to save", e);
+                var headline    = e.status + ". Failed to save Study Site";
+                var lead        = e.message + "\r\nPlease refresh the page and try again";
+                var notif       = new notifModal(lead,headline);
+                notif.show();
             });
         });
     });
@@ -654,7 +671,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 $(".nav-tabs .push_mapping").addClass("ok");
             }
         }).fail(function (e) {
-            console.log("failed to save", e);
+            var headline    = e.status + ". Failed to get Push/Pull Status";
+            var lead        = e.message + "\r\nPlease refresh page";
+            var notif       = new notifModal(lead,headline);
+            notif.show();
         });
     }
 
@@ -680,7 +700,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             _el2.find("td.status.push").addClass(push_status);
             _el2.find(".property_select").removeClass("ok").addClass(push_status);
         }).fail(function (e) {
-            console.log("failed to get push pull status?", e);
+            var headline    = e.status + ". Failed to get Push/Pull status";
+            var lead        = e.message + "\r\nPlease refresh page";
+            var notif       = new notifModal(lead,headline);
+            notif.show();
         });
     }
 
@@ -706,7 +729,11 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 $("#field_mapping .loading").removeClass("loading");
             }
         }).fail(function (e) {
-            console.log("failed to get value mapping row", e);
+            $("#field_mapping .loading").removeClass("loading");
+            var headline    = "Failed to load Enumerated Values";
+            var lead        = "Please refresh page and try again";
+            var notif       = new notifModal(lead,headline);
+            notif.show();
         });
     }
 
