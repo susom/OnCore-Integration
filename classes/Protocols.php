@@ -230,10 +230,10 @@ class Protocols
         // TODO get study site from redcap record.
         $result = $this->getSubjects()->pushToOnCore($this->getEntityRecord()['oncore_protocol_id'], $redcapRecordId, $this->getMapping()->getProjectFieldMappings()['push'], $oncoreFieldsDef);
         // reset loaded subjects for protocol so we can pull them after creating new one.
-        $this->getSubjects()->setOnCoreProtocolSubjects(null, true);
-
-        // now sync redcap with oncore
-        $this->syncIndividualRecord($redcapRecordId);
+//        $this->getSubjects()->setOnCoreProtocolSubjects(null, true);
+//
+//        // now sync redcap with oncore
+//        $this->syncIndividualRecord($redcapRecordId);
 
         Entities::createLog("REDCap Record Id#$redcapRecordId was pushed succesfully to OnCore Protocol .");
         return $result;
@@ -509,8 +509,8 @@ class Protocols
     {
         if ($redcapId = $this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $record, $this->getMapping()->getProjectFieldMappings()['pull'])) {
             // update linkage entity table with redcap record and new status
-            $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id']);
-            $this->syncIndividualRecord($redcapId);
+//            $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id']);
+//            $this->syncIndividualRecord($redcapId);
             return array('message' => 'REDCap Record ' . $redcapId . ' got synced', 'status' => 'success', 'id' => $record['oncore']);
         }
     }
