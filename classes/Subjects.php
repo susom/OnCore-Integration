@@ -795,18 +795,22 @@ class Subjects extends SubjectDemographics
         }
         $subject = $this->getOnCoreProtocolSubject($protocolId, $record['oncore']);
         if (empty($subject)) {
-                throw new \Exception('No Subject record found for ' . $record['oncore']);
-            }
+            throw new \Exception('No Subject record found for ' . $record['oncore']);
+        }
+
+        if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
+            throw new \Exception('You do not have permissions to pull/push data from this protocol.');
+        }
         $id = $record['redcap'];
         $data = $this->prepareOnCoreRecordForSync($subject, $fields);
-            // loop over every event defined in the field mapping.
-            foreach ($data as $event => $array) {
-                if (!$id) {
-                    $array[\REDCap::getRecordIdField()] = \REDCap::reserveNewRecordId($projectId);
-                } else {
-                    $array[\REDCap::getRecordIdField()] = $id;
-                }
-                $array['redcap_event_name'] = $event;
+        // loop over every event defined in the field mapping.
+        foreach ($data as $event => $array) {
+            if (!$id) {
+                $array[\REDCap::getRecordIdField()] = \REDCap::reserveNewRecordId($projectId);
+            } else {
+                $array[\REDCap::getRecordIdField()] = $id;
+            }
+            $array['redcap_event_name'] = $event;
                 // TODO uncheck current checkboxes.
                 $response = \REDCap::saveData($projectId, 'json', json_encode(array($array)), 'overwrite');
                 if (!empty($response['errors'])) {

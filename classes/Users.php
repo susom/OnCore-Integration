@@ -23,7 +23,7 @@ class Users extends Clients
     /**
      * @var array
      */
-    private $onCoreContact;
+    private $onCoreContact = [];
 
     /**
      * @var User
@@ -65,7 +65,7 @@ class Users extends Clients
      */
     public function isOnCoreContactAllowedToPush()
     {
-        if (empty($this->getRolesAllowedToPush())) {
+        if (empty($this->getRolesAllowedToPush()) || empty($this->getOnCoreContact())) {
             return false;
         }
         return in_array(strtolower($this->getOnCoreContact()['role']), $this->getRolesAllowedToPush());
@@ -233,11 +233,12 @@ class Users extends Clients
                 } else {
                     foreach ($data as $staff) {
                         $contact = $this->getContactDetails($staff['contactId']);
-                        if (isset($contact['errorType'])) {
-                            Entities::createLog($contact['message']);
-                            \REDCap::logEvent($contact['message']);
-                            // TODO send an email to redcap project admins notify them about this
-                        } elseif (empty($contact)) {
+//                        if (isset($contact['errorType'])) {
+//                            Entities::createLog($contact['message']);
+//                            \REDCap::logEvent($contact['message']);
+//                            // TODO send an email to redcap project admins notify them about this
+//                        } else
+                        if (empty($contact)) {
                             $message = 'System did not find demographic information for contact ID: ' . $staff['contactId'];
                             Entities::createLog($message);
                             \REDCap::logEvent($message);
