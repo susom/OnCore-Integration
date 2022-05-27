@@ -504,13 +504,14 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     method: 'POST',
                     data: {
                         "action": "saveOncoreSubset",
-                        "oncore_prop" : oncore_prop
+                        "oncore_prop": oncore_prop
                     },
                     dataType: 'json'
                 }).done(function (result) {
+                    // result["pull"] = unescape(result["pull"])
                     enableSelects();
                     $("#oncore_mapping tbody").empty().append(result["pull"]);
-                    $("#oncore_prop_selector .dropdown-toggle").prop("disabled",false);
+                    $("#oncore_prop_selector .dropdown-toggle").prop("disabled", false);
                     _this.remove();
                     updateOverAllStatus();
                 }).fail(function (e) {
@@ -698,7 +699,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         }).done(function (result) {
             var parent_id = rc_mapping ? "#redcap_mapping" : "#oncore_mapping";
 
-            if($(parent_id+ " tr."+oncore_field).length){
+            if ($(parent_id + " tr." + oncore_field).length) {
                 //CLEAR EXISTING ROW BEFORE BUILDING NEW UI
                 $(parent_id + " tr.more." + oncore_field).remove();
                 $(result).insertAfter($(parent_id + " tr." + oncore_field));
@@ -707,5 +708,13 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         }).fail(function (e) {
             console.log("failed to get value mapping row", e);
         });
+    }
+
+    function unescape(s) {
+        return s.replace(/&amp;/g, "&")
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&#39;/g, "'")
+            .replace(/&quot;/g, '"');
     }
 </script>

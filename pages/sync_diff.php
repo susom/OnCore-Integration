@@ -331,8 +331,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 },
                 dataType: 'json'
             }).done(function (html) {
-                html.excluded = unescape(html.excluded)
-                html.included = unescape(html.included)
+                // html.excluded = unescape(html.excluded)
+                // html.included = unescape(html.included)
                 _this.removeClass("loading");
 
                 $(".getadjudication").prop("disabled", false);
