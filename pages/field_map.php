@@ -177,9 +177,6 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 <script src="<?= $notif_js ?>" type="text/javascript"></script>
 <script>
     $(document).ready(function () {
-        var notif       = new notifModal();
-        notif.show();
-
         var ajax_endpoint       = "<?=$ajax_endpoint?>";
         var oncore_fields       = <?=json_encode($oncore_fields)?>;
         var pushpull_pref       = <?=json_encode($pushpull_pref)?>;
@@ -262,7 +259,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                             //done
                             console.log("deleteMapping done");
                         }).fail(function (e) {
-                            var notif       = new notifModal();
+                            var headline    = e.status;
+                            var lead        = e.message;
+                            var notif = new notifModal(lead,headline);
                             notif.show();
                         });
 
@@ -292,7 +291,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     //done
                     console.log("savePushPullPref done");
                 }).fail(function (e) {
-                    var notif       = new notifModal();
+                    var headline    = e.status;
+                    var lead        = e.message;
+                    var notif = new notifModal(lead,headline);
                     notif.show();
                 });
 
@@ -409,8 +410,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
                         updateOverAllStatus();
                     }).fail(function (e) {
-                        var headline    = "Failed to save Mapping";
-                        var lead        = "Please refresh page and try again";
+                        var headline    = e.status + ". Failed to save Mapping";
+                        var lead        = e.message + "\r\nPlease refresh page and try again";
                         var notif       = new notifModal(lead,headline);
                         notif.show();
                     });
@@ -521,8 +522,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     _this.remove();
                     updateOverAllStatus();
                 }).fail(function (e) {
-                    var headline    = "Failed to add property";
-                    var lead        = "Please refresh page and try again";
+                    var headline    = e.status + ". Failed to add property";
+                    var lead        = e.message + "\r\nPlease refresh page and try again";
                     var notif       = new notifModal(lead,headline);
                     notif.show();
                 });
@@ -558,8 +559,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     });
                 }).fail(function (e) {
                     enableSelects();
-                    var headline    = "Failed to delete field";
-                    var lead        = "Please refresh page and try again";
+                    var headline    = e.status + ". Failed to delete field";
+                    var lead        = e.message + "\r\nPlease refresh page and try again";
                     var notif       = new notifModal(lead,headline);
                     notif.show();
                 });
@@ -596,8 +597,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             }).done(function (result) {
                 //done
             }).fail(function (e) {
-                var headline    = "Failed to save Study Site";
-                var lead        = "Please refresh the page and try again";
+                var headline    = e.status + ". Failed to save Study Site";
+                var lead        = e.message + "\r\nPlease refresh the page and try again";
                 var notif       = new notifModal(lead,headline);
                 notif.show();
             });
@@ -670,8 +671,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 $(".nav-tabs .push_mapping").addClass("ok");
             }
         }).fail(function (e) {
-            var headline    = "Failed to calculate Push/Pull Status";
-            var lead        = "Please refresh page";
+            var headline    = e.status + ". Failed to get Push/Pull Status";
+            var lead        = e.message + "\r\nPlease refresh page";
             var notif       = new notifModal(lead,headline);
             notif.show();
         });
@@ -699,8 +700,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             _el2.find("td.status.push").addClass(push_status);
             _el2.find(".property_select").removeClass("ok").addClass(push_status);
         }).fail(function (e) {
-            var headline    = "Failed to get Push/Pull status";
-            var lead        = "Please refresh page";
+            var headline    = e.status + ". Failed to get Push/Pull status";
+            var lead        = e.message + "\r\nPlease refresh page";
             var notif       = new notifModal(lead,headline);
             notif.show();
         });
