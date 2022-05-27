@@ -263,7 +263,8 @@ try {
 
                 break;
         }
-        echo htmlentities(json_encode($result, JSON_THROW_ON_ERROR), ENT_NOQUOTES);
+//        echo htmlentities(json_encode($result, JSON_THROW_ON_ERROR), ENT_NOQUOTES);
+        echo json_encode($result, JSON_THROW_ON_ERROR);
     }
 } catch (\LogicException|ClientException|GuzzleException $e) {
     $response = $e->getResponse();
