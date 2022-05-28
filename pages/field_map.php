@@ -259,10 +259,16 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                             //done
                             console.log("deleteMapping done");
                         }).fail(function (e) {
-                            var headline    = e.status;
-                            var lead        = e.message;
+                            var be_status   = "";
+                            var be_lead     = "";
+                            if( e.hasOwnProperty("responseJSON") ){
+                                be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                                be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                            }
+
+                            var headline    = be_status;
+                            var lead        = be_lead;
                             var notif = new notifModal(lead,headline);
-                            notif.show();
                         });
 
                         return new Promise(function (resolve, reject) {
@@ -291,8 +297,15 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     //done
                     console.log("savePushPullPref done");
                 }).fail(function (e) {
-                    var headline    = e.status;
-                    var lead        = e.message;
+                    var be_status   = "";
+                    var be_lead     = "";
+                    if( e.hasOwnProperty("responseJSON") ){
+                        be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                        be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                    }
+
+                    var headline    = be_status;
+                    var lead        = be_lead;
                     var notif = new notifModal(lead,headline);
                     notif.show();
                 });
@@ -410,8 +423,15 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
                         updateOverAllStatus();
                     }).fail(function (e) {
-                        var headline    = e.status + ". Failed to save Mapping";
-                        var lead        = e.message + "\r\nPlease refresh page and try again";
+                        var be_status   = "";
+                        var be_lead     = "";
+                        if( e.hasOwnProperty("responseJSON") ){
+                            be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                            be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                        }
+
+                        var headline    = be_status + "Failed to save Mapping";
+                        var lead        = be_lead + "Please refresh page and try again";
                         var notif       = new notifModal(lead,headline);
                         notif.show();
                     });
@@ -522,8 +542,15 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     _this.remove();
                     updateOverAllStatus();
                 }).fail(function (e) {
-                    var headline    = e.status + ". Failed to add property";
-                    var lead        = e.message + "\r\nPlease refresh page and try again";
+                    var be_status   = "";
+                    var be_lead     = "";
+                    if( e.hasOwnProperty("responseJSON") ){
+                        be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                        be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                    }
+
+                    var headline    = be_status + "Failed to add property";
+                    var lead        = be_lead + "Please refresh page and try again";
                     var notif       = new notifModal(lead,headline);
                     notif.show();
                 });
@@ -559,8 +586,15 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     });
                 }).fail(function (e) {
                     enableSelects();
-                    var headline    = e.status + ". Failed to delete field";
-                    var lead        = e.message + "\r\nPlease refresh page and try again";
+
+                    var be_status   = "";
+                    var be_lead     = "";
+                    if( e.hasOwnProperty("responseJSON") ){
+                        be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                        be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                    }
+                    var headline    = be_status + "Failed to delete field";
+                    var lead        = be_lead + "Please refresh page and try again";
                     var notif       = new notifModal(lead,headline);
                     notif.show();
                 });
@@ -597,8 +631,15 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             }).done(function (result) {
                 //done
             }).fail(function (e) {
-                var headline    = e.status + ". Failed to save Study Site";
-                var lead        = e.message + "\r\nPlease refresh the page and try again";
+                var be_status   = "";
+                var be_lead     = "";
+                if( e.hasOwnProperty("responseJSON") ){
+                    be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                    be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                }
+
+                var headline    = be_status + "Failed to save Study Site";
+                var lead        = be_lead + "Please refresh the page and try again";
                 var notif       = new notifModal(lead,headline);
                 notif.show();
             });
@@ -671,8 +712,15 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 $(".nav-tabs .push_mapping").addClass("ok");
             }
         }).fail(function (e) {
-            var headline    = e.status + ". Failed to get Push/Pull Status";
-            var lead        = e.message + "\r\nPlease refresh page";
+            var be_status   = "";
+            var be_lead     = "";
+            if( e.hasOwnProperty("responseJSON") ){
+                be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+            }
+
+            var headline    = be_status + "Failed to get Push/Pull Status";
+            var lead        = be_lead + "Please refresh page";
             var notif       = new notifModal(lead,headline);
             notif.show();
         });
@@ -700,8 +748,15 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             _el2.find("td.status.push").addClass(push_status);
             _el2.find(".property_select").removeClass("ok").addClass(push_status);
         }).fail(function (e) {
-            var headline    = e.status + ". Failed to get Push/Pull status";
-            var lead        = e.message + "\r\nPlease refresh page";
+            var be_status   = "";
+            var be_lead     = "";
+            if( e.hasOwnProperty("responseJSON") ){
+                be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+            }
+
+            var headline    = be_status + "Failed to get Push/Pull status";
+            var lead        = be_lead + "Please refresh page";
             var notif       = new notifModal(lead,headline);
             notif.show();
         });
@@ -730,8 +785,16 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             }
         }).fail(function (e) {
             $("#field_mapping .loading").removeClass("loading");
-            var headline    = "Failed to load Enumerated Values";
-            var lead        = "Please refresh page and try again";
+
+            var be_status   = "";
+            var be_lead     = "";
+            if( e.hasOwnProperty("responseJSON") ){
+                be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+            }
+
+            var headline    = be_status + "Failed to load Enumerated Values";
+            var lead        = be_lead + "Please refresh page and try again";
             var notif       = new notifModal(lead,headline);
             notif.show();
         });
