@@ -287,8 +287,16 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 $("#refresh_sync_diff").trigger("click");
             }).fail(function (e) {
                 _this.removeClass("loading").prop("disabled", false);
-                var headline    = e.status + ". Record status failed to save";
-                var lead        = e.message + "\r\nPlease refresh page and try again";
+
+                var be_status   = "";
+                var be_lead     = "";
+                if( e.hasOwnProperty("responseJSON") ){
+                    be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                    be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                }
+
+                var headline    = be_status + "Record status failed to save";
+                var lead        = be_lead + "Please refresh page and try again";
                 var notif       = new notifModal(lead,headline);
                 notif.show();
             });
@@ -312,8 +320,16 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 // location.reload();
             }).fail(function (e) {
                 _this.removeClass("loading").prop("disabled",false);
-                var headline    = e.status + ". Failed to sync records";
-                var lead        = e.message + "\r\nPlease try again";
+
+                var be_status   = "";
+                var be_lead     = "";
+                if( e.hasOwnProperty("responseJSON") ){
+                    be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                    be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                }
+
+                var headline    = be_status + "Failed to sync records";
+                var lead        = be_lead + "Please try again";
                 var notif       = new notifModal(lead,headline);
                 notif.show();
             });
@@ -356,8 +372,16 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             }).fail(function (e) {
                 _this.removeClass("loading");
                 $(".getadjudication").prop("disabled", false);
-                var headline    = e.status + ". Failed to load adjudication records";
-                var lead        = e.message + "\r\nPlease try again";
+
+                var be_status   = "";
+                var be_lead     = "";
+                if( e.hasOwnProperty("responseJSON") ){
+                    be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                    be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                }
+
+                var headline    = be_status + "Failed to load adjudication records";
+                var lead        = be_lead + "Please try again";
                 var notif       = new notifModal(lead,headline);
                 notif.show();
             });
