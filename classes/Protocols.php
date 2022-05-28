@@ -187,6 +187,10 @@ class Protocols
             throw new \Exception('No REDCap Project linked to OnCore Protocol found.');
         }
 
+        if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
+            throw new \Exception('You do not have permissions to pull/push data from this protocol.');
+        }
+
         $redcapRecords = $this->getSubjects()->getRedcapProjectRecords();
 //        if(!$redcapRecords){
 //            throw new \Exception('Cant find recap records');
@@ -300,7 +304,7 @@ class Protocols
             $protocol = $this->getOnCoreProtocol();
 
             // now check if protocol status in statuses allowed to push
-            return in_array(strtolower($protocol['protocolStatus']), $this->getUser()->getStatusesAllowedToPush()) && $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES;
+            return in_array(strtolower($protocol['protocolStatus']), $this->getUser()->getStatusesAllowedToPush()) && $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES && $this->getUser()->isOnCoreContactAllowedToPush();
         }
 
     }
