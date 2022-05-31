@@ -251,20 +251,24 @@ class Protocols
      */
     public function prepareProtocol($redcapProjectId)
     {
-        $protocol = self::getProtocolEntityRecord($redcapProjectId);
-        if (!empty($protocol)) {
-            $this->setEntityRecord($protocol);
-            $this->setOnCoreProtocol($this->getOnCoreProtocolsViaID($this->getEntityRecord()['oncore_protocol_id']));
-            /**
-             * if OnCore protocol found then prepare its subjects
-             */
-            $this->prepareProtocolSubjects();
+        try {
+            $protocol = self::getProtocolEntityRecord($redcapProjectId);
+            if (!empty($protocol)) {
+                $this->setEntityRecord($protocol);
+                $this->setOnCoreProtocol($this->getOnCoreProtocolsViaID($this->getEntityRecord()['oncore_protocol_id']));
+                /**
+                 * if OnCore protocol found then prepare its subjects
+                 */
+                $this->prepareProtocolSubjects();
 
-            /**
-             * get REDCap records for linked protocol.
-             */
-            $this->prepareProjectRecords();
+                /**
+                 * get REDCap records for linked protocol.
+                 */
+                $this->prepareProjectRecords();
 
+            }
+        } catch (\Exception $e) {
+            Entities::createException($e->getMessage());
         }
     }
 
@@ -403,9 +407,13 @@ class Protocols
             }
             return false;
         } catch (GuzzleException $e) {
-            $response = $e->getResponse();
-            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-            throw new \Exception($responseBodyAsString['message']);
+            if (method_exists($e, 'getResponse')) {
+                $response = $e->getResponse();
+                $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+                throw new \Exception($responseBodyAsString['message']);
+            } else {
+                echo($e->getMessage());
+            }
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
             echo $e->getMessage();
@@ -471,9 +479,13 @@ class Protocols
                 }
             }
         } catch (GuzzleException $e) {
-            $response = $e->getResponse();
-            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-            throw new \Exception($responseBodyAsString['message']);
+            if (method_exists($e, 'getResponse')) {
+                $response = $e->getResponse();
+                $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+                throw new \Exception($responseBodyAsString['message']);
+            } else {
+                echo($e->getMessage());
+            }
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
             echo $e->getMessage();
@@ -500,9 +512,13 @@ class Protocols
                 }
             }
         } catch (GuzzleException $e) {
-            $response = $e->getResponse();
-            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-            throw new \Exception($responseBodyAsString['message']);
+            if (method_exists($e, 'getResponse')) {
+                $response = $e->getResponse();
+                $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+                throw new \Exception($responseBodyAsString['message']);
+            } else {
+                echo($e->getMessage());
+            }
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
             echo $e->getMessage();

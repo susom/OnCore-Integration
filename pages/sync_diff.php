@@ -12,7 +12,8 @@ $oncore_js              = $module->getUrl("assets/scripts/oncore.js");
 $batch_js               = $module->getUrl("assets/scripts/batch_modal.js");
 $notif_js               = $module->getUrl("assets/scripts/notif_modal.js");
 $icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
-$ajax_endpoint          = $module->getUrl("ajax/handler.php");
+$ajax_endpoint = $module->getUrl("ajax/handler.php");
+$csrf_token = $module->getCSRFToken();
 
 $sync_summ              = $module->getSyncDiffSummary();
 $total_subjects         = $sync_summ["total_count"];
