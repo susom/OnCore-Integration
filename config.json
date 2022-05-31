@@ -70,11 +70,6 @@
                 "icon": "fas fa-not-equal",
                 "url": "pages/sync_diff.php",
                 "show-header-and-footer": false
-            },
-            {
-                "name": "Manually Trigger Cron for Current Project(YOU MUST ADD ACTION)",
-                "icon": "fas fa-database",
-                "url": "ajax/cron.php"
             }
         ]
     },

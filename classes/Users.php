@@ -68,6 +68,10 @@ class Users extends Clients
         if (empty($this->getRolesAllowedToPush()) || empty($this->getOnCoreContact())) {
             return false;
         }
+        $result = in_array(strtolower($this->getOnCoreContact()['role']), $this->getRolesAllowedToPush());
+        if (!$result) {
+            Entities::createLog($this->getOnCoreContact()['additionalIdentifiers'][0]['id'] . ' does not have correct Role. Current role' . $this->getOnCoreContact()['role']);
+        }
         return in_array(strtolower($this->getOnCoreContact()['role']), $this->getRolesAllowedToPush());
     }
 
