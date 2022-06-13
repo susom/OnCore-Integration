@@ -117,7 +117,7 @@ class batchModal{
 
     setRowNote(id, note){
         this.logMessage(note);
-        $(".pushTBL td[data-note_rowid='" + id + "']").html(note);
+        $(".pushTBL td[data-note_rowid='" + id + "']").html(note.replace(/(?:\r\n|\r|\n)/g, '<br>'));
     }
 
     logMessage(msg) {
