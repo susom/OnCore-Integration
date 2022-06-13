@@ -607,7 +607,7 @@ class Subjects extends SubjectDemographics
         $onCoreRecord = $this->searchOnCoreSubjectUsingMRN($redcapMRN);
         if (empty($onCoreRecord)) {
             $demographics = $this->prepareREDCapRecordForSync($redcapId, $fields, $oncoreFieldsDef);
-            $message = "No subject found for $redcapMRN. Using REDCap data to create new Subject.";
+            $message = "No subject found for MRN $redcapMRN. Using REDCap data to create new Subject.";
             Entities::createLog($message);
             $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
             $result['message'] = $message;
@@ -615,7 +615,7 @@ class Subjects extends SubjectDemographics
         } else {
             // if subject is in different protocol then just add subject to protocol
             if ($onCoreRecord['subjectSource'] == OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONCORE) {
-                $message = "OnCore Subject " . $onCoreRecord['subjectDemographicsId'] . " found for $redcapMRN. REDCap data will be ignored and OnCore subject will be used.";
+                $message = "OnCore Subject " . $onCoreRecord['subjectDemographicsId'] . " found for MRN $redcapMRN. REDCap data will be ignored and OnCore subject will be used.";
                 Entities::createLog($message);
                 $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, $onCoreRecord['subjectDemographicsId'], null);
                 $result['message'] = $message;
@@ -626,7 +626,7 @@ class Subjects extends SubjectDemographics
             elseif ($onCoreRecord['subjectSource'] == OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE) {
                 // fill Onstage missing data from redcap record.
                 $demographics = $this->fillMissingData($record, $onCoreRecord, $fields);
-                $message = "No OnCore Subject found for $redcapMRN but a Record found on OnStage table. REDCap data will be used ONLY for missing data from OnStage.";
+                $message = "No OnCore Subject found for MRN $redcapMRN but a Record found on OnStage table. REDCap data will be used ONLY for missing data from OnStage.";
                 Entities::createLog($message);
                 $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
                 $result['message'] = $message;
@@ -692,6 +692,12 @@ class Subjects extends SubjectDemographics
                     //throw new \Exception('datatype does not match');
                     continue;
                 }
+
+                // if no value and its not required then do not add it. because onCore API will consider some field required if key is presented.
+                if ($redcapValue == '' && !($oncoreFieldsDef[$key]['required'] == 'true' ? true : false)) {
+                    continue;
+                }
+
                 $data[$key] = $redcapValue;
             } else {
                 if (in_array('array', $oncoreFieldsDef[$key]['oncore_field_type'])) {
