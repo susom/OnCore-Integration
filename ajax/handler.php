@@ -278,14 +278,15 @@ try {
         $responseBodyAsString['id'] = $id;
     }
 //    echo(json_encode($responseBodyAsString, JSON_THROW_ON_ERROR));
-    echo json_encode($responseBodyAsString, JSON_THROW_ON_ERROR);
+    $result = json_encode($responseBodyAsString, JSON_THROW_ON_ERROR);
+    echo htmlentities($result, ENT_NOQUOTES);;
 } catch (\Exception $e) {
     Entities::createException($e->getMessage());
     header("Content-type: application/json");
     http_response_code(404);
     $result = json_encode(array('status' => 'error', 'message' => $e->getMessage(), 'id' => $id), JSON_THROW_ON_ERROR);
 //    echo(json_encode($result, JSON_THROW_ON_ERROR));
-    echo $result;
+    echo htmlentities($result, ENT_NOQUOTES);;
 }
 
 

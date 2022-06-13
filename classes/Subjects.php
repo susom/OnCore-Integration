@@ -533,7 +533,7 @@ class Subjects extends SubjectDemographics
                     $diff = array_diff(OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS, $intersect);
                 }
 //                throw new \Exception("Following field/s are missing: " . implode(',', $diff));
-                $errors[] = "<strong>Following field/s are missing:</strong> " . implode(', ', $diff);
+                $errors[] = "Following field/s are missing: " . implode(', ', $diff);
             }
 
             /**
@@ -548,12 +548,12 @@ class Subjects extends SubjectDemographics
 
             if (!empty($errors)) {
 //                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
-                $errors[] = "<strong>Following field/s are missing values:</strong> " . implode(', ', $e);
+                $errors[] = "Following field/s are missing values: " . implode(', ', $e);
             }
         }
 
         if (!empty($errors)) {
-            throw new \Exception(implode('<br>', $errors));
+            throw new \Exception(implode("\n", $errors));
         }
 
         // when creating new subject. the EM must pass subjectSource OnCore
