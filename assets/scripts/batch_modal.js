@@ -105,12 +105,14 @@ class batchModal{
     }
 
     setRowStatus(id, status, note){
-        var status_txt = "failed";
-        if(status){
-            status_txt = "ok";
-        }else{
-            this.setRowNote(id, note)
+        var status_txt = "<div class='alert alert-danger'>FAILED</div>";
+        if (status) {
+            status_txt = "<div class='alert alert-success'>OK</div>";
         }
+        // else{
+        //     this.setRowNote(id, note)
+        // }
+        this.setRowNote(id, note)
         this.incFinished();
         $(".pushTBL td[data-status_rowid='" + id + "']").html(status_txt);
     }
