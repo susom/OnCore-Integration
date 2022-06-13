@@ -55,10 +55,6 @@ class Protocols
         if ($redcapProjectId) {
             $this->prepareProtocol($redcapProjectId);
 
-            // get all protocol staff and find current user OnCore contact. do not prepare for cron because no user will be found.
-            if ($this->getEntityRecord() && $this->getUser()->getRedcapUser()) {
-                $this->getUser()->prepareUser($this->getEntityRecord()['id'], $this->getEntityRecord()['oncore_protocol_id']);
-            }
         }
     }
 
@@ -255,6 +251,13 @@ class Protocols
             $protocol = self::getProtocolEntityRecord($redcapProjectId);
             if (!empty($protocol)) {
                 $this->setEntityRecord($protocol);
+
+
+                // get all protocol staff and find current user OnCore contact. do not prepare for cron because no user will be found.
+                if ($this->getEntityRecord() && $this->getUser()->getRedcapUser()) {
+                    $this->getUser()->prepareUser($this->getEntityRecord()['id'], $this->getEntityRecord()['oncore_protocol_id']);
+                }
+
                 $this->setOnCoreProtocol($this->getOnCoreProtocolsViaID($this->getEntityRecord()['oncore_protocol_id']));
                 /**
                  * if OnCore protocol found then prepare its subjects
