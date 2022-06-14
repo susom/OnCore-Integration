@@ -1,14 +1,49 @@
 # OnCoreIntegration
-Many institutions use the OnCore system by Advarra to manage their clinical trials and also use REDCap to store and capture participant data.  Linking these two systems by automating the transfer of participants between the two systems. This External Module automates the transfer of participant data in a study from REDCap to OnCore and OnCore to REDCap.
 
-This REDCap external module will periodically scan REDCap projects to see if an IRB number is entered. If a number is entered, then OnCore will be scanned for protocols that have the same IRB number.
-If a match is found, an option to link the 2 projects will be presented to REDCap users so that Subject data can be shared between the two.  The data on the OnCore side will always be the "Source of Truth".
+Many institutions use the OnCore system by Advarra to manage their clinical trials and also use REDCap to store and
+capture participant data. Linking these two systems by automating the transfer of participants between the two systems.
+This External Module automates the transfer of participant data in a study from REDCap to OnCore and OnCore to REDCap.
+
+This REDCap external module will periodically scan REDCap projects to see if an IRB number is entered. If a number is
+entered, then OnCore will be scanned for protocols that have the same IRB number.
+If a match is found, an option to link the 2 projects will be presented to REDCap users so that Subject data can be
+shared between the two. The data on the OnCore side will always be the "Source of Truth".
+
+## External Modules System wide Setup
+
+The institution using this Module will need to set up the module on system level before allowing REDCap users to use it.
+Here is a list required configuration:
+
+1. Base OnCore URL. e.g. `https://oncore.[INSTITUTIONS-NAME].edu`
+2. OnCore API Auth URN to generate access tokens. e.g. `forte-platform-web/api/oauth/token`
+3. OnCore API URN to get data from API. e.g `oncore-api/rest/`
+4. Global OnCore API user client_id. please refer to OnCore documentation on how to generate client_id.
+5. Global OnCore API user client_secret. please refer to OnCore documentation on how to generate client_secret.
+6. JSON Object that defines OnCore fields properties. [Link to fields exmaple](#oncore-fields-definition-example).
+    1. Note: Following fields are required by OnCore API and can NOT be empty or undefined.
+        1. mrn
+        2. gender
+        3. ethnicity
+        4. race
+        5. birthDate
+        6. lastName
+        7. firstName
+7. Define OnCore Protocol Staff that are allowed to Push REDCap record data to OnCore Protocol.
+    1. The EM matches REDCap user with OnCore contact using username. **Please Note OnCore Contact API does not return
+       Contact username.You MUST define REDCap username under AddtionalIds field**
+8. Define OnCore Protocol statuses that are allowed to push to OnCore via API.
+9. Define the study sites you want REDCap users to pick from.
 
 ## Prerequisites
+
 In order to link OnCore and REDCap projects, there are a few requirements which must be satisfied:
-  1. Currently, non-cancer studies can be linked.  The ability to link projects to the Cancer Center may be made in the future but is not yet implemented.
-  2. Before the linkage can be made, the study must already be created in OnCore and the study must be in OPEN TO ACCURAL status.
-  3. Participants can only be transferred between systems for Per-Participant studies and not for Summary Accural Only studies.
+
+1. Currently, non-cancer studies can be linked. The ability to link projects to the Cancer Center may be made in the
+   future but is not yet implemented.
+2. Before the linkage can be made, the study must already be created in OnCore and the study must be in OPEN TO ACCURAL
+   status.
+3. Participants can only be transferred between systems for Per-Participant studies and not for Summary Accural Only
+   studies.
 
 ## Setup
 
@@ -126,9 +161,7 @@ Subjects are found in the OnCore Protocol but no matching MRN was found in the R
 ### REDCap Only
 Subjects are found in the REDCap project but no matching MRN was found in the OnCore Protocol.  In this instance all the subjects and their mapped data are pushed into OnCore from REDCap unless "excluded".
 
-
-
-## OnCore Fields Definition Example:
+## OnCore Fields Definition Example
 
 ```json
 {
