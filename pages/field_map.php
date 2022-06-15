@@ -3,6 +3,8 @@
 namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
+try{
+
 
 $mapping                = $module->getMapping();
 $current_mapping        = $mapping->getProjectMapping();
@@ -808,3 +810,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             .replace(/&quot;/g, '"');
     }
 </script>
+<?php
+}catch (\Exception $e){
+    echo $e->getMessage();
+}

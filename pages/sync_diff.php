@@ -4,6 +4,9 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var OnCoreIntegration $module */
 
+try{
+
+
 $oncore_css             = $module->getUrl("assets/styles/oncore.css");
 $batch_css              = $module->getUrl("assets/styles/batch_modal.css");
 $adjude_css             = $module->getUrl("assets/styles/adjudication.css");
@@ -544,3 +547,6 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
     }
 </script>
 <?php
+}catch (\Exception $e){
+    echo $e->getMessage();
+}
