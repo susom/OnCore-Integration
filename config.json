@@ -4,7 +4,21 @@
     "description": "An external module that manages syncing patient data between REDCap projects and their respective OnCore counterparts",
     "documentation": "README.md",
     "authors": [
-
+        {
+            "name": "Andrew Martin",
+            "email": "andy123@stanford.edu",
+            "institution": "Stanford University"
+        },
+        {
+            "name": "Irvin Szeto",
+            "email": "irvins@stanford.edu",
+            "institution": "Stanford University"
+        },
+        {
+            "name": "Lee Ann Yasukawa",
+            "email": "yasukawa@stanford.edu",
+            "institution": "Stanford University"
+        },
         {
             "name": "Ihab Zeedia",
             "email": "ihabz@stanford.edu",
