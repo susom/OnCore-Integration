@@ -326,7 +326,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 var be_status = "";
                 var be_lead = "";
                 if (e.hasOwnProperty("responseJSON")) {
-                    var response = JSON.parse(e.responseJSON)
+                    var response = e.responseJSON
                     be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
                     be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
                 }
@@ -379,7 +379,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 var be_status = "";
                 var be_lead = "";
                 if (e.hasOwnProperty("responseJSON")) {
-                    var response = JSON.parse(e.responseJSON)
+                    var response = e.responseJSON
                     be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
                     be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
                 }
@@ -435,9 +435,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                         const rndInt = randomIntFromInterval(1000, 5000);
                         setTimeout(function () {
                             //some showman ship
-                            $("tbody[data-subject_mrn='"+result.mrn+"']").remove();
+                            $("tbody[data-subject_mrn='" + result.mrn + "']").remove();
                             $("#refresh_sync_diff").trigger("click");
-                            pullModal.setRowStatus(result.id, true);
+                            pullModal.setRowStatus(result.id, true, result.message);
 
                         }, rndInt);
                     }).fail(function (e) {

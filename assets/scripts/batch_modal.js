@@ -124,7 +124,7 @@ class batchModal{
 
     logMessage(msg) {
         var existing_msg = $("#modal_msg").val();
-        var new_msg = existing_msg.length ? existing_msg + "\r\n" + msg : msg;
+        var new_msg = existing_msg !== undefined && existing_msg.length ? existing_msg + "\r\n" + msg : msg;
         var cleanText = new_msg.replace(/<\/?[^>]+(>|$)/g, " ");
 
         $("#modal_msg").val(cleanText);

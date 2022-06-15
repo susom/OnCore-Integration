@@ -12,9 +12,12 @@ try {
         $action = htmlspecialchars($_POST["action"]);
         $result = null;
         $module->initiateProtocol();
+        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush()) {
+            throw new \Exception('You do not have permissions to pull/push data from this protocol.');
+        }
         switch ($action) {
             case "getMappingHTML":
-                $result =  $module->getMapping()->makeFieldMappingUI();
+                $result = $module->getMapping()->makeFieldMappingUI();
                 break;
 
             case "saveSiteStudies":
@@ -184,8 +187,8 @@ try {
                 $mrn    = $temp['mrn'];
                 unset($temp["mrn"]);
 
-                $res    = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($temp);
-                $result = array("mrn" => $mrn, "id" => $res["id"]) ;
+                $res = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($temp);
+                $result = array("mrn" => $mrn, "id" => $res["id"], 'message' => 'Record synced successfully!');
 
                 break;
 
