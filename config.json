@@ -4,21 +4,7 @@
     "description": "An external module that manages syncing patient data between REDCap projects and their respective OnCore counterparts",
     "documentation": "README.md",
     "authors": [
-        {
-            "name": "Andrew Martin",
-            "email": "andy123@stanford.edu",
-            "institution": "Stanford University"
-        },
-        {
-            "name": "Irvin Szeto",
-            "email": "irvins@stanford.edu",
-            "institution": "Stanford University"
-        },
-        {
-            "name": "Lee Ann Yasukawa",
-            "email": "yasukawa@stanford.edu",
-            "institution": "Stanford University"
-        },
+
         {
             "name": "Ihab Zeedia",
             "email": "ihabz@stanford.edu",
@@ -140,63 +126,78 @@
             "type": "text"
         },
         {
-            "key": "oncore-field-definition",
-            "name": "<b>JSON Object that defines OnCore Fields info. For Examples check EM README.md</b>",
-            "required": true,
-            "type": "textarea"
-        },
-        {
-            "key": "oncore-staff-roles",
-            "name": "<b>OnCore Protocol`s Roles that are allowed to create Subjects in OnCore</b>",
+            "key": "libraries",
+            "name": "<b>OnCore Libraries</b>",
             "required": true,
             "type": "sub_settings",
             "repeatable": true,
             "sub_settings": [
                 {
-                    "key": "staff-role",
-                    "name": "<b>Staff Role <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
-                    "type": "text",
-                    "required": true
-                }
-            ]
-        },
-        {
-            "key": "description",
-            "name": "<hr>",
-            "type": "descriptive"
-        },
-        {
-            "key": "oncore-protocol-statuses",
-            "name": "<b>OnCore Protocol Statuses that can accept new Subjects via API. </b>",
-            "required": true,
-            "type": "sub_settings",
-            "repeatable": true,
-            "sub_settings": [
+                    "key": "library-name",
+                    "name": "<b>OnCore Library Name</b>",
+                    "required": true,
+                    "type": "text"
+                },
                 {
-                    "key": "protocol-status",
-                    "name": "<b>Protocol Status <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
-                    "type": "text",
-                    "required": true
-                }
-            ]
-        },
-        {
-            "key": "description-2",
-            "name": "<hr>",
-            "type": "descriptive"
-        },
-        {
-            "key": "oncore-study-sites",
-            "name": "<b>Add all study sites defined on your OnCore instance. REDCap users will pick the site participated in their protocol.</b>",
-            "required": true,
-            "type": "sub_settings",
-            "repeatable": true,
-            "sub_settings": [
+                    "key": "library-oncore-field-definition",
+                    "name": "<b>JSON Object that defines OnCore Fields info. For Examples check EM README.md</b>",
+                    "required": true,
+                    "type": "textarea"
+                },
                 {
-                    "key": "study-site",
-                    "name": "<b>OnCore Study site <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
-                    "type": "text",
-                    "required": true
+                    "key": "library-oncore-staff-roles",
+                    "name": "<b>OnCore Protocol`s Roles that are allowed to create Subjects in OnCore</b>",
+                    "required": true,
+                    "type": "sub_settings",
+                    "repeatable": true,
+                    "sub_settings": [
+                        {
+                            "key": "staff-role",
+                            "name": "<b>Staff Role <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
+                            "type": "text",
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "key": "description",
+                    "name": "<hr>",
+                    "type": "descriptive"
+                },
+                {
+                    "key": "library-oncore-protocol-statuses",
+                    "name": "<b>OnCore Protocol Statuses that can accept new Subjects via API. </b>",
+                    "required": true,
+                    "type": "sub_settings",
+                    "repeatable": true,
+                    "sub_settings": [
+                        {
+                            "key": "protocol-status",
+                            "name": "<b>Protocol Status <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
+                            "type": "text",
+                            "required": true
+                        }
+                    ]
+                },
+                {
+                    "key": "description-2",
+                    "name": "<hr>",
+                    "type": "descriptive"
+                },
+                {
+                    "key": "library-oncore-study-sites",
+                    "name": "<b>Add all study sites defined on your OnCore instance. REDCap users will pick the site participated in their protocol.</b>",
+                    "required": true,
+                    "type": "sub_settings",
+                    "repeatable": true,
+                    "sub_settings": [
+                        {
+                            "key": "study-site",
+                            "name": "<b>OnCore Study site <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
+                            "type": "text",
+                            "required": true
+                        }
+                    ]
                 }
             ]
         },

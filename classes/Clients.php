@@ -131,11 +131,11 @@ abstract class Clients
 
         $this->setGlobalClientSecret(ExternalModules::getSystemSetting($this->getPrefix(), 'global-client-secret'));
 
-        $this->setRolesAllowedToPush(ExternalModules::getSystemSetting($this->getPrefix(), 'staff-role') ?: []);
-
-        $this->setStatusesAllowedToPush(ExternalModules::getSystemSetting($this->getPrefix(), 'protocol-status') ?: []);
-
-        $this->setOnCoreStudySites(ExternalModules::getSystemSetting($this->getPrefix(), 'study-site') ?: []);
+//        $this->setRolesAllowedToPush(ExternalModules::getSystemSetting($this->getPrefix(), 'staff-role') ?: []);
+//
+//        $this->setStatusesAllowedToPush(ExternalModules::getSystemSetting($this->getPrefix(), 'protocol-status') ?: []);
+//
+//        $this->setOnCoreStudySites(ExternalModules::getSystemSetting($this->getPrefix(), 'study-site') ?: []);
 
         $this->setRedcapCSFRToken($redcapCSFRToken);
 
