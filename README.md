@@ -1,26 +1,27 @@
 # OnCoreIntegration
 
-Many institutions use the OnCore system by Advarra to manage their clinical trials and also use REDCap to store and
-capture participant data. Linking these two systems by automating the transfer of participants between the two systems.
-This External Module automates the transfer of participant data in a study from REDCap to OnCore and OnCore to REDCap.
+Many institutions use the OnCore system by Advarra to manage their clinical trials and also use REDCap to capture and store
+participant data. Linking these two systems, by automating the transfer of participants between the two systems,
+will increase efficiency and reduce errors.
+This REDCap External Module (EM) automates the transfer of participant data in a study between REDCap to OnCore.
 
-This REDCap external module will periodically scan REDCap projects to see if an IRB number is entered. If a number is
-entered, then OnCore will be scanned for protocols that have the same IRB number.
+This EM will periodically scan REDCap projects to see if an IRB number is entered into the Project Settings page.
+When entered, then OnCore will be scanned for protocols that have the same IRB number.
 If a match is found, an option to link the 2 projects will be presented to REDCap users so that Subject data can be
-shared between the two. The data on the OnCore side will always be the "Source of Truth".
+shared between the two. The data on the OnCore side will always be considered the "Source of Truth".
 
-## External Modules System wide Setup
+## External Module Systemwide Setup
 
-The institution using this Module will need to set up the module on system level before allowing REDCap users to use it.
-Here is a list required configuration:
+Institutions using this Module will need to set up system level settings before allowing REDCap projects to enable it.
+Below is a list of required configurations which must be entered into the EM System Settings page:
 
 1. Base OnCore URL. e.g. `https://oncore.[INSTITUTIONS-NAME].edu`
 2. OnCore API Auth URN to generate access tokens. e.g. `forte-platform-web/api/oauth/token`
 3. OnCore API URN to get data from API. e.g `oncore-api/rest/`
-4. Global OnCore API user client_id. please refer to OnCore documentation on how to generate client_id.
-5. Global OnCore API user client_secret. please refer to OnCore documentation on how to generate client_secret.
-6. JSON Object that defines OnCore fields properties. [Link to fields exmaple](#oncore-fields-definition-example).
-    1. Note: Following fields are required by OnCore API and can NOT be empty or undefined.
+4. Global OnCore API user client_id. Please refer to OnCore documentation on how to generate a client_id.
+5. Global OnCore API user client_secret. Please refer to OnCore documentation on how to generate a client_secret.
+6. JSON Object that defines OnCore fields properties.  [Link to example](#oncore-fields-definition-example)
+    1. Note: The following fields are **required** by OnCore API and can NOT be empty or undefined.
         1. mrn
         2. gender
         3. ethnicity
@@ -32,18 +33,21 @@ Here is a list required configuration:
     1. The EM matches REDCap user with OnCore contact using username. **Please Note OnCore Contact API does not return
        Contact username.You MUST define REDCap username under AddtionalIds field**
 8. Define OnCore Protocol statuses that are allowed to push to OnCore via API.
-9. Define the study sites you want REDCap users to pick from.
+9. Define OnCore Protocol study sites you want REDCap users to pick from.
 
-## Prerequisites
+## Prerequisites and Limitations
 
-In order to link OnCore and REDCap projects, there are a few requirements which must be satisfied:
+When using this module, there are a few items to be aware of:
 
-1. Currently, non-cancer studies can be linked. The ability to link projects to the Cancer Center may be made in the
-   future but is not yet implemented.
-2. Before the linkage can be made, the study must already be created in OnCore and the study must be in OPEN TO ACCURAL
-   status.
-3. Participants can only be transferred between systems for Per-Participant studies and not for Summary Accural Only
-   studies.
+1. Currently, you can only connect one instance of OnCore to this EM. If your institution uses multiple instances of OnCore,
+you will need to choose which instance to connect.
+2. Before the REDCap project/OnCore linkage can be made, the study must already be created in OnCore
+3. Before being above to push data to OnCore, the OnCore project status must be in one of the allowed
+statuses from 8 above.
+4. Participants can only be transferred between systems for Per-Participant studies. Studies which are Summary Accural Only,
+   are not supported.
+5. When 'pushing' participants from REDCap to OnCore, the subject is associated with study but their status is not **OnStudy**.
+    Currently, the API does not support placing subjects OnStudy in OnCore so this step must be performed manually.
 
 ## Setup
 
@@ -68,9 +72,10 @@ Once the Link Project button is selected, the projects will be linked.
 ### Project Fields
 Subjects are linked to OnCore based on MRNs. In order to bring data from OnCore into your project, you must have an MRN field created in your project. Any additional data fields are optional.
 
-If your project intends to push Subjects from your REDCap project into OnCore, then there are a list
-of fields that are required by OnCore.  If your project does not store all the required fields, the push will not be successful.
+If your project intends to push Subjects from your REDCap project into OnCore, there are a list
+of fields that are required by OnCore.  If your project does not store **ALL** the required fields, the push will not be successful.
 The required fields are:
+
     1. MRN
     2. First Name
     3. Middle Name
@@ -80,28 +85,29 @@ The required fields are:
     7. Race
     8. Ethnicity
     9. Study Site
-    10. Subject Source
 
 ### Using a project template for new REDCap projects
-When new REDCap projects are created which intend to use the OnCore linkage, we encourage users to create the project using the Stanford OnCore Template.
+When new REDCap projects are created which intend to use the OnCore linkage, we encourage users to create the project using an OnCore template project.  The template
+project should include all required fields needed to push data to OnCore. The Stanford OnCore Template xml file is provided in the EM if your institution would like to use
+it as a starting point. This template project can be modified based on each institution's particular OnCore setup.
 
 ![TemplateProject](images/use_template.png)
 
-Using the template will automatically create a form which includes all the Subject Demographic fields that are available from OnCore. This form helps determine which fields
-to use and what the options for each field should be.  Even though the included field options are the only values that OnCore
-includes, users have the freedom to add additional choices.  For instance, the values for gender that OnCore accepts are Male, Female and Unknown.  If your research
-project would like to include Male assigned at Birth and Female assigned at birth, you can add those options to the field.
+Also included in the EM is a zip file with just the Stanford OnCore Demographics form which can be used with existing REDCap projects.  To use this template to create a
+new form in your existing project, select the Upload option on the Online Designer page.
 
-For the Study Sites field, you can delete the options that your study will not use.
+![TemplateForm](images/form_upload.png)
 
-Fields that will not be populated can be deleted.
+Once the form is included in a REDCap project, it can be changed based on project requirements.  For instance, if your research wants more granularity for the Race field and capture Native Hawaiian
+and Other Pacific Islander into separate coded values, you can make that change in the form and map both options to the same OnCore value in the field mapping section.
+
 
 ## Field Mapping
-Once OnCore and REDCap projects are linked, some initial configuration mapping is necessary. Generally, mapping is only performed once
+Once the OnCore and REDCap projects are linked, some initial configuration mapping is necessary. Generally, mapping is only performed once
 but if the data you want stored from OnCore changes or the data you want to push to OnCore changes, you will need
 to revisit the mapping page.
 
-After the OnCore Integration EM is enabled, the Project Setup page has a link to the Field Mapping page:
+The Project Setup page has a link to the Field Mapping page:
 
 ![FirstTimeMappingPage](images/first_mapping.png)
 
@@ -110,19 +116,19 @@ The link is called OnCore Field Mapping.
 
 ![MappingPage](images/field_mapping_link.png)
 
-Once on the Field Mapping page, you can select the option to retrieve (pull) OnCore data and store it in your REDCap project and/or
+The Field Mapping page allows you to select the options to retrieve (pull) OnCore data and store it in your REDCap project and/or
 push data from your REDCap project to OnCore.  You are also able to select the study sites you will use in your project.
 
 
 ### Data Mapping for Pulling OnCore Data
-In order to `PULL` data from OnCore to REDCap, the MRN is required is auto-selected. The REDCap project MRN field needs to be mapped to this OnCore field.
+In order to `PULL` data from OnCore to REDCap, the participant's MRNs are required. The REDCap project MRN field needs to be mapped to the OnCore MRN field.
 In addition to MRN, you may select the relevant OnCore Properties from the drop-down one by one, and select the appropriate REDCap field where that OnCore property will be saved.
 If there are enumerated fields, a second level mapping field will appear so that the individual REDCap options can be mapped to the OnCore options.
 
 ![MappingPull](images/pull_mapping.png)
 
 ### Data Mapping for Pushing REDCap data to OnCore
-In order to `PUSH` Subject data from REDCap to OnCore, there are a **miniumum** set of fields required by mapping a core subset of OnCore Properties to their REDCap counterparts.
+In order to `PUSH` Subject data from REDCap to OnCore, there is a **miniumum** set of fields required by mapping a core subset of OnCore Properties to their REDCap counterparts.
 If the requirements are not met, the push will fail. The minimum set of fields is listed when you go to the <i>Push Data to OnCore</i> tab.
 
 ![MappingPush](images/push_mapping.png)
@@ -140,26 +146,30 @@ To find out which OnCore subjects are not in your new REDCap project, go to the 
 
 ![Manual Sync](images/manual_sync.png)
 
-This page will give an overview of the status of your REDCap and OnCore records as of the <i>Last Scanned</i> timestamp.  To update your project, you may select the
-<i>Refresh Sync Data</i> button to re-scan OnCore and refresh your status.
+This page will give an overview of the status of your REDCap and OnCore records.  To update your project, you may select the
+<i>Refresh Synced Data</i> button to re-scan OnCore and refresh your status.
 
 ![Manual Sync](images/manual_scan_status.png)
 
-Once your project is refreshed, you can go to the <i>Unlinked OnCore Subjects</i> tab and/or the <i>Unlinked REDCap Subjects</i> tab to adjudicate the subjects.
-
-![push_pull Sync](images/sync_data.png)
+Once your project is refreshed, you can go to the <i>See Unlinked Subjects</i> button and/or the <i>See Unlinked Records</i> tab to adjudicate the subjects.
 
 ## Adjudication
 The EM will take the mapping data and do a daily (or manual) scan/sync against the OnCore API using a subject's **MRN** to find matches.  If data is found it will be assigned 3 possible statuses; "Partial Match", "OnCore only", "REDCap only".
 
 ### Partial Match
-The data was found in both the REDCap Project and its OnCore counterpart.  But there was a discrepency in one or more properties/fields.   In these instances, OnCore being the "source of truth" will overwrite the data in the mapped REDCap field unless that subject is "excluded".
+The data was found in both the REDCap Project and its OnCore counterpart.  But there was a discrepency in one or more properties/fields.   In these instances, OnCore, being the "source of truth", will overwrite the data in the mapped REDCap field unless that subject is "excluded".
 
 ### OnCore Only
 Subjects are found in the OnCore Protocol but no matching MRN was found in the REDCap project.  In this instance, all the subjects and their mapped data are pulled into REDCap from OnCore unless "excluded".
 
 ### REDCap Only
-Subjects are found in the REDCap project but no matching MRN was found in the OnCore Protocol.  In this instance all the subjects and their mapped data are pushed into OnCore from REDCap unless "excluded".
+Subjects are found in the REDCap project but no matching MRN was found in the OnCore Protocol.  In this instance all the selected subjects and their mapped data are pushed into OnCore from REDCap unless "excluded".
+
+**NOTE:** When pushing REDCap records to OnCore, the participant will be associated with the OnCore Protocol but will not have the status of OnStudy
+since the current set of APIs do not support changing the status of the OnCore subject.  Therefore, REDCap users
+must go into OnCore and change the status of each pushed participant to be OnStudy.
+
+Until the status update is manually performed in OnCore, those participants will still be displayed as **Not in OnCore**.
 
 ## OnCore Fields Definition Example
 
