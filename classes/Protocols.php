@@ -227,7 +227,13 @@ class Protocols
 
     public function pushREDCapRecordToOnCore($redcapRecordId, $oncoreFieldsDef)
     {
-        // TODO get study site from redcap record.
+        $linkage = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $redcapRecordId);
+        // check if excluded
+        if ($linkage['excluded']) {
+            throw new \Exception('This Record is excluded and you cant sync it.');
+        }
+
+
         $result = $this->getSubjects()->pushToOnCore($this->getEntityRecord()['oncore_protocol_id'], $redcapRecordId, $this->getMapping()->getProjectFieldMappings()['push'], $oncoreFieldsDef);
         // reset loaded subjects for protocol so we can pull them after creating new one.
 //        $this->getSubjects()->setOnCoreProtocolSubjects(null, true);
@@ -528,6 +534,9 @@ class Protocols
         }
     }
 
+    /**
+     * @throws \Exception
+     */
     public function pullOnCoreRecordsIntoREDCap($record)
     {
         if ($redcapId = $this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $record, $this->getMapping()->getProjectFieldMappings()['pull'])) {

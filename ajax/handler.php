@@ -245,7 +245,7 @@ try {
                 $temp   = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
                 $mrn    = $temp['mrn'];
                 unset($temp["mrn"]);
-
+                $id = $temp["oncore"];
                 $res = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($temp);
                 $result = array("mrn" => $mrn, "id" => $res["id"], 'message' => 'Record synced successfully!');
 
