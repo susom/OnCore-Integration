@@ -23,7 +23,6 @@ try {
                 break;
 
             case "saveSiteStudies":
-                exit(json_encode(array("fuck ", "you", "three")));
                 $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : null;
 
                 $module->getMapping()->setProjectSiteStudies($result);
