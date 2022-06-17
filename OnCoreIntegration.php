@@ -862,15 +862,15 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $exclude        = array("mrn");
 
         foreach ($records as $record) {
-            $link_status = $record["status"];
-            $entity_id = $record["entity_id"];
-            $excluded = $record["excluded"] ?? 0;
+            $link_status    = $record["status"];
+            $entity_id      = $record["entity_id"];
+            $excluded       = $record["excluded"] ?? 0;
 
-            $oncore = null;
-            $redcap = null;
+            $oncore     = null;
+            $redcap     = null;
 
-            $last_scan = null;
-            $full = false;
+            $last_scan  = null;
+            $full       = false;
 
             $oc_id = null;
             $oc_pr_id = null;
@@ -904,7 +904,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $arr = current($record["redcap"]);
                         $mrn = $arr[$this->getMapping()->getProjectFieldMappings()['pull']['mrn']['redcap_field']];
                         // we are using pull fields to map redcap data
-                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($arr["record_id"], $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
+                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($arr[\REDCap::getRecordIdField()], $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
                         // handle data scattered over multiple events
                         $redcap = [];
                         foreach ($temp as $onCoreField => $value) {
