@@ -555,6 +555,7 @@ class Mapping
                 $pull_value_map_html    = "";
                 $event_name             = "";
                 $pull_rc_map_select     = $rc_map_select;
+                $required               = $field_details["required"];
                 if (array_key_exists($field, $project_mappings["pull"])) {
                     $rc_field               = $project_mappings["pull"][$field];
                     $rc_field_name          = $rc_field["redcap_field"];
@@ -569,7 +570,7 @@ class Mapping
                     $pull_rc_map_select     = str_replace("property_select", "property_select $pull_status", $pull_rc_map_select);
                 }
 
-                $trash = $field !== "mrn" ? "<i class='fas fa-trash delete_pull_prop' data-oncore_prop='$field'></i>" : "";
+                $trash = $field !== "mrn" ? "<i class='fas fa-trash delete_pull_prop' data-oncore_prop='$field' data-req='$required'></i>" : "";
 
                 $temp = array();
                 $temp[] = "<tr class='$field'>";

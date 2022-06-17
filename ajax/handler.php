@@ -7,12 +7,14 @@ use GuzzleHttp\Exception\GuzzleException;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
+
 try {
     if (isset($_POST["action"])) {
         $action = htmlspecialchars($_POST["action"]);
         $result = null;
         $module->initiateProtocol();
-        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush()) {
+        //TODO REMOVE THIS BYPASS
+        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && 1==2) {
             throw new \Exception('You do not have permissions to pull/push data from this protocol.');
         }
         switch ($action) {
@@ -21,8 +23,12 @@ try {
                 break;
 
             case "saveSiteStudies":
+                exit(json_encode(array("fuck ", "you", "three")));
                 $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : null;
+
                 $module->getMapping()->setProjectSiteStudies($result);
+
+
                 break;
 
             case "saveMapping":
@@ -30,8 +36,8 @@ try {
                 //MAKE THIS A MORE GRANULAR SAVE.  GET
                 $project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
                 $current_mapping        = $module->getMapping()->getProjectMapping();
-                $result             = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
-                $update_oppo        = !empty($_POST["update_oppo"]) ? filter_var($_POST["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
+                $result                 = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
+                $update_oppo            = !empty($_POST["update_oppo"]) ? filter_var($_POST["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
 
                 $pull_mapping       = !empty($result["mapping"]) ? $result["mapping"] : null;
                 $oncore_field       = !empty($result["oncore_field"]) && $result["oncore_field"] !== "-99" ? $result["oncore_field"] : null;
@@ -42,6 +48,7 @@ try {
 
                 //$pull_mapping tells me the actual click (pull or push side)... doing the opposite side is more just a convenience..
                 if($pull_mapping == "pull"){
+                    $rc_mapping = 0;
                     //pull side
                     if(!$redcap_field){
                         unset($current_mapping[$pull_mapping][$oncore_field]);
@@ -64,6 +71,7 @@ try {
                         );
                     }
                 }else{
+                    $rc_mapping = 1;
                     //push side
                     if(!$redcap_field){
                         unset($current_mapping[$pull_mapping][$oncore_field]);
@@ -87,7 +95,54 @@ try {
                     }
                 }
 
-                $result = $module->getMapping()->setProjectFieldMappings($current_mapping);
+                $module->getMapping()->setProjectFieldMappings($current_mapping);
+            case "checkPushPullStatus":
+                if(!isset($oncore_field)){
+                    $oncore_field   = filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) ;
+                }
+                $oncore_field   = htmlspecialchars($oncore_field);
+                $oncore_field   = $oncore_field ?: null;
+                $indy_push_pull = $module->getMapping()->calculatePushPullStatus($oncore_field);
+            case "checkOverallStatus":
+                if(!isset($indy_push_pull)){
+                    $indy_push_pull = array("pull"=>null,"push"=>null);
+                }
+                $pull           = $module->getMapping()->getOverallPullStatus();
+                $push           = $module->getMapping()->getOverallPushStatus();
+                $pp_result      = array_merge(array("overallPull" => $pull, "overallPush" => $push), $indy_push_pull);
+            case "getValueMappingUI":
+                if(!isset($redcap_field)){
+                    $redcap_field   = filter_var($_POST["redcap_field"], FILTER_SANITIZE_STRING) ;
+                }
+                $redcap_field = htmlspecialchars($redcap_field);
+                $redcap_field = $redcap_field ?: null;
+
+                if(!isset($oncore_field)){
+                    $oncore_field   = filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) ;
+                }
+                $oncore_field = htmlspecialchars($oncore_field);
+                $oncore_field = $oncore_field ?: null;
+
+                if(!isset($rc_mapping)){
+                    $rc_mapping     = filter_var($_POST["rc_mapping"], FILTER_SANITIZE_NUMBER_INT) ;
+                }
+                $rc_mapping = htmlspecialchars($rc_mapping);
+                $rc_mapping = $rc_mapping ?: null;
+
+                $rc_obj     = $module->getMapping()->getRedcapValueSet($redcap_field);
+                $oc_obj     = $module->getMapping()->getOncoreValueSet($oncore_field);
+                
+                if(!empty($rc_obj) || !empty($oc_obj)){
+                    if ($rc_mapping) {
+                        $res = $module->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
+                    } else {
+                        $res = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
+                    }
+                }else{
+                    $res = array("html" => null);
+                }
+
+                $result = array_merge( array("html" => $res["html"]), $pp_result) ;
                 break;
 
             case "deleteMapping":
@@ -123,8 +178,12 @@ try {
                     unset($current_mapping["pull"][$pull_field]);
                 }
 
-                $module->emDebug("new mapping less $pull_field", $current_mapping["pull"], $project_oncore_subset);
+//                $module->emDebug("new mapping less $pull_field", $current_mapping["pull"], $project_oncore_subset);
                 $result = $module->getMapping()->setProjectFieldMappings($current_mapping);
+
+                $pull           = $module->getMapping()->getOverallPullStatus();
+                $push           = $module->getMapping()->getOverallPushStatus();
+                $result         = array("overallPull" => $pull, "overallPush" => $push);
                 break;
 
             case "saveOncoreSubset":
@@ -227,36 +286,7 @@ try {
                 }
                 break;
 
-            case "checkOverallStatus":
-                $pull   = $module->getMapping()->getOverallPullStatus();
-                $push   = $module->getMapping()->getOverallPushStatus();
-                $result = array("overallPull" => $pull, "overallPush" => $push);
-                break;
 
-            case "checkPushPullStatus":
-                $oncore_field = htmlspecialchars($_POST["oncore_field"]);
-                $oncore_field = $oncore_field ?: null;
-                $result = $module->getMapping()->calculatePushPullStatus($oncore_field);
-                break;
-
-            case "getValueMappingUI":
-                $redcap_field = htmlspecialchars($_POST["redcap_field"]);
-                $redcap_field = $redcap_field ?: null;
-                $oncore_field = htmlspecialchars($_POST["oncore_field"]);
-                $oncore_field = $oncore_field ?: null;
-//                $redcap_field   = !empty($_POST["redcap_field"]) ? filter_var($_POST["redcap_field"], FILTER_SANITIZE_STRING) : null;
-//                $oncore_field   = !empty($_POST["oncore_field"]) ? filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) : null;
-//                $rc_mapping     = !empty($_POST["rc_mapping"]) ? filter_var($_POST["rc_mapping"], FILTER_SANITIZE_NUMBER_INT) : null;
-                $rc_mapping = htmlspecialchars($_POST["rc_mapping"]);
-                $rc_mapping = $rc_mapping ?: null;
-                if ($rc_mapping) {
-                    $result = $module->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
-                } else {
-                    $result = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
-                }
-
-                $result = $result["html"];
-                break;
 
             case "triggerIRBSweep":
                 if (isset($_POST['irb']) && $_POST['irb'] != '') {

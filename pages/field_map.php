@@ -56,10 +56,10 @@ foreach($oncore_props as $field => $props){
 }
 $bs_dropdown    = array();
 $bs_dropdown[]  = '<div class="dropdown-menu" aria-labelledby="dropdownMenu2">';
-$bs_dropdown[]  = '<h6 class="dropdown-header">Required</h6>';
+$bs_dropdown[]  = '<h6 class="dropdown-header req_hdr">Required</h6>';
 $bs_dropdown[]  = implode("\r\n",$req_field);
 $bs_dropdown[]  = '<div class="dropdown-divider"></div>';
-$bs_dropdown[]  = '<h6 class="dropdown-header">Optional</h6>';
+$bs_dropdown[]  = '<h6 class="dropdown-header no_req_hdr">Optional</h6>';
 $bs_dropdown[]  = implode("\r\n",$opt_field);
 $bs_dropdown[]  = '</div>';
 $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
@@ -172,6 +172,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     position:absolute;
     margin-left:10px; width:30px; height:30px;
     background-size:contain;
+}
+#field_mapping #study_sites .loading::after{
+    top: 12px;
+    right: 25px;
 }
 </style>
 <script src="<?= $notif_js ?>" type="text/javascript"></script>
@@ -390,7 +394,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 $(this).parent().addClass("loading");
 
                 disableSelects();
-
+console.log("wtf", field_maps);
                 ajaxQueue.addRequest(function () {
                     // -- your ajax request goes here --
                     return $.ajax({
@@ -403,25 +407,26 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         },
                         dataType: 'json'
                     }).done(function (result) {
-                        console.log("if upddate oppo,then update the vmaps too", _update_oppo);
-                        //remove spinners
-                        updatePushPullStatus(oncore_field, redcap_field);
-                        enableSelects();
+                        // console.log("if upddate oppo,then update the vmaps too", _update_oppo);
 
-                        if(is_rc_mapping){
-                            makeValueMappingRow(oncore_field, redcap_field, 1);
-                            if(_update_oppo){
-                                makeValueMappingRow(oncore_field, redcap_field, 0);
-                            }
-                        }else{
-                            makeValueMappingRow(oncore_field, redcap_field, 0);
-                            if(_update_oppo){
-                                makeValueMappingRow(oncore_field, redcap_field, 1);
-                            }
-                        }
                         _select.removeClass("second_level_trigger");
 
-                        updateOverAllStatus();
+                        updatePushPullStatus(oncore_field, redcap_field, result);
+                        updateOverAllStatus(result);
+                        enableSelects();
+
+                        if(redcap_field !== "-99"){
+                            makeValueMappingRow(result, oncore_field, is_rc_mapping);
+                            if(_update_oppo){
+                                makeValueMappingRow(result, oncore_field, !is_rc_mapping);
+                            }
+                        }else{
+                            var parent_id = is_rc_mapping ? "#redcap_mapping" : "#oncore_mapping"
+                            $(parent_id + " tr.more." + oncore_field).remove();
+                        }
+
+                        //remove spinners
+                        $("#field_mapping .loading").removeClass("loading");
                     }).fail(function (e) {
                         var be_status   = "";
                         var be_lead     = "";
@@ -439,7 +444,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     return new Promise(function (resolve, reject) {
                         setTimeout(function () {
                             resolve(data);
-                        }, 500);
+                        }, 100);
                     });
                 });
             }
@@ -515,8 +520,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             }
         });
 
-        //ONCORE SUBSET
-        $(".oncore_pull_prop").on("click", function(e){
+        //ONCORE ADD PULL PROP
+        $("#oncore_mapping").on("click", ".oncore_pull_prop", function(e){
             e.preventDefault();
             var _this       = $(this);
             var oncore_prop = _this.data("val");
@@ -540,7 +545,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     $("#oncore_mapping tbody").empty().append(result["pull"]);
                     $("#oncore_prop_selector .dropdown-toggle").prop("disabled", false);
                     _this.remove();
-                    updateOverAllStatus();
+
+                    var fake_result = {"overallPull" : false , "overallPush" : null};
+                    updateOverAllStatus(fake_result);
                 }).fail(function (e) {
                     var be_status   = "";
                     var be_lead     = "";
@@ -558,16 +565,15 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 return new Promise(function (resolve, reject) {
                     setTimeout(function () {
                         resolve(data);
-                    }, 1000);
+                    }, 100);
                 });
             });
         });
-
         //DELETE PULL PROP
         $("#oncore_mapping").on("click", ".delete_pull_prop", function(e){
             e.preventDefault(e);
             var oncore_prop = $(this).data("oncore_prop");
-
+            var _req        = $(this).data("req");
             disableSelects();
             ajaxQueue.addRequest(function () {
                 // -- your ajax request goes here --
@@ -583,6 +589,16 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     enableSelects();
                     $("#oncore_mapping tr."+oncore_prop).fadeOut(function(){
                         $(this).remove();
+                        var addto = $("<button>").data("val",oncore_prop).attr("type","button").addClass("dropdown-item oncore_pull_prop").text(oncore_prop);
+                        if(_req){
+                            var hdr = ".req_hdr";
+                            addto.insertAfter($("#oncore_prop_selector " + hdr));
+                        }else{
+                            var hdr = ".no_req_hdr";
+                            addto.insertAfter($("#oncore_prop_selector " + hdr));
+                        }
+
+                        updateOverAllStatus(result);
                     });
                 }).fail(function (e) {
                     enableSelects();
@@ -602,13 +618,15 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 return new Promise(function (resolve, reject) {
                     setTimeout(function () {
                         resolve(data);
-                    }, 1000);
+                    }, 100);
                 });
             });
         })
 
         //SAVE SITE STUDIES SUB SET
         $("#study_sites").on("change", "input[name='site_study_subset']",function(){
+            $(this).parent("label").addClass("loading");
+            $("#study_sites input").prop("disabled","disabled");
             $("#study_sites").submit();
         });
         $("#study_sites").submit(function(e){
@@ -629,8 +647,12 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 },
                 dataType: 'json'
             }).done(function (result) {
+                $("#study_sites .loading").removeClass("loading");
+                $("#study_sites input").prop("disabled",false);
                 //done
             }).fail(function (e) {
+                $("#study_sites .loading").removeClass("loading");
+                $("#study_sites input").prop("disabled",false);
                 var be_status   = "";
                 var be_lead     = "";
                 if( e.hasOwnProperty("responseJSON") ){
@@ -690,114 +712,48 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         return self.indexOf(value) === index;
     }
 
-    function updateOverAllStatus(){
-        $.ajax({
-            url: ajax_endpoint,
-            method: 'POST',
-            data: {
-                "action": "checkOverallStatus"
-            },
-            dataType: 'json'
-        }).done(function (status) {
-            var overallPull = status["overallPull"];
-            var overallPush = status["overallPush"];
+    function updateOverAllStatus(result){
+        var overallPull = result["overallPull"];
+        var overallPush = result["overallPush"];
 
-            // console.log("overall status", status);
+        if(overallPull !== null){
             $(".nav-tabs .pull_mapping").removeClass("ok");
             if(overallPull){
                 $(".nav-tabs .pull_mapping").addClass("ok");
             }
+        }
+
+        if(overallPush !== null) {
             $(".nav-tabs .push_mapping").removeClass("ok");
-            if(overallPush){
+            if (overallPush) {
                 $(".nav-tabs .push_mapping").addClass("ok");
             }
-        }).fail(function (e) {
-            var be_status   = "";
-            var be_lead     = "";
-            if( e.hasOwnProperty("responseJSON") ){
-                be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
-                be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
-            }
-
-            var headline    = be_status + "Failed to get Push/Pull Status";
-            var lead        = be_lead + "Please refresh page";
-            var notif       = new notifModal(lead,headline);
-            notif.show();
-        });
+        }
     }
 
-    function updatePushPullStatus(oncore_field, redcap_field){
+    function updatePushPullStatus(oncore_field, redcap_field, result){
         var _el     = $("#oncore_mapping tr."+oncore_field);
         var _el2    = $("#redcap_mapping tr."+oncore_field);
 
         _el.find("td.status.pull").removeClass("ok");
         _el2.find("td.status.push").removeClass("ok");
-        $.ajax({
-            url: ajax_endpoint,
-            method: 'POST',
-            data: {
-                "action": "checkPushPullStatus",
-                "oncore_field": oncore_field,
-            },
-            dataType: 'json'
-        }).done(function (result) {
-            var pull_status = result["pull"] ? "ok" : "";
-            var push_status = result["push"] ? "ok" : "";
-            _el.find("td.status.pull").addClass(pull_status);
-            _el.find(".property_select").removeClass("ok").addClass(pull_status);
-            _el2.find("td.status.push").addClass(push_status);
-            _el2.find(".property_select").removeClass("ok").addClass(push_status);
-        }).fail(function (e) {
-            var be_status   = "";
-            var be_lead     = "";
-            if( e.hasOwnProperty("responseJSON") ){
-                be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
-                be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
-            }
 
-            var headline    = be_status + "Failed to get Push/Pull status";
-            var lead        = be_lead + "Please refresh page";
-            var notif       = new notifModal(lead,headline);
-            notif.show();
-        });
+        var pull_status = result["pull"] ? "ok" : "";
+        var push_status = result["push"] ? "ok" : "";
+        _el.find("td.status.pull").addClass(pull_status);
+        _el.find(".property_select").removeClass("ok").addClass(pull_status);
+        _el2.find("td.status.push").addClass(push_status);
+        _el2.find(".property_select").removeClass("ok").addClass(push_status);
     }
 
-    function makeValueMappingRow(oncore_field, redcap_field, rc_mapping) {
-        // console.log("makeValueMappingRow",oncore_field, redcap_field);
-        $.ajax({
-            url: ajax_endpoint,
-            method: 'POST',
-            data: {
-                "action": "getValueMappingUI",
-                "oncore_field": oncore_field,
-                "redcap_field": redcap_field,
-                "rc_mapping"  : rc_mapping
-            },
-            dataType: 'json'
-        }).done(function (result) {
-            var parent_id = rc_mapping ? "#redcap_mapping" : "#oncore_mapping";
-
-            if ($(parent_id + " tr." + oncore_field).length) {
-                //CLEAR EXISTING ROW BEFORE BUILDING NEW UI
-                $(parent_id + " tr.more." + oncore_field).remove();
-                $(result).insertAfter($(parent_id + " tr." + oncore_field));
-                $("#field_mapping .loading").removeClass("loading");
-            }
-        }).fail(function (e) {
-            $("#field_mapping .loading").removeClass("loading");
-
-            var be_status   = "";
-            var be_lead     = "";
-            if( e.hasOwnProperty("responseJSON") ){
-                be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
-                be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
-            }
-
-            var headline    = be_status + "Failed to load Enumerated Values";
-            var lead        = be_lead + "Please refresh page and try again";
-            var notif       = new notifModal(lead,headline);
-            notif.show();
-        });
+    function makeValueMappingRow(result, oncore_field, rc_mapping) {
+        var html        = result["html"];
+        var parent_id   = rc_mapping ? "#redcap_mapping" : "#oncore_mapping";
+        if ($(parent_id + " tr." + oncore_field).length) {
+            //CLEAR EXISTING ROW BEFORE BUILDING NEW UI
+            $(parent_id + " tr.more." + oncore_field).remove();
+            $(html).insertAfter($(parent_id + " tr." + oncore_field));
+        }
     }
 
     function unescape(s) {
