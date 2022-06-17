@@ -799,6 +799,13 @@ class Subjects extends SubjectDemographics
         if (!isset($record['oncore'])) {
             throw new \Exception('No OnCore Protocol Subject is passed');
         }
+
+        $linkage = $this->getLinkageRecord($projectId, $protocolId, '', $record['oncore']);
+        // check
+        if ($linkage['excluded']) {
+            throw new \Exception('This Record is excluded and you cant sync it.');
+        }
+
         $subject = $this->getOnCoreProtocolSubject($protocolId, $record['oncore']);
         if (empty($subject)) {
             throw new \Exception('No Subject record found for ' . $record['oncore']);
