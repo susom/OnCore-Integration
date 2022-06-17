@@ -319,6 +319,7 @@ class Protocols
             Entities::createLog('current status:' . implode(',', $this->getUser()->getStatusesAllowedToPush()));
             Entities::createLog('Protocol status: ' . $protocol['protocolStatus']);
             Entities::createLog('Protocol status in array ' . $a ? 1 : 0);
+            Entities::createLog('final :' . in_array(strtolower($protocol['protocolStatus']), $this->getUser()->getStatusesAllowedToPush()) && $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES && $this->getUser()->isOnCoreContactAllowedToPush());
             // now check if protocol status in statuses allowed to push
             return in_array(strtolower($protocol['protocolStatus']), $this->getUser()->getStatusesAllowedToPush()) && $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES && $this->getUser()->isOnCoreContactAllowedToPush();
         }
