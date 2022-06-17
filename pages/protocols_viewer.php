@@ -13,7 +13,7 @@ try {
         throw new \Exception('Access Denied');
     }
     $list = new EntityList(OnCoreIntegration::ONCORE_PROTOCOLS, $module);
-    $list->render('control_center'); // Context: project.
+    $list->setOperations(['update', 'delete'])->render('control_center'); // Context: project.
 
 } catch (\Exception $e) {
     echo '<div class="alert alert-danger">' . $e->getMessage() . '</div>';
