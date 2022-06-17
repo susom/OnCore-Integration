@@ -213,7 +213,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         $types = [];
 
-        $types['oncore_protocols'] = [
+        $types[self::ONCORE_PROTOCOLS] = [
             'label' => 'OnCore protocols',
             'label_plural' => 'OnCore Protocols',
             'icon' => 'home_pencil',
@@ -260,7 +260,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             ],
         ];
 
-        $types['oncore_redcap_api_actions_log'] = [
+        $types[self::ONCORE_REDCAP_API_ACTIONS_LOG] = [
             'label' => 'OnCore protocols',
             'label_plural' => 'OnCore Protocols',
             'icon' => 'home_pencil',
@@ -296,7 +296,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             ],
         ];;
 
-        $types['oncore_admins'] = [
+        $types[self::ONCORE_ADMINS] = [
             'label' => 'OnCore Admin',
             'label_plural' => 'OnCore Admins',
             'icon' => 'home_pencil',
@@ -327,7 +327,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             ],
         ];
 
-        $types['oncore_redcap_records_linkage'] = [
+        $types[self::ONCORE_REDCAP_RECORD_LINKAGE] = [
             'label' => 'OnCore REDCap records Linkage',
             'label_plural' => 'OnCore REDCap records Linkage',
             'icon' => 'home_pencil',
@@ -390,7 +390,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             ],
         ];;
 
-        $types['oncore_subjects'] = [
+        $types[self::ONCORE_SUBJECTS] = [
             'label' => 'OnCore Subject',
             'label_plural' => 'OnCore Subjects',
             'icon' => 'home_pencil',
