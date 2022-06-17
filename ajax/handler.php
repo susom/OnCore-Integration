@@ -13,8 +13,8 @@ try {
         $action = htmlspecialchars($_POST["action"]);
         $result = null;
         $module->initiateProtocol();
-        //TODO REMOVE THIS BYPASS
-        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && 1==2) {
+
+        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush()) {
             throw new \Exception('You do not have permissions to pull/push data from this protocol.');
         }
         switch ($action) {
@@ -131,7 +131,7 @@ try {
 
                 $rc_obj     = $module->getMapping()->getRedcapValueSet($redcap_field);
                 $oc_obj     = $module->getMapping()->getOncoreValueSet($oncore_field);
-                
+
                 if(!empty($rc_obj) || !empty($oc_obj)){
                     if ($rc_mapping) {
                         $res = $module->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
