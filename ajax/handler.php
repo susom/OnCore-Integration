@@ -13,9 +13,8 @@ try {
         $action = htmlspecialchars($_POST["action"]);
         $result = null;
         $module->initiateProtocol();
-        //TODO REMOVE BYPASS
-//        if (!$module->getProtocols()->getSubjects()->isCanPush() && 1==2) {
-        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && 1==2) {
+
+        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush()) {
             throw new \Exception('You do not have permissions to pull/push data from this protocol.');
         }
         switch ($action) {
@@ -246,7 +245,7 @@ try {
                 break;
 
             case "approveSync":
-                $temp = !empty($_POST["record"]) ? filter_var_array($_POST["record"], FILTER_SANITIZE_STRING) : null;
+                $temp = !empty($_POST["approved_ids"]) ? filter_var_array($_POST["approved_ids"], FILTER_SANITIZE_STRING) : null;
                 $mrn = $temp['mrn'];
                 unset($temp["mrn"]);
                 $id = $temp["oncore"];
