@@ -29,26 +29,27 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 ?>
 <link rel="stylesheet"
       href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:600i,700,700i">
-<link rel="stylesheet"
-      href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
-<link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
-<link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
-<link rel="stylesheet" href="<?= $oncore_css ?>">
-<link rel="stylesheet" href="<?= $batch_css ?>">
-<link rel="stylesheet" href="<?= $notif_css ?>">
-<link rel="stylesheet" href="<?= $adjude_css ?>">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:600i,700,700i">
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
+    <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
+    <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
+    <link rel="stylesheet" href="<?= $oncore_css ?>">
+    <link rel="stylesheet" href="<?= $batch_css ?>">
+    <!--<link rel="stylesheet" href="--><?//= $notif_css
+    ?><!--">-->
+    <link rel="stylesheet" href="<?= $adjude_css ?>">
 
-<div id="oncore_mapping" class="container pull-left">
-    <h3>REDCap/OnCore Interaction</h3>
-    <p class="lead">Data Stored in OnCore must be synced and adjudicated periodically. The data will be pulled into
-        an entity table and then matched against this projects REDCap data on the mapped fields.</p>
+    <div id="oncore_mapping" class="container pull-left">
+        <h3>REDCap/OnCore Interaction</h3>
+        <p class="lead">Data Stored in OnCore must be synced and adjudicated periodically. The data will be pulled into
+            an entity table and then matched against this projects REDCap data on the mapped fields.</p>
 
-    <div id="overview" class="container">
-        <div id="filters">
-            <div class="d-inline-block text-center stat-group oncore_summ">
+        <div id="overview" class="container">
+            <div id="filters">
+                <div class="d-inline-block text-center stat-group oncore_summ">
                 <div class="stat d-inline-block">
                     <p class='h1 mt-2 mb-0 p-0 oncore_only_count'><?php echo $sync_summ['oncore_only_count'] ?></p>
                     <i class="d-block">Not in REDCap</i>
@@ -170,22 +171,23 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
     height: 25px;
     right: 5px;
 
-    background:url(<?=$icon_ajax?>) 0 0 no-repeat;
-    background-size:contain;
+    background: url(<?=$icon_ajax?>) 0 0 no-repeat;
+    background-size: contain;
 }
 </style>
-<script src="<?= $batch_js ?>" type="text/javascript"></script>
-<script src="<?= $notif_js ?>" type="text/javascript"></script>
-<script src="<?= $adjudication_js ?>" type="text/javascript"></script>
-<script>
-    $(document).ready(function () {
-        var ajax_endpoint = "<?=$ajax_endpoint?>";
-        var last_scan_ts = "<?=$sample_ts?>";
-        if (last_scan_ts) {
-            $("#summ_last_ts").html(last_scan_ts);
-        }
+    <script src="<?= $batch_js ?>" type="text/javascript"></script>
+    <!--<script src="--><?//= $notif_js
+    ?><!--" type="text/javascript"></script>-->
+    <script src="<?= $adjudication_js ?>" type="text/javascript"></script>
+    <script>
+        $(document).ready(function () {
+            var ajax_endpoint = "<?=$ajax_endpoint?>";
+            var last_scan_ts = "<?=$sample_ts?>";
+            if (last_scan_ts) {
+                $("#summ_last_ts").html(last_scan_ts);
+            }
 
-        //SHOW "no diff" MATCHES
+            //SHOW "no diff" MATCHES
         $("body").on("click",".show_all_matched", function (e) {
             e.preventDefault();
             if (!$(this).hasClass('expanded')) {
