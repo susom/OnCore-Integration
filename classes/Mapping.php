@@ -774,14 +774,16 @@ class Mapping
 
         $show_all_btn = !$noredcap && !$disabled ? "<button class='btn btn-info show_all_matched'>Show All</button>" : "";
         $excludes_cls = $excluded ? "excludes" : "includes";
-        $html = "$show_all_btn<table class='table table-striped $disabled $excludes_cls'>";
+        $html = "<table class='table table-striped $disabled $excludes_cls'>";
         $html .= "<thead>";
         $html .= "<tr>";
-        $html .= "<th style='width: 6%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
-        $html .= "<th style='width: 25%'>Subject Details</th>";
-        $html .= "<th style='width: 25%'>OnCore Property</th>";
-        $html .= "<th style='width: 22%'>OnCore Data</th>";
-        $html .= "<th style='width: 22%'>REDCap Data</th>";
+        $html .= "<th style='width: 4%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
+        $html .= "<th style='width: 20%'>Subject Details</th>";
+        $html .= "<th style='width: 15%'>Status</th>";
+        $html .= "<th style='width: 16%'>Notes</th>";
+        $html .= "<th style='width: 15%'>OnCore Property</th>";
+        $html .= "<th style='width: 15%'>OnCore Data</th>";
+        $html .= "<th style='width: 15%'>REDCap Data</th>";
         $html .= "</tr>";
         $html .= "</thead>";
 
@@ -866,6 +868,8 @@ class Mapping
                     $id_info = implode("<br>", $id_info);
                     $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id'  data-mrn='$mrn'  value='$oc_pr_id' checked/></td>";
                     $html .= "<td class='rc_id $oc_status_class' rowspan=$rowspan>$id_info</td>";
+                    $html .= "<td class='adj_status' data-status_rowid='$oc_pr_id' rowspan=$rowspan></td>";
+                    $html .= "<td class='adj_notes' data-note_rowid='$oc_pr_id'  rowspan=$rowspan></td>";
                 }
                 $html .= "<td class='oc_data oc_field $showit'>$oc_alias</td>";
                 $html .= "<td class='oc_data data $showit'>$oc</td>";
@@ -875,26 +879,20 @@ class Mapping
             $html .= "</tbody>";
         }
 
-        $html .= "<tfoot>";
-        $html .= "<tr>";
-        $html .= "<td colspan=6 align='right'>";
 
         if (!$excluded) {
             if ($disabled) {
             } else {
                 if ($overall_pull_status) {
-                    $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button>";
+                    $footer_action = "<button type='submit' class='btn btn-success submit_adjudicatePartial'>Accept Oncore Data</button>";
                 } else {
-                    $html .= "<div class='alert alert-warning'>You can't pull OnCore Subjects. To pull you must define pull fields on <a href='" . $this->module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
+                    $footer_action = "<div class='alert alert-warning'>You can't pull OnCore Subjects. To pull you must define pull fields on <a href='" . $this->module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
                 }
             }
         }
 
-        $html .= "</td>";
-        $html .= "</tr>";
-        $html .= "</tfoot>";
-        $html .= "</table>";
-        return $html;
+
+        return array("html" => $html, "footer_action" => $footer_action, "show_all" => $show_all_btn);
     }
 
     /**
@@ -906,13 +904,15 @@ class Mapping
 
         $show_all_btn = !$disabled ? "<button class='btn btn-info show_all_matched'>Show All</button>" : "";
         $excludes_cls = $excluded ? "excludes" : "includes";
-        $html = "$show_all_btn<table class='table table-striped $disabled $excludes_cls'>";
+        $html = "<table class='table table-striped $disabled $excludes_cls'>";
         $html .= "<thead>";
         $html .= "<tr>";
-        $html .= "<th style='width: 6%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
-        $html .= "<th style='width: 32%'>Subject Details</th>";
-        $html .= "<th style='width: 32%'>OnCore Property</th>";
-        $html .= "<th style='width: 30%'>OnCore Data</th>";
+        $html .= "<th style='width: 4%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
+        $html .= "<th style='width: 16%'>Subject Details</th>";
+        $html .= "<th style='width: 15%'>Status</th>";
+        $html .= "<th style='width: 25%'>Notes</th>";
+        $html .= "<th style='width: 20%'>OnCore Property</th>";
+        $html .= "<th style='width: 20%'>OnCore Data</th>";
         $html .= "</tr>";
         $html .= "</thead>";
 
@@ -988,6 +988,8 @@ class Mapping
                     $id_info = implode("<br>", $id_info);
                     $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' data-rc_id='$rc_id' data-mrn='$mrn' value='$oc_pr_id' checked/></td>";
                     $html .= "<td class='rc_id $oc_status_class' rowspan=$rowspan>$id_info</td>";
+                    $html .= "<td class='adj_status' data-status_rowid='$oc_pr_id' rowspan=$rowspan></td>";
+                    $html .= "<td class='adj_notes' data-note_rowid='$oc_pr_id'  rowspan=$rowspan></td>";
                 }
                 $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
                 $html .= "<td class='oc_data data'>$oc</td>";
@@ -996,26 +998,19 @@ class Mapping
             $html .= "</tbody>";
         }
 
-        $html .= "<tfoot>";
-        $html .= "<tr>";
-        $html .= "<td colspan=6 align='right'>";
 
         if (!$excluded) {
             if ($disabled) {
             } else {
                 if ($overall_pull_status) {
-                    $html .= "<button type='submit' class='btn btn-success'>Accept Oncore Data</button>";
+                    $footer_action = "<button type='submit' class='btn btn-success submit_pullFromOnCore'>Accept Oncore Data</button>";
                 } else {
-                    $html .= "<div class='alert alert-warning'>You can't pull OnCore Subjects. To pull you must define pull fields on <a href='" . $this->module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
+                    $footer_action = "<div class='alert alert-warning'>You can't pull OnCore Subjects. To pull you must define pull fields on <a href='" . $this->module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
                 }
             }
         }
 
-        $html .= "</td>";
-        $html .= "</tr>";
-        $html .= "</tfoot>";
-        $html .= "</table>";
-        return $html;
+        return array("html" => $html, "footer_action" => $footer_action, "show_all" => $show_all_btn);
     }
 
     /**
@@ -1024,21 +1019,21 @@ class Mapping
     public function makeRedcapTableHTML($records, $noredcap = null, $disabled = null, $excluded = null)
     {
         $overall_push_status = $this->getOverallPushStatus();
+        $show_all_btn = !$noredcap && !$disabled ? "<button class='btn btn-info show_all_matched'>Expand All Record Data</button>" : "";
+        $footer_action= null;
 
-        $show_all_btn = !$noredcap && !$disabled ? "<button class='btn btn-info show_all_matched'>Show All</button>" : "";
         $excludes_cls = $excluded ? "excludes" : "includes";
-        $html = "$show_all_btn<table class='table table-striped $disabled $excludes_cls'>";
+        $html = "<table class='table table-striped $disabled $excludes_cls'>";
         $html .= "<thead>";
         $html .= "<tr>";
-        $html .= "<th style='width: 6%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
-        $html .= "<th style='width: 22%'>Subject Details</th>";
-//    $html .= "<th style='width: 25%'>Study Site</th>";
-        $html .= "<th style='width: 22%'>OnCore Property</th>";
-        $html .= "<th style='width: 25%'>REDCap Data</th>";
+        $html .= "<th style='width: 4%' class='import'><input type='checkbox' name='check_all' class='check_all' value='1' checked/> All</th>";
+        $html .= "<th style='width: 16%'>Subject Details</th>";
+        $html .= "<th style='width: 15%'>Status</th>";
+        $html .= "<th style='width: 25%'>Notes</th>";
+        $html .= "<th style='width: 20%'>OnCore Property</th>";
+        $html .= "<th style='width: 20%'>REDCap Data</th>";
         $html .= "</tr>";
         $html .= "</thead>";
-
-
 
         foreach ($records as $mrn => $rows) {
             if ($noredcap) {
@@ -1088,6 +1083,8 @@ class Mapping
                     $id_info        = implode("<br>", $id_info);
                     $html .= "<td class='import' rowspan=$rowspan><input type='checkbox' class='accept_diff' name='approved_ids' value='$rc_id' data-redcap='$rc_id' data-oncore='' data-mrn='$mrn' checked/></td>";
                     $html .= "<td class='rc_id' rowspan=$rowspan>$id_info</td>";
+                    $html .= "<td class='adj_status' data-status_rowid='$rc_id' rowspan=$rowspan></td>";
+                    $html .= "<td class='adj_notes' data-note_rowid='$rc_id'  rowspan=$rowspan></td>";
                 }
                 $html .= "<td class='oc_data oc_field'>$oc_alias</td>";
                 $html .= "<td class='rc_data data'>$rc</td>";
@@ -1096,30 +1093,23 @@ class Mapping
             $html .= "</tbody>";
         }
 
-        $html .= "<tfoot>";
-        $html .= "<tr>";
-        $html .= "<td colspan=6 align='right'>";
+
 
         if (!$excluded) {
-            if ($disabled) {
-            } else {
+            if (!$disabled) {
                 if ($this->module->getProtocols()->getSubjects()->isCanPush()) {
                     if($overall_push_status){
-                        $html .= "<button type='submit' class='btn btn-success'>Push REDCap data to OnCore</button>";
+                        $footer_action = "<button type='submit' class='btn btn-success submit_pushToOnCore'>Push REDCap data to OnCore</button>";
                     }else{
-                        $html .= "<div class='alert alert-warning'>You can't push REDCap records Subjects. To push you must define push fields on <a href='" . $this->module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
+                        $footer_action = "<div class='alert alert-warning'>You can't push REDCap records Subjects. To push you must define push fields on <a href='" . $this->module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
                     }
                 } else {
-                    $html .= "<div class='alert alert-warning'>You can't push REDCap records to OnCore Protocol. Because Protocol is not approved or its status is not valid.</div>";
+                    $footer_action = "<div class='alert alert-warning'>You can't push REDCap records to OnCore Protocol. Because Protocol is not approved or its status is not valid.</div>";
                 }
             }
         }
 
-        $html .= "</td>";
-        $html .= "</tr>";
-        $html .= "</tfoot>";
-        $html .= "</table>";
-        return $html;
+        return array("html" => $html, "footer_action" => $footer_action, "show_all" => $show_all_btn);
     }
 
 

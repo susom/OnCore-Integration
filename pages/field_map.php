@@ -394,7 +394,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 $(this).parent().addClass("loading");
 
                 disableSelects();
-console.log("wtf", field_maps);
+
                 ajaxQueue.addRequest(function () {
                     // -- your ajax request goes here --
                     return $.ajax({
