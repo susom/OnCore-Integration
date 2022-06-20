@@ -381,39 +381,60 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             });
         });
 
-        //ACCEPT ADJUDICATIONS
-        $("#syncFromOncore, #pullFromOncore").submit(function (e) {
-            console.log("pull from , or adjudicate partial");
-            e.preventDefault();
-            return;
-            var approved_ids = [];
-            var inputs  = $(this).find(".includes input[name='approved_ids']").each(function () {
-                if (this.checked) {
-                    var _el = $(this);
-                    var oncore_id = _el.val();
-                    var rc_id = _el.data("rc_id");
-                    var mrn = _el.data("mrn");
-                    approved_ids.push({
-                        "name": 'approved_ids',
-                        'mrn': mrn,
-                        "oncore": oncore_id,
-                        "value": oncore_id,
-                        "redcap": rc_id
-                    });
-                }
+            //oncore only
+            $(document).on('click', '.submit_pullFromOnCore', function (e) {
+                e.preventDefault();
+                var form = $('.pushDATA').find('#pullFromOncore')
+                pull(form)
             });
-            var temp    = $(this).find(".includes input[name='approved_ids']").serializeArray();
 
-            if (approved_ids.length) {
-                var pullModal = window.adjModal;
-                pullModal.prepCount(approved_ids);
-                pullModal.totalItems = approved_ids.length;
-                pullModal.showProgressUI();
+            // partial match
+            $(document).on('click', '.submit_adjudicatePartial', function (e) {
+                e.preventDefault();
+                var form = $('.pushDATA').find('#syncFromOncore')
+                pull(form)
+            });
 
-                var wait_time = 0;
-                for (var i in approved_ids) {
-                    var _mrn    = approved_ids[i]["mrn"];
-                    var rc_id   = approved_ids[i]["redcap"];
+            // partial match
+            $(document).on('click', '.submit_pushToOnCore', function (e) {
+                e.preventDefault();
+                var form = $('.pushDATA').find('#pushToOncore')
+                push(form)
+            });
+
+            //ACCEPT ADJUDICATIONS
+            function pull(form) {
+                console.log("pull from , or adjudicate partial");
+
+                //return false;
+                var approved_ids = [];
+                var inputs = form.find(".includes input[name='approved_ids']").each(function () {
+                    if (this.checked) {
+                        var _el = $(this);
+                        var oncore_id = _el.val();
+                        var rc_id = _el.data("rc_id");
+                        var mrn = _el.data("mrn");
+                        approved_ids.push({
+                            "name": 'approved_ids',
+                            'mrn': mrn,
+                            "oncore": oncore_id,
+                            "value": oncore_id,
+                            "redcap": rc_id
+                        });
+                    }
+                });
+                var temp = $(this).find(".includes input[name='approved_ids']").serializeArray();
+                console.log(approved_ids)
+                if (approved_ids.length) {
+                    var pullModal = window.adjModal;
+                    pullModal.prepCount(approved_ids);
+                    pullModal.totalItems = approved_ids.length;
+                    pullModal.showProgressUI();
+
+                    var wait_time = 0;
+                    for (var i in approved_ids) {
+                        var _mrn = approved_ids[i]["mrn"];
+                        var rc_id = approved_ids[i]["redcap"];
                     var oncore  = approved_ids[i]["oncore"];
                     var temp    = {"redcap": rc_id, "oncore": oncore, "mrn" : _mrn}
 
@@ -440,30 +461,31 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             }, rndInt);
                         });
                     })(rndInt);
+                    }
+
+                    setTimeout(function () {
+                        //some showmanship
+                        $("#refresh_sync_diff").trigger("click");
+                    }, wait_time);
                 }
+            };
 
-                setTimeout(function(){
-                    //some showmanship
-                    $("#refresh_sync_diff").trigger("click");
-                }, wait_time);
-            }
-        });
-
-        $("body").on("submit", ".pushDATA form", function (e) {
-            e.preventDefault();
-            // var inputs      = [{value:1, mrn:12345}, {value:2, mrn:23456}, {value:3, mrn:34567}, {value:4, mrn:45678}];
-            var approved_ids    = []
-            var inputs          = $(this).find(".includes input[name='approved_ids']:checked").each(function () {
-                if (this.checked) {
-                    var _el = $(this);
-                    var oncore_id = _el.data("oncore");
-                    var rc_id = _el.val();
-                    var mrn = _el.data("mrn");
-                    approved_ids.push({
-                        "name": 'approved_ids',
-                        'mrn': mrn,
-                        "oncore": oncore_id,
-                        "value": rc_id,
+            function push(form) {
+                console.log('push')
+                //return false;
+                // var inputs      = [{value:1, mrn:12345}, {value:2, mrn:23456}, {value:3, mrn:34567}, {value:4, mrn:45678}];
+                var approved_ids = []
+                var inputs = form.find(".includes input[name='approved_ids']:checked").each(function () {
+                    if (this.checked) {
+                        var _el = $(this);
+                        var oncore_id = _el.data("oncore");
+                        var rc_id = _el.val();
+                        var mrn = _el.data("mrn");
+                        approved_ids.push({
+                            "name": 'approved_ids',
+                            'mrn': mrn,
+                            "oncore": oncore_id,
+                            "value": rc_id,
                         "redcap": rc_id
                     });
                 }
@@ -505,21 +527,21 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     })(rndInt);
                 }
 
-                setTimeout(function(){
+                setTimeout(function () {
                     //some showmanship
                     $("#refresh_sync_diff").trigger("click");
                 }, wait_time);
             }
-        })
-    });
+            }
+        });
 
-    function updateOverview(syncsummary){
-        $("p.full_match_count").text(syncsummary["full_match_count"]);
-        $("span.excluded_count").text(syncsummary["excluded_count"]);
-        $("span.match_count").text(syncsummary["total_count"]);
-        $("span.for_adjudication").text(syncsummary["total_count"] - syncsummary["excluded_count"]);
+        function updateOverview(syncsummary) {
+            $("p.full_match_count").text(syncsummary["full_match_count"]);
+            $("span.excluded_count").text(syncsummary["excluded_count"]);
+            $("span.match_count").text(syncsummary["total_count"]);
+            $("span.for_adjudication").text(syncsummary["total_count"] - syncsummary["excluded_count"]);
 
-        $("p.partial_match_count").text(syncsummary["partial_match_count"]);
+            $("p.partial_match_count").text(syncsummary["partial_match_count"]);
 
         $("p.oncore_only_count").text(syncsummary["oncore_only_count"]);
         $("i.total_oncore_count").text(syncsummary["total_oncore_count"]);
