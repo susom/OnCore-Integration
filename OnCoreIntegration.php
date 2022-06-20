@@ -560,11 +560,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         $field_map_url = $this->getUrl("pages/field_map.php");
         $ajax_endpoint = $this->getUrl("ajax/handler.php");
-
+        $notif_css = $this->getUrl("assets/styles/notif_modal.css");
+        $notif_js = $this->getUrl("assets/scripts/notif_modal.js");
         $available_oncore_protocols = $this->getOnCoreProtocols();
         $oncore_integrations = $this->getOnCoreIntegrations();
         $has_oncore_integration = $this->hasOnCoreIntegration();
         ?>
+        <link rel="stylesheet" href="<?= $notif_css ?>">
         <script>
             var ajax_endpoint = "<?=$ajax_endpoint?>";
             var field_map_url = "<?=$field_map_url?>";
@@ -684,6 +686,20 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         document.location.reload();
                     }).fail(function (e) {
                         console.log("failed to integrate", e);
+                        $(".getadjudication").prop("disabled", false);
+
+                        var be_status = "";
+                        var be_lead = "";
+                        if (e.hasOwnProperty("responseJSON")) {
+                            var response = e.responseJSON
+                            be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
+                            be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
+                        }
+
+                        var headline = be_status + "Failed to load adjudication records";
+                        var lead = be_lead + "Please try again";
+                        var notif = new notifModal(lead, headline);
+                        notif.show();
                     });
                 });
 
@@ -750,6 +766,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 margin: initial;
             }
         </style>
+        <script src="<?= $notif_js ?>" type="text/javascript"></script>
         <?php
     }
 
