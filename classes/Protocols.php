@@ -328,7 +328,7 @@ class Protocols
             if (!$contactRole) {
                 Entities::createLog($this->getUser()->getRedcapUser()->getUsername() . " has OnCore role " . $this->getUser()->getOnCoreContact()['role'] . " which is not allowed to push records to OnCore");
             }
-            return in_array(strtolower($protocol['protocolStatus']), $this->getUser()->getStatusesAllowedToPush()) && $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES && $this->getUser()->isOnCoreContactAllowedToPush();
+            return $status && $linked && $contactRole;
         }
 
     }
