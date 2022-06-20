@@ -9,8 +9,8 @@ $batch_css              = $module->getUrl("assets/styles/batch_modal.css");
 $adjude_css             = $module->getUrl("assets/styles/adjudication.css");
 $notif_css              = $module->getUrl("assets/styles/notif_modal.css");
 $oncore_js              = $module->getUrl("assets/scripts/oncore.js");
-$batch_js               = $module->getUrl("assets/scripts/batch_modal.js");
 $notif_js               = $module->getUrl("assets/scripts/notif_modal.js");
+$adjudication_js        = $module->getUrl("assets/scripts/adjudication_modal.js");
 $icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
 $ajax_endpoint = $module->getUrl("ajax/handler.php");
 $csrf_token = $module->getCSRFToken();
@@ -24,20 +24,6 @@ $partial_match_count    = $sync_summ["partial_match_count"];
 $excluded_count         = $sync_summ['excluded_count'];
 $oncore_count           = $sync_summ["oncore_only_count"];
 $redcap_count           = $sync_summ["redcap_only_count"];
-
-//$sync_diff              = $module->getSyncDiff();
-//$sample_ts = null;
-//if ($full_match_count || $partial_match_count || $oncore_count) {
-//    if ($full_match_count || $partial_match_count) {
-//        $sample_ts = current(current($sync_diff["match"]["included"]));
-//    } elseif ($oncore_count) {
-//        $sample_ts = current(current($sync_diff["oncore"]["included"]));
-//    }
-//
-//    if (!empty($sample_ts)) {
-//        $sample_ts = $sample_ts["ts_last_scan"];
-//    }
-//}
 
 require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 ?>
@@ -132,13 +118,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         </div>
     </div>
 
+    <!-- THIS WILL REMAIN HIDDEN -->
     <div class="tab-content">
-
-        <p class="lead no_content">Records will be displayed here.</p>
-
         <div class="tab-pane" id="partial">
-            <h2>Adjudicate Partial Matches</h2>
-            <p>There was an MRN match between REDCap and OnCore, but the data is mis-matched. Choose to accept OnCore data (as the source of truth).</p>
             <form id="syncFromOncore" class="oncore_match">
                 <input type="hidden" name="matchtype" value="fullmatch"/>
                 <div class="included"></div>
@@ -152,9 +134,6 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         </div>
 
         <div class="tab-pane" id="oncore">
-            <h2>Pull into REDCap</h2>
-            <p>The following Subjects were found in the OnCore Protocol but not in the REDCap project.</p>
-
             <form id="pullFromOncore" class="oncore_match">
                 <input type="hidden" name="matchtype" value="oncoreonly"/>
                 <div class="included"></div>
@@ -168,9 +147,6 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         </div>
 
         <div class="tab-pane" id="redcap">
-            <h2>Push to OnCore</h2>
-            <p>The following REDCap records have an MRN not found in the OnCore Protocol</p>
-
             <form id="pushToOncore" class="oncore_match">
                 <input type="hidden" name="matchtype" value="redcaponly"/>
                 <div class="included"></div>
@@ -183,7 +159,6 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             </form>
         </div>
     </div>
-
 </div>
 
 <style>
@@ -201,6 +176,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 </style>
 <script src="<?= $batch_js ?>" type="text/javascript"></script>
 <script src="<?= $notif_js ?>" type="text/javascript"></script>
+<script src="<?= $adjudication_js ?>" type="text/javascript"></script>
 <script>
     $(document).ready(function () {
         var ajax_endpoint = "<?=$ajax_endpoint?>";
@@ -210,9 +186,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         }
 
         //SHOW "no diff" MATCHES
-        $("#oncore_mapping").on("click",".show_all_matched", function (e) {
+        $("body").on("click",".show_all_matched", function (e) {
             e.preventDefault();
-
             if (!$(this).hasClass('expanded')) {
                 $(".show_all_matched").html("Show Less");
                 $("tr td.rc_data, tr td.oc_data").show();
@@ -225,7 +200,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         });
 
         //CHECKBOX BEHAVIOR
-        $("#oncore_mapping").on("change",".check_all",  function () {
+        $("body").on("change",".check_all",  function () {
             if ($(this).is(":checked")) {
                 //check all
                 $(this).closest("table").find(".accept_diff").prop("checked", true);
@@ -234,7 +209,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 $(this).closest("table").find(".accept_diff").prop("checked", false);
             }
         });
-        $("#oncore_mapping").on("change",".accept_diff",  function () {
+        $("body").on("change",".accept_diff",  function () {
             if (!$(this).is(":checked")) {
                 //uncheck "check_all"
                 $(this).closest("table").find(".check_all").prop("checked", false);
@@ -242,7 +217,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         });
 
         //EXCLUDE SUBJECT FROM DIFF OVERWRITE
-        $(".oncore_match").on("click", ".exclude_subject, .include_subject", function (e) {
+        $("body").on("click", ".exclude_subject, .include_subject", function (e) {
             e.preventDefault();
             var subject_mrn         = $(this).data("subject_mrn");
             var entity_record_id    = $(this).data("entity_id");
@@ -304,6 +279,10 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             });
         });
 
+        $("body").on("click", ".submit_pushpull" , function(e){
+            $(".pushDATA form").submit();
+        });
+
         //do fresh data manual pull
         $("#refresh_sync_diff").on("click", function (e) {
             e.preventDefault();
@@ -350,7 +329,6 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             $(".getadjudication").prop("disabled","disabled");
 
             $(".tab-pane").removeClass("active");
-            $("p.no_content").show();
 
             $.ajax({
                 url: ajax_endpoint,
@@ -360,18 +338,28 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     "bin": bin,
                 },
                 dataType: 'json'
-            }).done(function (html) {
-                // html.excluded = unescape(html.excluded)
-                // html.included = unescape(html.included)
+            }).done(function (result) {
                 _this.removeClass("loading");
+
+                //POP OPEN THE MODAL
+                var adjModal        = new adjudicationModal(bin);
+                window.adjModal     = adjModal;
+                adjModal.show();
 
                 $(".getadjudication").prop("disabled", false);
                 par.addClass("picked");
 
-                $("p.no_content").hide();
                 $("#" + bin).addClass("active");
-                $("#" + bin).find(".included").empty().append(html["included"]);
-                $("#" + bin).find(".excluded").empty().append(html["excluded"]);
+                $("#" + bin).find(".included").empty().append(result["included"]);
+                $("#" + bin).find(".excluded").empty().append(result["excluded"]);
+
+                $("#"+bin).clone().appendTo($("#pushModal .pushDATA"));
+
+                var footer_action   = $(result["footer_action"]);
+                var show_all        = $(result["show_all"]);
+                $("#pushModal .footer_action").append(footer_action);
+                $("#pushModal .show_all").append(show_all);
+                // $("#pushModal .show_all").prepend(footer_action.clone());
             }).fail(function (e) {
                 _this.removeClass("loading");
                 $(".getadjudication").prop("disabled", false);
@@ -393,8 +381,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
         //ACCEPT ADJUDICATIONS
         $("#syncFromOncore, #pullFromOncore").submit(function (e) {
+            console.log("pull from , or adjudicate partial");
             e.preventDefault();
-
+            return;
             var approved_ids = [];
             var inputs  = $(this).find(".includes input[name='approved_ids']").each(function () {
                 if (this.checked) {
@@ -414,47 +403,55 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             var temp    = $(this).find(".includes input[name='approved_ids']").serializeArray();
 
             if (approved_ids.length) {
-                //will have same index
-                var pullModal = new batchModal(approved_ids);
-                pullModal.show();
+                var pullModal = window.adjModal;
+                pullModal.prepCount(approved_ids);
+                pullModal.totalItems = approved_ids.length;
+                pullModal.showProgressUI();
 
+                var wait_time = 0;
                 for (var i in approved_ids) {
                     var _mrn    = approved_ids[i]["mrn"];
                     var rc_id   = approved_ids[i]["redcap"];
                     var oncore  = approved_ids[i]["oncore"];
                     var temp    = {"redcap": rc_id, "oncore": oncore, "mrn" : _mrn}
-                    $.ajax({
-                        url: ajax_endpoint,
-                        method: 'POST',
-                        data: {
-                            "action": "approveSync",
-                            "approved_ids": temp,
-                        },
-                        dataType: 'json'
-                    }).done(function (result) {
-                        const rndInt = randomIntFromInterval(1000, 5000);
-                        setTimeout(function () {
-                            //some showman ship
-                            $("tbody[data-subject_mrn='" + result.mrn + "']").remove();
-                            $("#refresh_sync_diff").trigger("click");
-                            pullModal.setRowStatus(result.id, true, result.message);
 
-                        }, rndInt);
-                    }).fail(function (e) {
-                        console.log("pushToOncore failed", e);
-                        pullModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
-                    });
+                    var rndInt  = randomIntFromInterval(500, 3000);
+                    wait_time   += rndInt;
+
+                    (function(rndInt){
+                        $.ajax({
+                            url: ajax_endpoint,
+                            method: 'POST',
+                            data: {
+                                "action": "approveSync",
+                                "record": temp
+                            },
+                            dataType: 'json'
+                        }).done(function (result) {
+                            setTimeout(function () {
+                                pullModal.setRowStatus(result.id, true, result.message);
+                            }, rndInt);
+                        }).fail(function (e) {
+                            setTimeout(function () {
+                                // console.log("pushToOncore faile", e);
+                                pullModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
+                            }, rndInt);
+                        });
+                    })(rndInt);
                 }
+
+                setTimeout(function(){
+                    //some showmanship
+                    $("#refresh_sync_diff").trigger("click");
+                }, wait_time);
             }
         });
 
-        $("#pushToOncore").submit(function (e) {
+        $("body").on("submit", ".pushDATA form", function (e) {
             e.preventDefault();
-
-            // var inputs      = $(this).find(".includes input[name='approved_ids']").serializeArray();
             // var inputs      = [{value:1, mrn:12345}, {value:2, mrn:23456}, {value:3, mrn:34567}, {value:4, mrn:45678}];
-            var approved_ids = []
-            var inputs = $(this).find(".includes input[name='approved_ids']").each(function () {
+            var approved_ids    = []
+            var inputs          = $(this).find(".includes input[name='approved_ids']:checked").each(function () {
                 if (this.checked) {
                     var _el = $(this);
                     var oncore_id = _el.data("oncore");
@@ -468,38 +465,48 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                         "redcap": rc_id
                     });
                 }
-
             });
 
-            if (inputs.length) {
-                //will have same index
-                var pushModal = new batchModal(approved_ids);
-                pushModal.show();
+            if (approved_ids.length) {
+                var pushModal = window.adjModal;
+                pushModal.prepCount(approved_ids);
+                pushModal.totalItems = approved_ids.length;
+                pushModal.showProgressUI();
 
+                var wait_time = 0;
                 for (var i in approved_ids) {
-                    var rc_id = approved_ids[i]["value"];
-                    var mrn = approved_ids[i]["mrn"];
-                    var temp = {"value": rc_id, "mrn": mrn}
-                    $.ajax({
-                        url: ajax_endpoint,
-                        method: 'POST',
-                        data: {
-                            "action": "pushToOncore",
-                            "record": temp
-                        },
-                        dataType: 'json'
-                    }).done(function (result) {
-                        const rndInt = randomIntFromInterval(1000, 5000);
-                        setTimeout(function () {
-                            //some showman ship
-                            $("#refresh_sync_diff").trigger("click");
-                            pushModal.setRowStatus(result.id, true, result.message);
-                        }, rndInt);
-                    }).fail(function (e) {
-                        console.log("pushToOncore faile", e);
-                        pushModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
-                    });
+                    var rc_id   = approved_ids[i]["value"];
+                    var mrn     = approved_ids[i]["mrn"];
+                    var temp    = {"value": rc_id, "mrn": mrn}
+                    var rndInt  = randomIntFromInterval(500, 3000);
+                    wait_time   += rndInt;
+
+                    (function(rndInt){
+                        $.ajax({
+                            url: ajax_endpoint,
+                            method: 'POST',
+                            data: {
+                                "action": "pushToOncore",
+                                "record": temp
+                            },
+                            dataType: 'json'
+                        }).done(function (result) {
+                            setTimeout(function () {
+                                pushModal.setRowStatus(result.id, true, result.message);
+                            }, rndInt);
+                        }).fail(function (e) {
+                            setTimeout(function () {
+                                // console.log("pushToOncore faile", e);
+                                pushModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
+                            }, rndInt);
+                        });
+                    })(rndInt);
                 }
+
+                setTimeout(function(){
+                    //some showmanship
+                    $("#refresh_sync_diff").trigger("click");
+                }, wait_time);
             }
         })
     });

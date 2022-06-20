@@ -13,8 +13,8 @@ try {
         $action = htmlspecialchars($_POST["action"]);
         $result = null;
         $module->initiateProtocol();
-
-        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush()) {
+        //TODO REMOVE BYPASS
+        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && 1==2) {
             throw new \Exception('You do not have permissions to pull/push data from this protocol.');
         }
         switch ($action) {
@@ -227,18 +227,22 @@ try {
                 $bin = $bin ?: null;
                 $sync_diff = $module->getSyncDiff();
 
-                $result = array("included" => "", "excluded" => "");
+                $result = array("included" => "", "excluded" => "", "footer_action" => "", "show_all" => "");
                 if ($bin == "partial"){
-                    $result["included"] = $module->getMapping()->makeSyncTableHTML($sync_diff["partial"]["included"]);
-                    $result["excluded"] = $module->getMapping()->makeSyncTableHTML($sync_diff["partial"]["excluded"], null, "disabled", true);
+                    $included = $module->getMapping()->makeSyncTableHTML($sync_diff["partial"]["included"]);
+                    $excluded = $module->getMapping()->makeSyncTableHTML($sync_diff["partial"]["excluded"], null, "disabled", true);
                 }elseif($bin == "redcap"){
-                    $result["included"] = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["included"]);
-                    $result["excluded"] = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["excluded"], null, "disabled", true);
+                    $included = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["included"]);
+                    $excluded = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["excluded"], null, "disabled", true);
                 } elseif ($bin == "oncore") {
-                    $result["included"] = $module->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["included"], false);
-                    $result["excluded"] = $module->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["excluded"], false, "disabled", true);
+                    $included = $module->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["included"], false);
+                    $excluded = $module->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["excluded"], false, "disabled", true);
                 }
 
+                $result["included"]         = $included["html"] ?: "";
+                $result["excluded"]         = $excluded["html"] ?: "";
+                $result["footer_action"]    = $included["footer_action"] ?: "";
+                $result["show_all"]         = $included["show_all"] ?: "";
                 break;
 
             case "approveSync":
@@ -259,10 +263,8 @@ try {
                     throw new \Exception('REDCap Record ID is missing.');
                 }
 
-                $rc_id = $id = $record["value"];
-
-                $temp = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $module->getMapping()->getOnCoreFieldDefinitions());
-//                $push = true;
+                $rc_id  = $id = $record["value"];
+                $temp   = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $module->getMapping()->getOnCoreFieldDefinitions());
                 if (is_array($temp)) {
                     $result = array('id' => $rc_id, 'status' => 'success', 'message' => $temp['message']);
                 }

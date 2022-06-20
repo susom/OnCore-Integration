@@ -4,8 +4,7 @@
     position:relative;
 }
 .show_all_matched {
-    position:absolute;
-    right:10px; top:-35px;
+
 }
 
 form.oncore_match{
@@ -46,7 +45,7 @@ tr td.oc_data.showit{
     display:table-cell;
 }
 
-tr.diff td:not(.rc_id, .import, .ts_last_scan, .link_status), .missing-status {
+tr.diff td:not(.rc_id, .import, .adj_status, .adj_notes, .ts_last_scan, .link_status), .missing-status {
     background: #f2dede !important;
 }
 
