@@ -315,7 +315,19 @@ class Protocols
         } else {
             // get oncore protocol object test
             $protocol = $this->getOnCoreProtocol();
-             // now check if protocol status in statuses allowed to push
+            // now check if protocol status in statuses allowed to push
+            $status = in_array(strtolower($protocol['protocolStatus']), $this->getUser()->getStatusesAllowedToPush());
+            if (!$status) {
+                Entities::createLog("" . $protocol['protocolNo'] . " status " . $protocol['protocolStatus'] . " is not part of allowed statuses");
+            }
+            $linked = $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES;
+            if (!$linked) {
+                Entities::createLog("" . $protocol['protocolNo'] . " is not approved. Current status is " . $this->getEntityRecord()['status'] . "");
+            }
+            $contactRole = $this->getUser()->isOnCoreContactAllowedToPush();
+            if (!$contactRole) {
+                Entities::createLog($this->getUser()->getRedcapUser()->getUsername() . " has OnCore role " . $this->getUser()->getOnCoreContact()['role'] . " which is not allowed to push records to OnCore");
+            }
             return in_array(strtolower($protocol['protocolStatus']), $this->getUser()->getStatusesAllowedToPush()) && $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES && $this->getUser()->isOnCoreContactAllowedToPush();
         }
 
