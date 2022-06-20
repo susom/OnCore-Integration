@@ -13,8 +13,8 @@ try {
         $action = htmlspecialchars($_POST["action"]);
         $result = null;
         $module->initiateProtocol();
-        //TODO REMOVE BYPASS
-        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && 1==2) {
+
+        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush()) {
             throw new \Exception('You do not have permissions to pull/push data from this protocol.');
         }
         switch ($action) {
