@@ -25,7 +25,7 @@
             "institution": "Stanford University"
         }
     ],
-    "framework-version": 8,
+    "framework-version": 9,
     "permissions": [
         "redcap_save_record",
         "redcap_every_page_top",
