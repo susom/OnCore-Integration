@@ -54,7 +54,7 @@ statuses from 8 above.
 ### Matching a REDCap project with an OnCore project
 Each REDCap project that would like to use this functionality, must provide an IRB Number in the REDCap Project Setup page.
 
-![SetupPage](images/proj_setup.png)
+![SetupPage](assets/images/proj_setup.png)
 
 If a new REDCap project is being created and will be linked to OnCore, please see the section on <i>Using a project template for new REDCap projects</i>
 
@@ -63,11 +63,11 @@ Once the project is created, this OnCore Integration EM will need to be enabled 
 ### Linking REDCap to OnCore
 The Link Project button will be provided on the Project Setup page as seen below.
 
-![LinkProjectButton](images/link_proj.png)
+![LinkProjectButton](assets/images/link_proj.png)
 
 Once the Link Project button is selected, the projects will be linked.
 
-![LinkProjectButton](images/proj_linked.png)
+![LinkProjectButton](assets/images/proj_linked.png)
 
 ### Project Fields
 Subjects are linked to OnCore based on MRNs. In order to bring data from OnCore into your project, you must have an MRN field created in your project. Any additional data fields are optional.
@@ -91,15 +91,22 @@ When new REDCap projects are created which intend to use the OnCore linkage, we 
 project should include all required fields needed to push data to OnCore. The Stanford OnCore Template xml file is provided in the EM if your institution would like to use
 it as a starting point. This template project can be modified based on each institution's particular OnCore setup.
 
-![TemplateProject](images/use_template.png)
+![TemplateProject](assets/images/use_template.png)
 
 Also included in the EM is a zip file with just the Stanford OnCore Demographics form which can be used with existing REDCap projects.  To use this template to create a
 new form in your existing project, select the Upload option on the Online Designer page.
 
-![TemplateForm](images/form_upload.png)
+![TemplateProjectUpload](assets/images/project_upload.png)
 
 Once the form is included in a REDCap project, it can be changed based on project requirements.  For instance, if your research wants more granularity for the Race field and capture Native Hawaiian
 and Other Pacific Islander into separate coded values, you can make that change in the form and map both options to the same OnCore value in the field mapping section.
+
+### Using a form template for existing REDCap project
+If you have an existing REDCap project and would like to include the templated Oncore Demographics form, a template .zip file is included
+which creates all the required and optional fields that can be mapped to OnCore.  To use the templated form, go to the Online Designer and
+use the Upload instrument zip file from another project/user
+
+![TemplateForm](assets/images/form_upload.png)
 
 
 ## Field Mapping
@@ -109,12 +116,12 @@ to revisit the mapping page.
 
 The Project Setup page has a link to the Field Mapping page:
 
-![FirstTimeMappingPage](images/first_mapping.png)
+![FirstTimeMappingPage](assets/images/first_mapping.png)
 
 Once the mapping is completed, further mapping updates will need to be performed using the link on the left-hand sidebar in the External Module section.
 The link is called OnCore Field Mapping.
 
-![MappingPage](images/field_mapping_link.png)
+![MappingPage](assets/images/field_mapping_link.png)
 
 The Field Mapping page allows you to select the options to retrieve (pull) OnCore data and store it in your REDCap project and/or
 push data from your REDCap project to OnCore.  You are also able to select the study sites you will use in your project.
@@ -125,13 +132,13 @@ In order to `PULL` data from OnCore to REDCap, the participant's MRNs are requir
 In addition to MRN, you may select the relevant OnCore Properties from the drop-down one by one, and select the appropriate REDCap field where that OnCore property will be saved.
 If there are enumerated fields, a second level mapping field will appear so that the individual REDCap options can be mapped to the OnCore options.
 
-![MappingPull](images/pull_mapping.png)
+![MappingPull](assets/images/pull_mapping.png)
 
 ### Data Mapping for Pushing REDCap data to OnCore
 In order to `PUSH` Subject data from REDCap to OnCore, there is a **miniumum** set of fields required by mapping a core subset of OnCore Properties to their REDCap counterparts.
 If the requirements are not met, the push will fail. The minimum set of fields is listed when you go to the <i>Push Data to OnCore</i> tab.
 
-![MappingPush](images/push_mapping.png)
+![MappingPush](assets/images/push_mapping.png)
 
 Not all required fields are shown in the picture above.
 
@@ -144,12 +151,12 @@ Once the Pull and Push mappings are complete, you can perform the Pull and Push 
 
 To find out which OnCore subjects are not in your new REDCap project, go to the Manual Sync link located in the left hand sidebar under External Modules.
 
-![Manual Sync](images/manual_sync.png)
+![Manual Sync](assets/images/manual_sync.png)
 
 This page will give an overview of the status of your REDCap and OnCore records.  To update your project, you may select the
 <i>Refresh Synced Data</i> button to re-scan OnCore and refresh your status.
 
-![Manual Sync](images/manual_scan_status.png)
+![Manual Sync](assets/images/manual_scan_status.png)
 
 Once your project is refreshed, you can go to the <i>See Unlinked Subjects</i> button and/or the <i>See Unlinked Records</i> tab to adjudicate the subjects.
 
