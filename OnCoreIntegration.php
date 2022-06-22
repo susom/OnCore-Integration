@@ -858,6 +858,22 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
 
     //DATA SYNC METHODS
+    /**
+     * @return fields_event array of redcap project fields and thier respective event id
+     */
+    public function redcapFieldEventIDMap(){
+        $fields_event   = array();
+        $events         = \REDCap::getEventNames(true);
+        if (!empty($events)) {
+            foreach ($events as $event_id => $event) {
+                $temp = \REDCap::getValidFieldsByEvents(PROJECT_ID, array($event));
+                foreach ($temp as $field_name) {
+                    $fields_event[$field_name] = $event_id;
+                }
+            }
+        }
+        return $fields_event;
+    }
 
     /**
      * @return sync_diff
@@ -866,6 +882,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         $this->initiateProtocol();
         $this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
+
+        //THIS MA
+        $fields_event   = $this->redcapFieldEventIDMap();
 
         $records        = $this->getProtocols()->getSyncedRecords();
         $mapped_fields  = $this->getMapping()->getProjectFieldMappings();
@@ -918,18 +937,24 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     //redcap only
                     if (array_key_exists("redcap", $record)) {
                         // set the keys for redcap array
-                        $arr = current($record["redcap"]);
-                        $mrn = $arr[$this->getMapping()->getProjectFieldMappings()['pull']['mrn']['redcap_field']];
+                        $arr            = $record["redcap"];
+
+                        $mrn_event_id   = $fields_event[$this->getMapping()->getProjectFieldMappings()['pull']['mrn']['redcap_field']];
+                        $mrn            = $arr[$mrn_event_id][$this->getMapping()->getProjectFieldMappings()['pull']['mrn']['redcap_field']];
+
+                        $primary_field_event_id = $fields_event[\REDCap::getRecordIdField()];
+                        $rc_id                  = $arr[$primary_field_event_id][\REDCap::getRecordIdField()];
+
                         // we are using pull fields to map redcap data
-                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($arr[\REDCap::getRecordIdField()], $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
+                        $temp   = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($rc_id, $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
+$this->emDebug($rc_id, $temp);
                         // handle data scattered over multiple events
                         $redcap = [];
                         foreach ($temp as $onCoreField => $value) {
                             // Use redcap fields name instead of oncore to work with Irvin UI.
-                            $redcapField = $this->getMapping()->getMappedRedcapField($onCoreField, true);
+                            $redcapField    = $this->getMapping()->getMappedRedcapField($onCoreField, true);
                             $redcap[$redcapField ?: $onCoreField] = $value;
                         }
-                        $rc_id = $arr[\REDCap::getRecordIdField()];
                     }
 
                 default:
