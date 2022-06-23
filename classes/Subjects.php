@@ -24,6 +24,9 @@ class Subjects extends SubjectDemographics
     private $user;
 
 
+    /**
+     * @var array
+     */
     private $onCoreProtocolSubjects;
 
     /**
@@ -97,13 +100,11 @@ class Subjects extends SubjectDemographics
 
 
                 // Make the API call
-                $client = new GuzzleHttp\Client;
-                $resp = $client->request('GET', $url, [
+                $resp = $this->getUser()->getGuzzleClient()->request('GET', $url, [
                     GuzzleHttp\RequestOptions::SYNCHRONOUS => true
                 ]);
             } catch (Exception $ex) {
 
-                // TODO: What to do about exceptions
                 $this->emError("Exception calling endpoint: " . $ex);
                 Entities::createException("Exception calling endpoint: " . $ex);
             }
@@ -351,6 +352,7 @@ class Subjects extends SubjectDemographics
 
                         foreach ($subjects as $key => $subject) {
                             try {
+                                // pull protocol subject demographics. If subject demographics saved in oncore_subjects entity table it will be pulled from there. otherwise will be pulled via API then saved in entity table.
                                 $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId']);
                                 // make it easy to prepare for push/pull
                                 $subjects[$key]['demographics']['studySites'] = $subject['studySite'];
@@ -360,6 +362,8 @@ class Subjects extends SubjectDemographics
                         }
                         $this->onCoreProtocolSubjects = $subjects;
                     }
+                } else {
+                    throw new \Exception('Cant pull Protocol data');
                 }
             }
         } catch (GuzzleException $e) {
@@ -388,19 +392,11 @@ class Subjects extends SubjectDemographics
     {
         $param = array(
             'project_id' => $redcapProjectId,
-            'return_format' => 'array',
-//            'events' => $redcapEventId
+            'return_format' => 'array'
         );
         $this->redcapProjectRecords = \REDCap::getData($param);
     }
 
-    /**
-     * @return array
-     */
-    public function getSyncedRecords(): array
-    {
-        return $this->syncedRecords;
-    }
 
     /**
      * get linkage records for pid and protocol id
@@ -452,6 +448,15 @@ class Subjects extends SubjectDemographics
         }
     }
 
+
+    /**
+     * @return array
+     */
+    public function getSyncedRecords(): array
+    {
+        return $this->syncedRecords;
+    }
+
     /**
      * build array of outer join between redcap records and OnCore protocols subjects
      * @param $redcapProjectId
@@ -488,6 +493,7 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     * create record in oncore_redcap_records_linkage entity table.
      * @param string $protocolId
      * @param string $studySite
      * @param int $subjectDemographicsId
@@ -533,14 +539,16 @@ class Subjects extends SubjectDemographics
                     $diff = array_diff(OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS, $intersect);
                 }
 //                throw new \Exception("Following field/s are missing: " . implode(',', $diff));
-                $errors[] = "Following field/s are missing: " . implode(', ', $diff);
+                $errors[] = "Following field/s are not mapped: " . implode(', ', $diff);
             }
 
             /**
              * make sure all required fields have values
              */
             $e = [];
-            foreach (OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS as $field) {
+            //make sure to check the default OnCore required fields and other non-required by default but are set as required in the EM system settings
+            $fields = array_unique(array_merge($this->getMapping()->getOncoreRequiredFields(), OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS));
+            foreach ($fields as $field) {
                 if ($subjectDemographics[$field] == '') {
                     $e[] = $field;
                 }
@@ -548,7 +556,7 @@ class Subjects extends SubjectDemographics
 
             if (!empty($errors)) {
 //                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
-                $errors[] = "Following field/s are missing values: " . implode(', ', $e);
+                $errors[] = "Following field/s are empty: " . implode(', ', $e);
             }
         }
 
@@ -572,12 +580,24 @@ class Subjects extends SubjectDemographics
         }
     }
 
+    /**
+     * hardcode subjectSource because all subject source MUST be OnCore
+     * @param $subjectDemographics
+     * @return mixed
+     */
     private function addSubjectSource($subjectDemographics)
     {
         $subjectDemographics['subjectSource'] = OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONCORE;
         return $subjectDemographics;
     }
 
+    /**
+     * Pull OnCore Protocol subjects and search via MRN
+     * @param $protocolId
+     * @param $redcapMRN
+     * @return mixed|void
+     * @throws Exception
+     */
     public function searchOnCoreProtocolSubjectViaMRN($protocolId, $redcapMRN)
     {
         // reset oncore protocol subjects to get latest subjects
@@ -592,6 +612,12 @@ class Subjects extends SubjectDemographics
         }
     }
 
+    /**
+     * get the mapped OnCore value for REDCap value.
+     * @param $redcapRecord
+     * @param $field
+     * @return mixed
+     */
     private function getOnCoreStudySite($redcapRecord, $field)
     {
         $studySite = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
@@ -599,8 +625,21 @@ class Subjects extends SubjectDemographics
         return $map['oc'];
     }
 
+    /**
+     * push redcap record into OnCore
+     * @param $protocolId
+     * @param $redcapId
+     * @param $fields
+     * @param $oncoreFieldsDef
+     * @return string[]
+     * @throws GuzzleException
+     */
     public function pushToOnCore($protocolId, $redcapId, $fields, $oncoreFieldsDef)
     {
+        if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
+            throw new \Exception('You do not have permissions to pull/push data from this protocol.');
+        }
+
         $record = $this->getRedcapProjectRecords()[$redcapId];
         $redcapMRN = $record[OnCoreIntegration::getEventNameUniqueId($fields['mrn']['event'])][$fields['mrn']['redcap_field']];
         $studySite = $this->getOnCoreStudySite($record, $fields['studySites']);
@@ -673,6 +712,7 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     *  Using mapped fields prepare array of redcap data to be pushed to OnCore
      * @param $redcapId
      * @param $fields
      * @return array
@@ -740,6 +780,7 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     * Using mapped fields prepare array of oncore data to be pull into Redcap
      * @param $protocolId
      * @param $onCoreSubjectId
      * @param $fields
@@ -782,17 +823,20 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     * pull OnCore record into REDCap
      * @param $projectId
      * @param $protocolId
-     * @param array $records will be array(array('oncore' => [ONCORE-PROTOCOL-SUBJECT-ID), 'redcap' =>[REDCAP-ID or can
-     *     be empty])
+     * @param array $records array('redcap' => [REDCAP_RECORD_ID] OR NULL , 'oncore' => [ONCORE_PROTOCOL_SUBJECT_ID])
      * @param $fields
      * @return bool
      * @throws Exception
      */
     public function pullOnCoreRecordsIntoREDCap($projectId, $protocolId, $record, $fields)
     {
-        //foreach ($records as $record) {
+        if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
+            throw new \Exception('You do not have permissions to pull/push data from this protocol.');
+        }
+
         if (!is_array($record)) {
             throw new \Exception('Records array is not correct');
         }
@@ -801,7 +845,7 @@ class Subjects extends SubjectDemographics
         }
 
         $linkage = $this->getLinkageRecord($projectId, $protocolId, '', $record['oncore']);
-        // check
+        // check if record is excluded.
         if ($linkage['excluded']) {
             throw new \Exception('This Record is excluded and you cant sync it.');
         }
@@ -811,9 +855,7 @@ class Subjects extends SubjectDemographics
             throw new \Exception('No Subject record found for ' . $record['oncore']);
         }
 
-        if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
-            throw new \Exception('You do not have permissions to pull/push data from this protocol.');
-        }
+
         $id = $record['redcap'];
         $data = $this->prepareOnCoreRecordForSync($subject, $fields);
         // loop over every event defined in the field mapping.
@@ -836,10 +878,55 @@ class Subjects extends SubjectDemographics
                     $id = end($response['ids']);
                     Entities::createLog('OnCore Subject ' . $record['oncore'] . ' got pull into REDCap record ' . $id);
                 }
-            }
-            unset($data);
-        //}
+        }
+        unset($data);
+
         return $id;
+    }
+
+    /**
+     * @param array $records
+     * @return array
+     */
+    public function prepareSyncedRecordsSummaries($records)
+    {
+        $results = array();
+        $results['total_count'] = count($records);
+        $results['redcap_only_count'] = 0;
+        $results['oncore_only_count'] = 0;
+        $results['full_match_count'] = 0;
+        $results['partial_match_count'] = 0;
+        $results['total_redcap_count'] = 0;
+        $results['total_oncore_count'] = 0;
+        $results['match_count'] = 0;
+        $results['excluded_count'] = 0;
+        $results['missing_oncore_status_count'] = 0;
+        foreach ($records as $record) {
+            if (isset($record['redcap']) && !isset($record['oncore'])) {
+                $results['redcap_only_count'] += 1;
+                $results['total_redcap_count'] += 1;
+            } elseif (!isset($record['redcap']) && isset($record['oncore'])) {
+                $results['oncore_only_count'] += 1;
+                $results['total_oncore_count'] += 1;
+            } elseif (isset($record['redcap']) && isset($record['oncore']) && $record['status'] == OnCoreIntegration::FULL_MATCH) {
+                $results['full_match_count'] += 1;
+                $results['total_oncore_count'] += 1;
+                $results['total_redcap_count'] += 1;
+                $results['match_count'] += 1;
+            } elseif (isset($record['redcap']) && isset($record['oncore']) && $record['status'] == OnCoreIntegration::PARTIAL_MATCH) {
+                $results['partial_match_count'] += 1;
+                $results['total_oncore_count'] += 1;
+                $results['total_redcap_count'] += 1;
+                $results['match_count'] += 1;
+            }
+            if (isset($record['excluded']) && $record['excluded'] == '1') {
+                $results['excluded_count'] += 1;
+            }
+            if (isset($record['oncore']) && $record['oncore']['status'] == null) {
+                $results['missing_oncore_status_count'] += 1;
+            }
+        }
+        return $results;
     }
 
     /**

@@ -24,8 +24,8 @@ class Mapping
         $this->project_mapping      = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull"=>array(),"push"=>array());
     }
 
-    //GATHER THE REQUISITE DATAs INTO ARRAYS (Oncore, Redcap, FieldMappings)
     /**
+     * GATHER THE REQUISITE DATAs INTO ARRAYS (Oncore, Redcap, FieldMappings)
      * @return array
      */
     public function getOnCoreFieldDefinitions()
@@ -43,15 +43,20 @@ class Mapping
     }
 
     /**
+     * Get REDCap fields Dictionary
      * @return array
      */
     public function getProjectFieldDictionary()
     {
         global $Proj;
 
-        $event_fields   = array();
-        $events         = \REDCap::getEventNames(true);
-        $dict           = \REDCap::getDataDictionary(PROJECT_ID, "array");
+        $event_fields = array();
+        if (\REDCap::isLongitudinal()) {
+            $events = \REDCap::getEventNames(true);
+        } else {
+            $events = array($this->module->getFirstEventId() => $this->module->getFirstEventId());
+        }
+        $dict = \REDCap::getDataDictionary(PROJECT_ID, "array");
 
         if (!empty($events)) {
             foreach ($events as $event_id => $event) {
@@ -482,7 +487,7 @@ class Mapping
 
     public function getProjectPushPullPref()
     {
-        if(empty($this->pushpull_pref)){
+        if (empty($this->pushpull_pref)) {
 //            $arr = json_decode(ExternalModules::getProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_PUSHPULL_PREF), true);
             $arr = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_PUSHPULL_PREF), true);
             $this->pushpull_pref = $arr ?: [];
@@ -490,7 +495,12 @@ class Mapping
         return $this->pushpull_pref;
     }
 
-    //SITE STUDIES
+
+    /**
+     * set Project configred study sites. This set is a subset of study sites list defined in EM system settings
+     * @param array $site_studies_subset
+     * @return void
+     */
     public function setProjectSiteStudies(array $site_studies_subset): void
     {
 //        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, json_encode($site_studies_subset));
@@ -498,17 +508,21 @@ class Mapping
         $this->site_studies_subset = $site_studies_subset;
     }
 
+    /**
+     * set Project configred study sites. This set is a subset of study sites list defined in EM system settings
+     * @return array|mixed
+     */
     public function getProjectSiteStudies()
     {
-        if(empty($this->site_studies_subset)){
+        if (empty($this->site_studies_subset)) {
             $arr = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES), true);
             $this->site_studies_subset = $arr ?: [];
         }
         return $this->site_studies_subset;
     }
 
-    //DRAW UI
     /**
+     * DRAW UI
      * @return array
      */
     public function makeFieldMappingUI()
@@ -649,6 +663,7 @@ class Mapping
     }
 
     /**
+     * Get dropdown UI for OnCore fields that need value mapping (race, ethnicity, etc..)
      * @return array
      */
     public function makeValueMappingUI($oncore_field, $redcap_field){
@@ -707,6 +722,7 @@ class Mapping
     }
 
     /**
+     * Get dropdown UI for REDCap fields that need value mapping (race, ethnicity, etc..)
      * @return array
      */
     public function makeValueMappingUI_RC($oncore_field, $redcap_field){
@@ -766,6 +782,7 @@ class Mapping
     }
 
     /**
+     * build html table for partially matched records
      * @return html
      */
     public function makeSyncTableHTML($records, $noredcap = null, $disabled = null, $excluded = null)
@@ -896,6 +913,7 @@ class Mapping
     }
 
     /**
+     * build table for oncore records only
      * @return html
      */
     public function makeOncoreTableHTML($records, $noredcap = null, $disabled = null, $excluded = null)
@@ -1014,6 +1032,7 @@ class Mapping
     }
 
     /**
+     * build table for redcap records only
      * @return html
      */
     public function makeRedcapTableHTML($records, $noredcap = null, $disabled = null, $excluded = null)

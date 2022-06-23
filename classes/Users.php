@@ -15,10 +15,6 @@ require_once 'Clients.php';
  */
 class Users extends Clients
 {
-    /**
-     * @var array
-     */
-    private $onCoreAdmin;
 
     /**
      * @var array
@@ -76,22 +72,20 @@ class Users extends Clients
     }
 
     /**
+     * Match REDCap user to a OnCore Protocol Staff (Contact).
      * @return void
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function prepareUser($redcapEntityProtocolRecordId, $protocolId)
     {
-        $this->setRedcapEntityProtocolRecordId($redcapEntityProtocolRecordId);
         $this->setProtocolStaff($protocolId);
-        $admin = $this->getOnCoreAdmin();
+
         $this->setOnCoreContact($this->searchProtocolStaff($this->getRedcapUser()->getUsername()));
-        if (!$admin && $this->isOnCoreContactAllowedToPush()) {
-            $this->createOnCoreAdminEntityRecord();
-            $this->setOnCoreAdmin();
-        }
+
     }
 
     /**
+     * Match REDCap username with Contact additionalIdentifier field.
      * @param $redcapUsername
      * @return array|mixed
      */
@@ -109,62 +103,6 @@ class Users extends Clients
         return [];
     }
 
-    /**
-     * @param $oncoreContactId
-     * @param $redcapUsername
-     * @param $clientId
-     * @param $clientSecret
-     * @return string|void|array
-     */
-    public function createOnCoreAdminEntityRecord()
-    {
-        try {
-            $data = array(
-                'oncore_contact_id' => (string)$this->getOnCoreContact()['contactId'],
-                'redcap_username' => (string)$this->getRedcapUser()->getUsername(),
-                'redcap_entity_oncore_protocol_id' => (int)$this->getRedcapEntityProtocolRecordId(),
-                'oncore_role' => (string)$this->getOnCoreContact()['role']
-            );
-            $entity = (new Entities)->create(OnCoreIntegration::ONCORE_ADMINS, $data);
-            if ($entity) {
-                Entities::createLog(' : OnCore Admin Entity record created for redcap username: ' . $this->getRedcapUser()->getUsername() . '.');
-                return $entity->getData();
-            }
-        } catch (\Exception $e) {
-            return $e->getMessage();
-        }
-    }
-
-
-    /**
-     * @param string $onCoreAdmin
-     * @return array
-     */
-    public function getOnCoreAdmin(): array
-    {
-        if (!$this->onCoreAdmin) {
-            $this->setOnCoreAdmin();
-        }
-        return $this->onCoreAdmin;
-    }
-
-    /**
-     * @return void
-     * @throws \Exception
-     */
-    public function setOnCoreAdmin(): void
-    {
-        $username = $this->getRedcapUser()->getUsername();
-        if ($username == '') {
-            throw new \Exception('REDCap username ID can not be null');
-        }
-        $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_ADMINS . " where  redcap_username = '" . $username . "' AND redcap_entity_oncore_protocol_id = '" . $this->getRedcapEntityProtocolRecordId() . "' ");
-        if ($record->num_rows == 0) {
-            $this->onCoreAdmin = [];
-        } else {
-            $this->onCoreAdmin = db_fetch_assoc($record);
-        }
-    }
 
     /**
      * @return array
@@ -284,22 +222,5 @@ class Users extends Clients
             return $data;
         }
     }
-
-    /**
-     * @return int
-     */
-    public function getRedcapEntityProtocolRecordId(): int
-    {
-        return $this->redcapEntityProtocolRecordId;
-    }
-
-    /**
-     * @param int $redcapEntityProtocolRecordId
-     */
-    public function setRedcapEntityProtocolRecordId(int $redcapEntityProtocolRecordId): void
-    {
-        $this->redcapEntityProtocolRecordId = $redcapEntityProtocolRecordId;
-    }
-
 
 }

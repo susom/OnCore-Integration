@@ -10,7 +10,6 @@ if (class_exists('\REDCapEntity\EntityFactory')) {
 
 require_once 'classes/Protocols.php';
 require_once 'classes/Subjects.php';
-require_once 'classes/Projects.php';
 require_once 'classes/Mapping.php';
 
 /**
@@ -137,7 +136,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function redcap_save_record($project_id, $record, $instrument, $event_id, $group_id, $survey_hash, $response_id, $repeat_instance)
     {
-        $protocol = Protocols::getProtocolEntityRecord($project_id);
+        $protocol = Protocols::getOnCoreProtocolEntityRecord($project_id);
         if (!empty($protocol)) {
             if ($protocol['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES) {
                 $this->initiateProtocol();
@@ -861,9 +860,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     /**
      * @return fields_event array of redcap project fields and thier respective event id
      */
-    public function redcapFieldEventIDMap(){
-        $fields_event   = array();
-        $events         = \REDCap::getEventNames(true);
+    public function redcapFieldEventIDMap()
+    {
+        $fields_event = array();
+        if (\REDCap::isLongitudinal()) {
+            $events = \REDCap::getEventNames(true);
+        } else {
+            $events = array($this->getFirstEventId() => $this->getFirstEventId());
+        }
         if (!empty($events)) {
             foreach ($events as $event_id => $event) {
                 $temp = \REDCap::getValidFieldsByEvents(PROJECT_ID, array($event));
@@ -898,15 +902,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $exclude        = array("mrn");
 
         foreach ($records as $record) {
-            $link_status    = $record["status"];
-            $entity_id      = $record["entity_id"];
-            $excluded       = $record["excluded"] ?? 0;
+            $link_status = $record["status"];
+            $entity_id = $record["entity_id"];
+            $excluded = $record["excluded"] ?? 0;
 
-            $oncore     = null;
-            $redcap     = null;
+            if ($entity_id == '3298') {
+                $aa = 1;
+            }
+            $oncore = null;
+            $redcap = null;
 
-            $last_scan  = null;
-            $full       = false;
+            $last_scan = null;
+            $full = false;
 
             $oc_id = null;
             $oc_pr_id = null;
@@ -1194,7 +1201,7 @@ $this->emDebug($rc_id, $temp);
                 }
 
                 // only link protocols
-                $protocol = Protocols::getProtocolEntityRecord($id);
+                $protocol = Protocols::getOnCoreProtocolEntityRecord($id);
                 if (!empty($protocol) && $protocol['status'] == self::ONCORE_PROTOCOL_STATUS_YES) {
                     $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id . '&action=redcap_only';
                     $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));

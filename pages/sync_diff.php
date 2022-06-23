@@ -395,7 +395,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 pull(form)
             });
 
-            // partial match
+            // redcap only
             $(document).on('click', '.submit_pushToOnCore', function (e) {
                 e.preventDefault();
                 var form = $('.pushDATA').find('#pushToOncore')
