@@ -6,6 +6,14 @@ class Entities extends \REDCapEntity\EntityFactory
 {
     use emLoggerTrait;
 
+    /**
+     * Create log record in Entity OnCore Actions log table
+     * @param $message
+     * @param $url
+     * @param $response
+     * @param $type
+     * @return void
+     */
     public static function createLog($message, $url = '', $response = '', $type = 0)
     {
         $data = array(
@@ -25,8 +33,14 @@ class Entities extends \REDCapEntity\EntityFactory
 
     }
 
+    /**
+     * Create an Exception message in Entity OnCore Actions log table
+     * @param $message
+     * @return void
+     */
     public static function createException($message)
     {
+        (new Entities)->emError('Could not create log');
         self::createLog('EXCEPTION: ' . $message);
     }
 }

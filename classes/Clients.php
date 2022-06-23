@@ -139,6 +139,7 @@ abstract class Clients
 
         $this->setRedcapCSFRToken($redcapCSFRToken);
 
+        // check if existing token is not expired. otherwise generate a new token
         if (ExternalModules::getSystemSetting($this->getPrefix(), 'global-token-timestamp') > time()) {
             $this->setGlobalAccessToken(ExternalModules::getSystemSetting($this->getPrefix(), 'global-access-token'));
 
@@ -157,6 +158,7 @@ abstract class Clients
     }
 
     /**
+     * Global get method
      * @param $path
      * @param $customOptions
      * @return \Psr\Http\Message\ResponseInterface|void
@@ -181,6 +183,7 @@ abstract class Clients
     }
 
     /**
+     * Global Post method
      * @param string $path
      * @param array $data
      * @return \Psr\Http\Message\ResponseInterface|void
@@ -205,30 +208,32 @@ abstract class Clients
      */
     public function generateToken(string $clientId, string $clientSecret)
     {
-        try {
-            $response = $this->getGuzzleClient()->post($this->getApiURL() . $this->getApiAuthURN(), [
-                'debug' => false,
-                'form_params' => [
-                    'grant_type' => 'client_credentials',
-                    'client_id' => $clientId,
-                    'client_secret' => $clientSecret,
-                ],
-                'headers' => [
-                    'Content-Type' => 'application/x-www-form-urlencoded',
-                    'Accept' => 'application/json'
-                ]
-            ]);
-            if ($response->getStatusCode() < 300) {
-                $data = json_decode($response->getBody());
-                if (property_exists($data, 'access_token')) {
-                    return $data;
-                } else {
-                    throw new \Exception("Could not find access token.");
-                }
+        // disable try/catch to let exception trickle back to client.
+//        try {
+        $response = $this->getGuzzleClient()->post($this->getApiURL() . $this->getApiAuthURN(), [
+            'debug' => false,
+            'form_params' => [
+                'grant_type' => 'client_credentials',
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
+            ],
+            'headers' => [
+                'Content-Type' => 'application/x-www-form-urlencoded',
+                'Accept' => 'application/json'
+            ]
+        ]);
+        if ($response->getStatusCode() < 300) {
+            $data = json_decode($response->getBody());
+            if (property_exists($data, 'access_token')) {
+                return $data;
+            } else {
+                throw new \Exception("Could not find access token.");
             }
-        } catch (\Exception $e) {
-            echo $e->getMessage();
         }
+//        } catch (\Exception $e) {
+//            Entities::createException($e->getMessage());
+//            echo $e->getMessage();
+//        }
     }
 
     /**

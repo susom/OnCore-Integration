@@ -246,7 +246,7 @@ class Protocols
     }
 
     /**
-     * gather protocol related object objects and data. Entity record, onCore subjects, redcap records.
+     * gather protocol related objects and data. Entity record, onCore subjects, redcap records.
      * @param $redcapProjectId
      * @return void
      * @throws \Exception
@@ -254,12 +254,12 @@ class Protocols
     public function prepareProtocol($redcapProjectId)
     {
         try {
-            $protocol = self::getProtocolEntityRecord($redcapProjectId);
+            $protocol = self::getOnCoreProtocolEntityRecord($redcapProjectId);
             if (!empty($protocol)) {
                 $this->setEntityRecord($protocol);
 
 
-                // get all protocol staff and find current user OnCore contact. do not prepare for cron because no user will be found.
+                // get protocols staff and match logged in redcap user with OnCore contact. do not prepare for cron because no redcap user will be found.
                 if ($this->getEntityRecord() && $this->getUser()->getRedcapUser()) {
                     $this->getUser()->prepareUser($this->getEntityRecord()['id'], $this->getEntityRecord()['oncore_protocol_id']);
                 }
@@ -287,7 +287,7 @@ class Protocols
      */
     public function prepareProjectRecords()
     {
-        $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['redcap_project_id']);
+        $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id']);
     }
 
     /**
@@ -305,7 +305,7 @@ class Protocols
     }
 
     /**
-     * determine if we can push from REDCap to create protocol subjects
+     * determine if redcap user can push REDCap records and create protocol subjects
      * @return bool
      */
     private function canPushToProtocol()
@@ -347,106 +347,33 @@ class Protocols
     }
 
     /**
+     * get OnCore Protocol records summaries.
      * @return array
      * @throws \Exception
      */
     public function getSyncedRecordsSummaries()
     {
-        $results = array();
         if ($this->getEntityRecord()) {
             $records = $this->getSyncedRecords();
-            $results['total_count'] = count($records);
-            $results['redcap_only_count'] = 0;
-            $results['oncore_only_count'] = 0;
-            $results['full_match_count'] = 0;
-            $results['partial_match_count'] = 0;
-            $results['total_redcap_count'] = 0;
-            $results['total_oncore_count'] = 0;
-            $results['match_count'] = 0;
-            $results['excluded_count'] = 0;
-            $results['missing_oncore_status_count'] = 0;
-            foreach ($records as $record) {
-                if (isset($record['redcap']) && !isset($record['oncore'])) {
-                    $results['redcap_only_count'] += 1;
-                    $results['total_redcap_count'] += 1;
-                } elseif (!isset($record['redcap']) && isset($record['oncore'])) {
-                    $results['oncore_only_count'] += 1;
-                    $results['total_oncore_count'] += 1;
-                } elseif (isset($record['redcap']) && isset($record['oncore']) && $record['status'] == OnCoreIntegration::FULL_MATCH) {
-                    $results['full_match_count'] += 1;
-                    $results['total_oncore_count'] += 1;
-                    $results['total_redcap_count'] += 1;
-                    $results['match_count'] += 1;
-                } elseif (isset($record['redcap']) && isset($record['oncore']) && $record['status'] == OnCoreIntegration::PARTIAL_MATCH) {
-                    $results['partial_match_count'] += 1;
-                    $results['total_oncore_count'] += 1;
-                    $results['total_redcap_count'] += 1;
-                    $results['match_count'] += 1;
-                }
-                if (isset($record['excluded']) && $record['excluded'] == '1') {
-                    $results['excluded_count'] += 1;
-                }
-                if (isset($record['oncore']) && $record['oncore']['status'] == null) {
-                    $results['missing_oncore_status_count'] += 1;
-                }
-            }
-            return $results;
+            return $this->getSubjects()->prepareSyncedRecordsSummaries($records);
         } else {
             return [];
         }
     }
 
+
     /**
-     * confirm contact is part of integrated protocol.
-     * @param $contactId
-     * @return false|mixed
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @param $id
+     * @param $irb
+     * @return void
+     * @throws GuzzleException
      */
-    public function isContactPartOfOnCoreProtocol($contactId)
-    {
-        try {
-            //TODO can redcap user who is a contact can other redcap users?
-            if (empty($this->getUser()->getOnCoreAdmin())) {
-
-                throw new \Exception("Can not find a OnCore Admin");
-            }
-            if (empty($this->getOnCoreProtocol())) {
-                throw new \Exception("No protocol found for current REDCap project.");
-            }
-
-            $response = $this->getUser()->get('protocolStaff?protocolId=' . $this->getOnCoreProtocol()['protocolId']);
-
-            if ($response->getStatusCode() < 300) {
-                $staffs = json_decode($response->getBody(), true);
-                foreach ($staffs as $staff) {
-                    if ($contactId == $staff['contactId']) {
-                        return $staff;
-                    }
-                }
-                return false;
-            }
-            return false;
-        } catch (GuzzleException $e) {
-            if (method_exists($e, 'getResponse')) {
-                $response = $e->getResponse();
-                $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-                throw new \Exception($responseBodyAsString['message']);
-            } else {
-                echo($e->getMessage());
-            }
-        } catch (\Exception $e) {
-            Entities::createException($e->getMessage());
-            echo $e->getMessage();
-        }
-    }
-
-
     public function processCron($id, $irb)
     {
         $protocols = $this->searchOnCoreProtocolsViaIRB($irb);
 
         if (!empty($protocols)) {
-            $entity_oncore_protocol = self::getProtocolEntityRecord($id, $irb);
+            $entity_oncore_protocol = self::getOnCoreProtocolEntityRecord($id, $irb);
             if (empty($entity_oncore_protocol)) {
                 foreach ($protocols as $protocol) {
                     $data = array(
@@ -462,7 +389,7 @@ class Protocols
                     $entity = (new Entities)->create(OnCoreIntegration::ONCORE_PROTOCOLS, $data);
 
                     if ($entity) {
-                        Entities::createLog(' : OnCore Protocol record created for IRB: ' . $irb . '.');
+                        Entities::createLog('OnCore Protocol Entity table record created for IRB: ' . $irb . '.');
                         $this->setEntityRecord($data);
                         $this->prepareProtocolSubjects();
                         //$this->syncRecords();
@@ -471,11 +398,12 @@ class Protocols
                     }
                 }
             } else {
+                // update last_date_scanned with current time().
                 $this->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
                 Entities::createLog('OnCore Protocol record updated for IRB: ' . $irb . '.');
             }
         } else {
-            Entities::createLog('IRB ' . $irb . ' has no OnCore Protocol.');
+            Entities::createLog('IRB ' . $irb . ' has no OnCore Protocols.');
         }
 
     }
@@ -546,6 +474,8 @@ class Protocols
     }
 
     /**
+     * @param $record array('redcap' => [REDCAP_RECORD_ID] OR NULL , 'oncore' => [ONCORE_PROTOCOL_SUBJECT_ID])
+     * @return array|void
      * @throws \Exception
      */
     public function pullOnCoreRecordsIntoREDCap($record)
@@ -559,14 +489,14 @@ class Protocols
     }
 
     /**
-     * pull redcap entity record.
+     * pull protocol entity record.
      * @param $redcapProjectId
      * @param $irbNum
      * @param int $status default YES
      * @return array|false|mixed|string[]|null
      * @throws \Exception
      */
-    public static function getProtocolEntityRecord($redcapProjectId, $irbNum = '', $status = 2)
+    public static function getOnCoreProtocolEntityRecord($redcapProjectId, $irbNum = '', $status = 2)
     {
         if ($redcapProjectId == '') {
             throw new \Exception('REDCap project ID can not be null');
@@ -579,13 +509,14 @@ class Protocols
         if ($record->num_rows == 0 && $status == 0) {
             return [];
         } elseif ($record->num_rows == 0 && $status == 2) {
-            return self::getProtocolEntityRecord($redcapProjectId, $irbNum, 0);
+            return self::getOnCoreProtocolEntityRecord($redcapProjectId, $irbNum, 0);
         } else {
             return db_fetch_assoc($record);
         }
     }
 
     /**
+     * update oncore_protocol entity record timestampts
      * @param $entityId
      * @return void
      */
@@ -596,6 +527,7 @@ class Protocols
 
 
     /**
+     * update oncore_protocol entity record status
      * @param $entityId
      * @param $status
      * @return void
