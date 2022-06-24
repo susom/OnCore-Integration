@@ -4,17 +4,19 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var OnCoreIntegration $module */
 
+//URLS FOR SUPPORT ASSETS
 $oncore_css             = $module->getUrl("assets/styles/oncore.css");
 $batch_css              = $module->getUrl("assets/styles/batch_modal.css");
-$adjude_css             = $module->getUrl("assets/styles/adjudication.css");
 $notif_css              = $module->getUrl("assets/styles/notif_modal.css");
-$oncore_js              = $module->getUrl("assets/scripts/oncore.js");
+$adjude_css             = $module->getUrl("assets/styles/adjudication.css");
+
 $notif_js               = $module->getUrl("assets/scripts/notif_modal.js");
 $adjudication_js        = $module->getUrl("assets/scripts/adjudication_modal.js");
-$icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
-$ajax_endpoint = $module->getUrl("ajax/handler.php");
-$csrf_token = $module->getCSRFToken();
 
+$icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
+$ajax_endpoint          = $module->getUrl("ajax/handler.php");
+
+//SUMMARY STATS FOR INITIAL PAGE LOAD
 $sync_summ              = $module->getSyncDiffSummary();
 $total_subjects         = $sync_summ["total_count"];
 $full_match_count       = $sync_summ["full_match_count"];
@@ -27,29 +29,26 @@ $redcap_count           = $sync_summ["redcap_only_count"];
 
 require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 ?>
-<link rel="stylesheet"
-      href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:600i,700,700i">
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
-    <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
-    <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
-    <link rel="stylesheet" href="<?= $oncore_css ?>">
-    <link rel="stylesheet" href="<?= $batch_css ?>">
-    <!--<link rel="stylesheet" href="--><?//= $notif_css
-    ?><!--">-->
-    <link rel="stylesheet" href="<?= $adjude_css ?>">
+<link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:600i,700,700i">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
+<link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
+<link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
+<link rel="stylesheet" href="<?= $oncore_css ?>">
+<link rel="stylesheet" href="<?= $batch_css ?>">
+<link rel="stylesheet" href="<?= $notif_css?>">
+<link rel="stylesheet" href="<?= $adjude_css ?>">
 
-    <div id="oncore_mapping" class="container pull-left">
-        <h3>REDCap/OnCore Interaction</h3>
-        <p class="lead">Data Stored in OnCore must be synced and adjudicated periodically. The data will be pulled into
-            an entity table and then matched against this projects REDCap data on the mapped fields.</p>
+<div id="oncore_mapping" class="container pull-left">
+    <h3>REDCap/OnCore Interaction</h3>
+    <p class="lead">Data Stored in OnCore must be synced and adjudicated periodically. The data will be pulled into
+        an entity table and then matched against this projects REDCap data on the mapped fields.</p>
 
-        <div id="overview" class="container">
-            <div id="filters">
-                <div class="d-inline-block text-center stat-group oncore_summ">
+    <div id="overview" class="container">
+        <div id="filters">
+            <div class="d-inline-block text-center stat-group oncore_summ">
                 <div class="stat d-inline-block">
                     <p class='h1 mt-2 mb-0 p-0 oncore_only_count'><?php echo $sync_summ['oncore_only_count'] ?></p>
                     <i class="d-block">Not in REDCap</i>
@@ -118,76 +117,61 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             </div>
         </div>
     </div>
-
-    <!-- THIS WILL REMAIN HIDDEN -->
-    <div class="tab-content">
-        <div class="tab-pane" id="partial">
-            <form id="syncFromOncore" class="oncore_match">
-                <input type="hidden" name="matchtype" value="fullmatch"/>
-                <div class="included"></div>
-
-                <br>
-
-                <h2>Excluded Subjects</h2>
-                <p>The following subjects have been excluded from syncing with Oncore</p>
-                <div class="excluded"></div>
-            </form>
-        </div>
-
-        <div class="tab-pane" id="oncore">
-            <form id="pullFromOncore" class="oncore_match">
-                <input type="hidden" name="matchtype" value="oncoreonly"/>
-                <div class="included"></div>
-
-                <br>
-
-                <h2>Excluded Subjects</h2>
-                <p>The following subjects have been excluded from syncing with REDCap</p>
-                <div class="excluded"></div>
-            </form>
-        </div>
-
-        <div class="tab-pane" id="redcap">
-            <form id="pushToOncore" class="oncore_match">
-                <input type="hidden" name="matchtype" value="redcaponly"/>
-                <div class="included"></div>
-
-                <br>
-
-                <h2>Excluded Subjects</h2>
-                <p>The following subjects have been excluded from syncing with Oncore</p>
-                <div class="excluded"></div>
-            </form>
-        </div>
-    </div>
 </div>
 
+<!-- THIS WILL REMAIN HIDDEN -->
+<div class="tab-content">
+    <div class="tab-pane" id="partial">
+        <form id="syncFromOncore" class="oncore_match">
+            <input type="hidden" name="matchtype" value="fullmatch"/>
+            <div class="included"></div>
+            <br>
+            <h2>Excluded Subjects</h2>
+            <p>The following subjects have been excluded from syncing with Oncore</p>
+            <div class="excluded"></div>
+        </form>
+    </div>
+    <div class="tab-pane" id="oncore">
+        <form id="pullFromOncore" class="oncore_match">
+            <input type="hidden" name="matchtype" value="oncoreonly"/>
+            <div class="included"></div>
+            <br>
+            <h2>Excluded Subjects</h2>
+            <p>The following subjects have been excluded from syncing with REDCap</p>
+            <div class="excluded"></div>
+        </form>
+    </div>
+    <div class="tab-pane" id="redcap">
+        <form id="pushToOncore" class="oncore_match">
+            <input type="hidden" name="matchtype" value="redcaponly"/>
+            <div class="included"></div>
+            <br>
+            <h2>Excluded Subjects</h2>
+            <p>The following subjects have been excluded from syncing with Oncore</p>
+            <div class="excluded"></div>
+        </form>
+    </div>
+</div>
 <style>
-#oncore_mapping button.loading:after{
-    content: "";
-    position: absolute;
-    top: 0px;
-    width: 25px;
-    height: 25px;
-    right: 5px;
+    #oncore_mapping button.loading:after{
+        content: "";
+        position: absolute;
+        top: 0px;
+        width: 25px;
+        height: 25px;
+        right: 5px;
 
-    background: url(<?=$icon_ajax?>) 0 0 no-repeat;
-    background-size: contain;
-}
+        background: url(<?=$icon_ajax?>) 0 0 no-repeat;
+        background-size: contain;
+    }
 </style>
-    <script src="<?= $batch_js ?>" type="text/javascript"></script>
-    <!--<script src="--><?//= $notif_js
-    ?><!--" type="text/javascript"></script>-->
-    <script src="<?= $adjudication_js ?>" type="text/javascript"></script>
-    <script>
-        $(document).ready(function () {
-            var ajax_endpoint = "<?=$ajax_endpoint?>";
-            var last_scan_ts = "<?=$sample_ts?>";
-            if (last_scan_ts) {
-                $("#summ_last_ts").html(last_scan_ts);
-            }
+<script src="<?= $notif_js ?>" type="text/javascript"></script>
+<script src="<?= $adjudication_js ?>" type="text/javascript"></script>
+<script>
+    $(document).ready(function () {
+        var ajax_endpoint   = "<?=$ajax_endpoint?>";
 
-            //SHOW "no diff" MATCHES
+        //SHOW "no diff" MATCHES
         $("body").on("click",".show_all_matched", function (e) {
             e.preventDefault();
             if (!$(this).hasClass('expanded')) {
@@ -227,7 +211,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             var _parent_tbody       = $("tbody." + subject_mrn);
             var _parent_form        = _parent_tbody.closest(".oncore_match");
 
-            var exclude_include = $(this).hasClass("exclude_subject") ? "excludeSubject" : "includeSubject";
+            var exclude_include     = $(this).hasClass("exclude_subject") ? "excludeSubject" : "includeSubject";
 
             var _this = $(this);
             _this.addClass("loading").prop("disabled","disabled");
@@ -274,9 +258,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
                 }
 
-                var headline = be_status + "Record status failed to save";
-                var lead = be_lead + "Please refresh page and try again";
-                var notif = new notifModal(lead, headline);
+                var headline    = be_status + "Record status failed to save";
+                var lead        = be_lead + "Please refresh page and try again";
+                var notif       = new notifModal(lead, headline);
                 notif.show();
             });
         });
@@ -290,6 +274,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             e.preventDefault();
             var _this = $(this);
             _this.addClass("loading").prop("disabled","disabled");
+
             $.ajax({
                 url: ajax_endpoint,
                 method: 'POST',
@@ -300,145 +285,141 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             }).done(function (syncsummary) {
                 _this.removeClass("loading").prop("disabled", false);
                 updateOverview(syncsummary);
-                // location.reload();
             }).fail(function (e) {
                 _this.removeClass("loading").prop("disabled", false);
 
-                var be_status = "";
-                var be_lead = "";
+                var be_status   = "";
+                var be_lead     = "";
                 if (e.hasOwnProperty("responseJSON")) {
-                    var response = e.responseJSON
-                    be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
-                    be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
+                    var response    = e.responseJSON
+                    be_status       = response.hasOwnProperty("status") ? response.status + ". " : "";
+                    be_lead         = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
                 }
 
-                var headline = be_status + "Failed to sync records";
-                var lead = be_lead + "Please try again";
-                var notif = new notifModal(lead, headline);
+                var headline    = be_status + "Failed to sync records";
+                var lead        = be_lead + "Please try again";
+                var notif       = new notifModal(lead, headline);
                 notif.show();
             });
         });
 
         //show hide adjudcation tables
         $(".getadjudication").click(function(e){
-            var _this    = $(this);
-            var bin      = _this.data("bin");
+        var _this    = $(this);
+        var bin      = _this.data("bin");
 
-            $(".stat-group").removeClass("picked");
-            var par      = _this.closest(".stat-group");
+        $(".stat-group").removeClass("picked");
+        var par      = _this.closest(".stat-group");
 
-            _this.addClass("loading");
-            $(".getadjudication").prop("disabled","disabled");
+        _this.addClass("loading");
+        $(".getadjudication").prop("disabled","disabled");
 
-            $(".tab-pane").removeClass("active");
+        $(".tab-pane").removeClass("active");
 
-            $.ajax({
-                url: ajax_endpoint,
-                method: 'POST',
-                data: {
-                    "action": "getSyncDiff",
-                    "bin": bin,
-                },
-                dataType: 'json'
-            }).done(function (result) {
-                _this.removeClass("loading");
+        $.ajax({
+            url: ajax_endpoint,
+            method: 'POST',
+            data: {
+                "action": "getSyncDiff",
+                "bin": bin,
+            },
+            dataType: 'json'
+        }).done(function (result) {
+            _this.removeClass("loading");
 
-                //POP OPEN THE MODAL
-                var adjModal        = new adjudicationModal(bin);
-                window.adjModal     = adjModal;
-                adjModal.show();
+            //POP OPEN THE MODAL
+            var adjModal        = new adjudicationModal(bin);
+            window.adjModal     = adjModal;
+            adjModal.show();
 
-                $(".getadjudication").prop("disabled", false);
-                par.addClass("picked");
+            $(".getadjudication").prop("disabled", false);
+            par.addClass("picked");
 
-                $("#" + bin).addClass("active");
-                $("#" + bin).find(".included").empty().append(result["included"]);
-                $("#" + bin).find(".excluded").empty().append(result["excluded"]);
+            $("#" + bin).addClass("active");
+            $("#" + bin).find(".included").empty().append(result["included"]);
+            $("#" + bin).find(".excluded").empty().append(result["excluded"]);
 
-                $("#"+bin).clone().appendTo($("#pushModal .pushDATA"));
+            $("#"+bin).clone().appendTo($("#pushModal .pushDATA"));
 
-                var footer_action   = $(result["footer_action"]);
-                var show_all        = $(result["show_all"]);
-                $("#pushModal .footer_action").append(footer_action);
-                $("#pushModal .show_all").append(show_all);
-                // $("#pushModal .show_all").prepend(footer_action.clone());
-            }).fail(function (e) {
-                _this.removeClass("loading");
-                $(".getadjudication").prop("disabled", false);
+            var footer_action   = $(result["footer_action"]);
+            var show_all        = $(result["show_all"]);
+            $("#pushModal .footer_action").append(footer_action);
+            $("#pushModal .show_all").append(show_all);
+            // $("#pushModal .show_all").prepend(footer_action.clone());
+        }).fail(function (e) {
+            _this.removeClass("loading");
+            $(".getadjudication").prop("disabled", false);
 
-                var be_status = "";
-                var be_lead = "";
-                if (e.hasOwnProperty("responseJSON")) {
-                    var response = e.responseJSON
-                    be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
-                    be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
-                }
+            var be_status = "";
+            var be_lead = "";
+            if (e.hasOwnProperty("responseJSON")) {
+                var response = e.responseJSON
+                be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
+                be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
+            }
 
-                var headline = be_status + "Failed to load adjudication records";
-                var lead = be_lead + "Please try again";
-                var notif = new notifModal(lead, headline);
-                notif.show();
-            });
+            var headline = be_status + "Failed to load adjudication records";
+            var lead = be_lead + "Please try again";
+            var notif = new notifModal(lead, headline);
+            notif.show();
+        });
+    });
+
+        //oncore only
+        $(document).on('click', '.submit_pullFromOnCore', function (e) {
+            e.preventDefault();
+            var form = $('.pushDATA').find('#pullFromOncore')
+            pull(form)
         });
 
-            //oncore only
-            $(document).on('click', '.submit_pullFromOnCore', function (e) {
-                e.preventDefault();
-                var form = $('.pushDATA').find('#pullFromOncore')
-                pull(form)
+        // partial match
+        $(document).on('click', '.submit_adjudicatePartial', function (e) {
+            e.preventDefault();
+            var form = $('.pushDATA').find('#syncFromOncore');
+            pull(form);
+        });
+
+        // redcap only
+        $(document).on('click', '.submit_pushToOnCore', function (e) {
+            e.preventDefault();
+            var form = $('.pushDATA').find('#pushToOncore');
+            push(form);
+        });
+
+        //ACCEPT ADJUDICATIONS
+        function pull(form) {
+            var approved_ids = [];
+            form.find(".includes input[name='approved_ids']").each(function () {
+                if (this.checked) {
+                    var _el         = $(this);
+                    var oncore_id   = _el.val();
+                    var rc_id       = _el.data("rc_id");
+                    var mrn         = _el.data("mrn");
+                    approved_ids.push({
+                        "name": 'approved_ids',
+                        'mrn': mrn,
+                        "oncore": oncore_id,
+                        "value": oncore_id,
+                        "redcap": rc_id
+                    });
+                }
             });
 
-            // partial match
-            $(document).on('click', '.submit_adjudicatePartial', function (e) {
-                e.preventDefault();
-                var form = $('.pushDATA').find('#syncFromOncore')
-                pull(form)
-            });
+            if (approved_ids.length) {
+                var pullModal               = window.adjModal;
+                pullModal.completedItems    = 0;
+                pullModal.totalItems        = approved_ids.length;
+                pullModal.showProgressUI();
 
-            // redcap only
-            $(document).on('click', '.submit_pushToOnCore', function (e) {
-                e.preventDefault();
-                var form = $('.pushDATA').find('#pushToOncore')
-                push(form)
-            });
-
-            //ACCEPT ADJUDICATIONS
-            function pull(form) {
-                console.log("pull from , or adjudicate partial");
-
-                //return false;
-                var approved_ids = [];
-                var inputs = form.find(".includes input[name='approved_ids']").each(function () {
-                    if (this.checked) {
-                        var _el = $(this);
-                        var oncore_id = _el.val();
-                        var rc_id = _el.data("rc_id");
-                        var mrn = _el.data("mrn");
-                        approved_ids.push({
-                            "name": 'approved_ids',
-                            'mrn': mrn,
-                            "oncore": oncore_id,
-                            "value": oncore_id,
-                            "redcap": rc_id
-                        });
-                    }
-                });
-                var temp = $(this).find(".includes input[name='approved_ids']").serializeArray();
-                console.log(approved_ids)
-                if (approved_ids.length) {
-                    var pullModal = window.adjModal;
-                    pullModal.prepCount(approved_ids);
-                    pullModal.totalItems = approved_ids.length;
-                    pullModal.showProgressUI();
-
-                    var wait_time = 0;
-                    for (var i in approved_ids) {
-                        var _mrn = approved_ids[i]["mrn"];
-                        var rc_id = approved_ids[i]["redcap"];
+                var wait_time = 0;
+                for (var i in approved_ids) {
+                    var _mrn    = approved_ids[i]["mrn"];
+                    var rc_id   = approved_ids[i]["redcap"];
                     var oncore  = approved_ids[i]["oncore"];
                     var temp    = {"redcap": rc_id, "oncore": oncore, "mrn" : _mrn}
 
-                    var rndInt  = randomIntFromInterval(500, 3000);
+                    //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
+                    var rndInt  = randomIntFromInterval(500, 2000);
                     wait_time   += rndInt;
 
                     (function(rndInt){
@@ -456,45 +437,41 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             }, rndInt);
                         }).fail(function (e) {
                             setTimeout(function () {
-                                // console.log("pushToOncore faile", e);
                                 pullModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
                             }, rndInt);
                         });
                     })(rndInt);
-                    }
-
-                    setTimeout(function () {
-                        //some showmanship
-                        $("#refresh_sync_diff").trigger("click");
-                    }, wait_time);
                 }
-            };
 
-            function push(form) {
-                console.log('push')
-                //return false;
-                // var inputs      = [{value:1, mrn:12345}, {value:2, mrn:23456}, {value:3, mrn:34567}, {value:4, mrn:45678}];
-                var approved_ids = []
-                var inputs = form.find(".includes input[name='approved_ids']:checked").each(function () {
-                    if (this.checked) {
-                        var _el = $(this);
-                        var oncore_id = _el.data("oncore");
-                        var rc_id = _el.val();
-                        var mrn = _el.data("mrn");
-                        approved_ids.push({
-                            "name": 'approved_ids',
-                            'mrn': mrn,
-                            "oncore": oncore_id,
-                            "value": rc_id,
+                //ONLY TRIGGER THE REFRESH SYNC ONCE AFTER ALL THE TIMEOUTS ARE SUMMED UP AND ACTED ON
+                setTimeout(function () {
+                    $("#refresh_sync_diff").trigger("click");
+                }, wait_time);
+            }
+        };
+
+        function push(form) {
+            var approved_ids = []
+            form.find(".includes input[name='approved_ids']:checked").each(function () {
+                if (this.checked) {
+                    var _el         = $(this);
+                    var oncore_id   = _el.data("oncore");
+                    var rc_id       = _el.val();
+                    var mrn         = _el.data("mrn");
+                    approved_ids.push({
+                        "name": 'approved_ids',
+                        'mrn': mrn,
+                        "oncore": oncore_id,
+                        "value": rc_id,
                         "redcap": rc_id
                     });
                 }
             });
 
             if (approved_ids.length) {
-                var pushModal = window.adjModal;
-                pushModal.prepCount(approved_ids);
-                pushModal.totalItems = approved_ids.length;
+                var pushModal               = window.adjModal;
+                pushModal.completedItems    = 0;
+                pushModal.totalItems        = approved_ids.length;
                 pushModal.showProgressUI();
 
                 var wait_time = 0;
@@ -502,7 +479,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     var rc_id   = approved_ids[i]["value"];
                     var mrn     = approved_ids[i]["mrn"];
                     var temp    = {"value": rc_id, "mrn": mrn}
-                    var rndInt  = randomIntFromInterval(500, 3000);
+
+                    //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
+                    var rndInt  = randomIntFromInterval(500, 2000);
                     wait_time   += rndInt;
 
                     (function(rndInt){
@@ -520,28 +499,27 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             }, rndInt);
                         }).fail(function (e) {
                             setTimeout(function () {
-                                // console.log("pushToOncore faile", e);
                                 pushModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
                             }, rndInt);
                         });
                     })(rndInt);
                 }
 
+                //ONLY TRIGGER THE REFRESH SYNC ONCE AFTER ALL THE TIMEOUTS ARE SUMMED UP AND ACTED ON
                 setTimeout(function () {
-                    //some showmanship
                     $("#refresh_sync_diff").trigger("click");
                 }, wait_time);
             }
-            }
-        });
+        }
+    });
 
-        function updateOverview(syncsummary) {
-            $("p.full_match_count").text(syncsummary["full_match_count"]);
-            $("span.excluded_count").text(syncsummary["excluded_count"]);
-            $("span.match_count").text(syncsummary["total_count"]);
-            $("span.for_adjudication").text(syncsummary["total_count"] - syncsummary["excluded_count"]);
+    function updateOverview(syncsummary) {
+        $("p.full_match_count").text(syncsummary["full_match_count"]);
+        $("span.excluded_count").text(syncsummary["excluded_count"]);
+        $("span.match_count").text(syncsummary["total_count"]);
+        $("span.for_adjudication").text(syncsummary["total_count"] - syncsummary["excluded_count"]);
 
-            $("p.partial_match_count").text(syncsummary["partial_match_count"]);
+        $("p.partial_match_count").text(syncsummary["partial_match_count"]);
 
         $("p.oncore_only_count").text(syncsummary["oncore_only_count"]);
         $("i.total_oncore_count").text(syncsummary["total_oncore_count"]);

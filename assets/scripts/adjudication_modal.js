@@ -75,12 +75,13 @@ class adjudicationModal{
 
     showProgressUI(){
         this.prepCount();
+        this.growProgressBar();
         $(".modal_progress").slideDown("medium");
     }
 
     growProgressBar(){
-        var perc = this.completedItems / this.totalItems;
-        var pbar_width = Math.round(perc * 100)+ "%";
+        var perc        = this.completedItems / this.totalItems;
+        var pbar_width  = Math.round(perc * 100)+ "%";
         $("#pbar").width(pbar_width);
 
         this.completeMsg();
@@ -95,6 +96,8 @@ class adjudicationModal{
     completeMsg(){
         if(this.totalItems == this.completedItems) {
             $(".batch_counter em").text("Completed!");
+        }else{
+            $(".batch_counter em").text("");
         }
     }
 
@@ -102,9 +105,9 @@ class adjudicationModal{
         var status_txt = "failed";
         if(status){
             status_txt = "ok";
-        }else{
-            this.setRowNote(id, note)
         }
+
+        this.setRowNote(id, note)
         this.incFinished();
         $(".pushDATA td[data-status_rowid='" + id + "']").html(status_txt);
     }

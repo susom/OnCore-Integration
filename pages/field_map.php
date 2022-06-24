@@ -4,15 +4,18 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
-$mapping                = $module->getMapping();
-$current_mapping        = $mapping->getProjectMapping();
-$project_oncore_subset  = $mapping->getProjectOncoreSubset();
-
+//URLS FOR SUPPORT ASSETS
 $oncore_css             = $module->getUrl("assets/styles/field_mapping.css");
-$ajax_endpoint          = $module->getUrl("ajax/handler.php");
-$icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
 $notif_css              = $module->getUrl("assets/styles/notif_modal.css");
+
 $notif_js               = $module->getUrl("assets/scripts/notif_modal.js");
+
+$icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
+$ajax_endpoint          = $module->getUrl("ajax/handler.php");
+
+//INITIAL SET UP FOR MAPPING PAGE STATE PULL AND PUSH SIDE
+$mapping                = $module->getMapping();
+$project_oncore_subset  = $mapping->getProjectOncoreSubset();
 
 $pushpull_pref          = $mapping->getProjectPushPullPref();
 $overall_pull_status    = $mapping->getOverallPullStatus() ? "ok" : "";
@@ -23,6 +26,7 @@ $oncore_fields          = $field_map_ui["oncore_fields"];
 $pull_html              = $field_map_ui["pull"];
 $push_html              = $field_map_ui["push"]["required"];
 $push_html_optional     = $field_map_ui["push"]["optional"];
+
 
 //ONCORE STUDY SITE SUBSET SELECTION
 $study_sites            = $module->getUsers()->getOnCoreStudySites();
@@ -163,7 +167,6 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             </form>
         </div>
     </div>
-
 </div>
 <style>
 #field_mapping .loading::after{
@@ -186,7 +189,6 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         var pushpull_pref       = <?=json_encode($pushpull_pref)?>;
 
         //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACH OTHER
-        //TODO NEED TO OPTIMIZE
         var ajaxQueue = {
             queuedRequests: [],
             addRequest: function (req) {
@@ -235,8 +237,6 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             $(this).parent("li").addClass("active");
         });
         $(".pCheck").click(function(e){
-
-
             var tab_state = [];
             $(".pCheck:checked").each(function(){
                 var tab = $(this).data("tab");
@@ -278,7 +278,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         return new Promise(function (resolve, reject) {
                             setTimeout(function () {
                                 resolve(data);
-                            }, 2000);
+                            }, 1000);
                         });
                     });
                 } else {

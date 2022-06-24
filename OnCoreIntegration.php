@@ -954,7 +954,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
                         // we are using pull fields to map redcap data
                         $temp   = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($rc_id, $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
-$this->emDebug($rc_id, $temp);
+//$this->emDebug($rc_id, $temp);
                         // handle data scattered over multiple events
                         $redcap = [];
                         foreach ($temp as $onCoreField => $value) {
