@@ -57,20 +57,9 @@ class SubjectDemographics
         $this->$validateFields = $validateFields;
     }
 
-    public function getOnCoreSubjectDemographicsEntityRecord($subjectDemographicsId)
-    {
-        if ($subjectDemographicsId == '') {
-            throw new \Exception('REDCap subject demographics ID can not be null');
-        }
-        $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS . " where  subjectDemographicsId = '" . $subjectDemographicsId . "' ");
-        if ($record->num_rows == 0) {
-            return [];
-        } else {
-            return db_fetch_assoc($record);
-        }
-    }
 
     /**
+     * workaround to reduce load time for subjects.
      * @return array
      */
     public function getAllSubjects(): array
@@ -148,7 +137,7 @@ class SubjectDemographics
      * @return array|mixed|void
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function searchOnCoreSubjectUsingMRN($mrn, $subjectSource = 'OnCore')
+    public function searchOnCoreSubjectUsingMRN($mrn, $subjectSource = OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONCORE)
     {
         try {
             $response = $this->getUser()->get('subjectDemographics?mrn=' . $mrn . '&subjectSource=' . $subjectSource);
