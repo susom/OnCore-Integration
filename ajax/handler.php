@@ -288,7 +288,6 @@ try {
                 break;
 
 
-
             case "triggerIRBSweep":
                 if (isset($_POST['irb']) && $_POST['irb'] != '') {
                     $irb = htmlspecialchars($_POST['irb']);
@@ -297,8 +296,10 @@ try {
 
                 break;
         }
-//        echo htmlentities(json_encode($result, JSON_THROW_ON_ERROR), ENT_NOQUOTES);
-        echo json_encode($result, JSON_THROW_ON_ERROR);
+//        echo htmlentities(json_encode($result, JSON_THROW_ON_ERROR), ENT_QUOTES);
+        $result = json_encode($result, JSON_THROW_ON_ERROR);
+        header("Content-type: application/json");
+        echo htmlentities($result, ENT_NOQUOTES);;
     }
 } catch (\LogicException|ClientException|GuzzleException $e) {
     $response = $e->getResponse();

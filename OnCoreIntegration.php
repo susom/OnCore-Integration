@@ -561,6 +561,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $ajax_endpoint = $this->getUrl("ajax/handler.php");
         $notif_css = $this->getUrl("assets/styles/notif_modal.css");
         $notif_js = $this->getUrl("assets/scripts/notif_modal.js");
+        $oncore_js = $this->getUrl("assets/scripts/oncore.js");
         $available_oncore_protocols = $this->getOnCoreProtocols();
         $oncore_integrations = $this->getOnCoreIntegrations();
         $has_oncore_integration = $this->hasOnCoreIntegration();
@@ -766,6 +767,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             }
         </style>
         <script src="<?= $notif_js ?>" type="text/javascript"></script>
+        <script src="<?= $oncore_js ?>" type="text/javascript"></script>
         <?php
     }
 
@@ -1125,11 +1127,15 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function enableExternalModuleForREDCapProject($pid)
     {
         $prefix = $this->PREFIX;
-        $record = db_query("SELECT * from redcap_external_module_settings WHERE project_id = $pid AND `key` = 'enabled' AND external_module_id = (SELECT external_module_id FROM redcap_external_modules WHERE directory_prefix = '$prefix')");
+        $sql = sprintf("SELECT * from redcap_external_module_settings WHERE project_id = %s AND `key` = 'enabled' AND external_module_id = (SELECT external_module_id FROM redcap_external_modules WHERE directory_prefix = '%s')", db_escape($pid), db_escape($prefix));
+        $record = db_query($sql);
         if ($record->num_rows == 0) {
-            $sql = db_query("SELECT external_module_id FROM redcap_external_modules WHERE directory_prefix = '$prefix'");
-            $em = db_fetch_assoc($sql);
-            db_query("INSERT INTO redcap_external_module_settings VALUES (" . $em['external_module_id'] . ", $pid, 'enabled', 'boolean', 'true')");
+            //$sql = db_query("SELECT external_module_id FROM redcap_external_modules WHERE directory_prefix = '$prefix'");
+            $sql = sprintf("SELECT external_module_id FROM redcap_external_modules WHERE directory_prefix = '%s'", db_escape($prefix));
+            $q = db_query($sql);
+            $em = db_fetch_assoc($q);
+            $in_sql = sprintf("INSERT INTO redcap_external_module_settings VALUES (%s, %s, 'enabled', 'boolean', 'true')", db_escape($em['external_module_id']), db_escape($pid));
+            db_query($in_sql);
             return true;
         } else {
             // either EM is enabled or disabled and no action needed.

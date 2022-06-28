@@ -391,7 +391,8 @@ class Protocols
                     if ($entity) {
                         Entities::createLog('OnCore Protocol Entity table record created for IRB: ' . $irb . '.');
                         $this->setEntityRecord($data);
-                        $this->prepareProtocolSubjects();
+                        // do not pull any protocol data till user approve the redcap oncore linkage.
+                        //$this->prepareProtocolSubjects();
                         //$this->syncRecords();
                     } else {
                         throw new \Exception(implode(',', $entity->errors));
@@ -502,9 +503,11 @@ class Protocols
             throw new \Exception('REDCap project ID can not be null');
         }
         if ($irbNum != '') {
-            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where irb_number = " . $irbNum . " AND redcap_project_id = " . $redcapProjectId . " AND status = " . $status . " ");
+            $sql = sprintf("select * from %s where irb_number = %s AND redcap_project_id = %s AND status = %s ", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS), db_escape($irbNum), db_escape($redcapProjectId), db_escape($status));
+            $record = db_query($sql);
         } else {
-            $record = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " where redcap_project_id = " . $redcapProjectId . "  AND status = " . $status . "  ");
+            $sql = sprintf("select * from %s where redcap_project_id = %s AND status = %s ", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS), db_escape($redcapProjectId), db_escape($status));
+            $record = db_query($sql);
         }
         if ($record->num_rows == 0 && $status == 0) {
             return [];
@@ -522,7 +525,8 @@ class Protocols
      */
     public function updateProtocolEntityRecordTimestamp($entityId): void
     {
-        db_query("UPDATE " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " set last_date_scanned = '" . time() . "', updated = '" . time() . "' WHERE id = " . $entityId . "");
+        $sql = sprintf("UPDATE %s set last_date_scanned = '%s', updated = '%s' WHERE id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS), db_escape(time()), db_escape(time()), db_escape($entityId));
+        db_query($sql);
     }
 
 
@@ -538,7 +542,8 @@ class Protocols
         if (!in_array((int)$status, array(OnCoreIntegration::ONCORE_PROTOCOL_STATUS_NO, OnCoreIntegration::ONCORE_PROTOCOL_STATUS_PENDING, OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES))) {
             throw new \Exception("Status not found");
         }
-        db_query("UPDATE " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . " set status = '" . $status . "', updated = '" . time() . "' WHERE id = " . $entityId . "");
+        $sql = sprintf("UPDATE %s set status = '%s', updated = '%s' WHERE id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS), db_escape($status), db_escape(time()), db_escape($entityId));
+        db_query($sql);
     }
 
     /**

@@ -256,21 +256,22 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                             method: 'POST',
                             data: {
                                 "action": "deleteMapping",
-                                "push_pull" : push_pull
+                                "push_pull": push_pull
                             },
                             dataType: 'json'
                         }).done(function (result) {
                             //done
+                            decode_object(result)
                             console.log("deleteMapping done");
                         }).fail(function (e) {
-                            var be_status   = "";
-                            var be_lead     = "";
-                            if( e.hasOwnProperty("responseJSON") ){
-                                be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
-                                be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                            var be_status = "";
+                            var be_lead = "";
+                            if (e.hasOwnProperty("responseJSON")) {
+                                be_status = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                                be_lead = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
                             }
 
-                            var headline    = be_status;
+                            var headline = be_status;
                             var lead        = be_lead;
                             var notif = new notifModal(lead,headline);
                         });
@@ -294,21 +295,22 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     method: 'POST',
                     data: {
                         "action": "savePushPullPref",
-                        "pushpull_pref" : tab_state
+                        "pushpull_pref": tab_state
                     },
                     dataType: 'json'
                 }).done(function (result) {
                     //done
+                    decode_object(result)
                     console.log("savePushPullPref done");
                 }).fail(function (e) {
-                    var be_status   = "";
-                    var be_lead     = "";
-                    if( e.hasOwnProperty("responseJSON") ){
-                        be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
-                        be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                    var be_status = "";
+                    var be_lead = "";
+                    if (e.hasOwnProperty("responseJSON")) {
+                        be_status = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                        be_lead = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
                     }
 
-                    var headline    = be_status;
+                    var headline = be_status;
                     var lead        = be_lead;
                     var notif = new notifModal(lead,headline);
                     notif.show();
@@ -403,21 +405,21 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         data: {
                             "action": "saveMapping",
                             "field_mappings": field_maps,
-                            "update_oppo" : _update_oppo
+                            "update_oppo": _update_oppo
                         },
                         dataType: 'json'
                     }).done(function (result) {
                         // console.log("if upddate oppo,then update the vmaps too", _update_oppo);
-
+                        decode_object(result)
                         _select.removeClass("second_level_trigger");
 
                         updatePushPullStatus(oncore_field, redcap_field, result);
                         updateOverAllStatus(result);
                         enableSelects();
 
-                        if(redcap_field !== "-99"){
+                        if (redcap_field !== "-99") {
                             makeValueMappingRow(result, oncore_field, is_rc_mapping);
-                            if(_update_oppo){
+                            if (_update_oppo) {
                                 makeValueMappingRow(result, oncore_field, !is_rc_mapping);
                             }
                         }else{
@@ -540,16 +542,17 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     },
                     dataType: 'json'
                 }).done(function (result) {
+                    decode_object(result)
                     // result["pull"] = unescape(result["pull"])
                     enableSelects();
                     $("#oncore_mapping tbody").empty().append(result["pull"]);
                     $("#oncore_prop_selector .dropdown-toggle").prop("disabled", false);
                     _this.remove();
 
-                    var fake_result = {"overallPull" : false , "overallPush" : null};
+                    var fake_result = {"overallPull": false, "overallPush": null};
                     updateOverAllStatus(fake_result);
                 }).fail(function (e) {
-                    var be_status   = "";
+                    var be_status = "";
                     var be_lead     = "";
                     if( e.hasOwnProperty("responseJSON") ){
                         be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
@@ -582,18 +585,19 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     method: 'POST',
                     data: {
                         "action": "deletePullField",
-                        "oncore_prop" : oncore_prop
+                        "oncore_prop": oncore_prop
                     },
                     dataType: 'json'
                 }).done(function (result) {
+                    decode_object(result)
                     enableSelects();
-                    $("#oncore_mapping tr."+oncore_prop).fadeOut(function(){
+                    $("#oncore_mapping tr." + oncore_prop).fadeOut(function () {
                         $(this).remove();
-                        var addto = $("<button>").data("val",oncore_prop).attr("type","button").addClass("dropdown-item oncore_pull_prop").text(oncore_prop);
-                        if(_req){
+                        var addto = $("<button>").data("val", oncore_prop).attr("type", "button").addClass("dropdown-item oncore_pull_prop").text(oncore_prop);
+                        if (_req) {
                             var hdr = ".req_hdr";
                             addto.insertAfter($("#oncore_prop_selector " + hdr));
-                        }else{
+                        } else {
                             var hdr = ".no_req_hdr";
                             addto.insertAfter($("#oncore_prop_selector " + hdr));
                         }
@@ -643,20 +647,21 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 method: 'POST',
                 data: {
                     "action": "saveSiteStudies",
-                    "site_studies_subset" : sss
+                    "site_studies_subset": sss
                 },
                 dataType: 'json'
             }).done(function (result) {
+                decode_object(result)
                 $("#study_sites .loading").removeClass("loading");
-                $("#study_sites input").prop("disabled",false);
+                $("#study_sites input").prop("disabled", false);
                 //done
             }).fail(function (e) {
                 $("#study_sites .loading").removeClass("loading");
-                $("#study_sites input").prop("disabled",false);
-                var be_status   = "";
-                var be_lead     = "";
-                if( e.hasOwnProperty("responseJSON") ){
-                    be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                $("#study_sites input").prop("disabled", false);
+                var be_status = "";
+                var be_lead = "";
+                if (e.hasOwnProperty("responseJSON")) {
+                    be_status = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
                     be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
                 }
 

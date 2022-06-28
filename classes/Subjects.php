@@ -417,11 +417,16 @@ class Subjects extends SubjectDemographics
         }
 
         if ($redcapRecordId && $onCoreProtocolSubjectId) {
-            $sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE redcap_record_id = $redcapRecordId and oncore_protocol_subject_id = $onCoreProtocolSubjectId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+            //            $sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE redcap_record_id = $redcapRecordId and oncore_protocol_subject_id = $onCoreProtocolSubjectId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+            $sql = sprintf("SELECT * from %s WHERE redcap_record_id = %s and oncore_protocol_subject_id = %s and redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($redcapRecordId), db_escape($onCoreProtocolSubjectId), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
         } elseif ($redcapRecordId) {
-            $sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE redcap_record_id = $redcapRecordId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+            //$sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE redcap_record_id = $redcapRecordId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+            $sql = sprintf("SELECT * from %s WHERE redcap_record_id = %s  and redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($redcapRecordId), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
+
         } elseif ($onCoreProtocolSubjectId) {
-            $sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE oncore_protocol_subject_id = $onCoreProtocolSubjectId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+            //$sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE oncore_protocol_subject_id = $onCoreProtocolSubjectId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+            $sql = sprintf("SELECT * from %s WHERE  oncore_protocol_subject_id = %s and redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($onCoreProtocolSubjectId), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
+
         } else {
             throw new \Exception("REDCap record id or OnCore Protocol Subject Id is missing");
         }
@@ -468,7 +473,9 @@ class Subjects extends SubjectDemographics
     {
         // matched records on both redcap and oncore
         if ($redcapProjectId && $onCoreProtocolId) {
-            $sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+            // $sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
+            $sql = sprintf("SELECT * from %s WHERE  redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
+
         } else {
             throw new \Exception("No REDCap pid and OnCore Protocol Id provided");
         }

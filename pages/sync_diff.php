@@ -225,6 +225,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 dataType: 'json'
             }).done(function (result) {
                 //fade the row
+                decode_object(result)
                 if (exclude_include == "excludeSubject") {
                     var _parent_clone = _parent_tbody.clone();
                     _parent_tbody.fadeOut("fast", function () {
@@ -273,7 +274,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         $("#refresh_sync_diff").on("click", function (e) {
             e.preventDefault();
             var _this = $(this);
-            _this.addClass("loading").prop("disabled","disabled");
+            _this.addClass("loading").prop("disabled", "disabled");
 
             $.ajax({
                 url: ajax_endpoint,
@@ -283,16 +284,17 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 },
                 dataType: 'json'
             }).done(function (syncsummary) {
+                decode_object(syncsummary)
                 _this.removeClass("loading").prop("disabled", false);
                 updateOverview(syncsummary);
             }).fail(function (e) {
                 _this.removeClass("loading").prop("disabled", false);
 
-                var be_status   = "";
-                var be_lead     = "";
+                var be_status = "";
+                var be_lead = "";
                 if (e.hasOwnProperty("responseJSON")) {
-                    var response    = e.responseJSON
-                    be_status       = response.hasOwnProperty("status") ? response.status + ". " : "";
+                    var response = e.responseJSON
+                    be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
                     be_lead         = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
                 }
 
@@ -316,24 +318,25 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
         $(".tab-pane").removeClass("active");
 
-        $.ajax({
-            url: ajax_endpoint,
-            method: 'POST',
-            data: {
-                "action": "getSyncDiff",
-                "bin": bin,
-            },
-            dataType: 'json'
-        }).done(function (result) {
-            _this.removeClass("loading");
+            $.ajax({
+                url: ajax_endpoint,
+                method: 'POST',
+                data: {
+                    "action": "getSyncDiff",
+                    "bin": bin,
+                },
+                dataType: 'json'
+            }).done(function (result) {
+                decode_object(result)
+                _this.removeClass("loading");
 
-            //POP OPEN THE MODAL
-            var adjModal        = new adjudicationModal(bin);
-            window.adjModal     = adjModal;
-            adjModal.show();
+                //POP OPEN THE MODAL
+                var adjModal = new adjudicationModal(bin);
+                window.adjModal = adjModal;
+                adjModal.show();
 
-            $(".getadjudication").prop("disabled", false);
-            par.addClass("picked");
+                $(".getadjudication").prop("disabled", false);
+                par.addClass("picked");
 
             $("#" + bin).addClass("active");
             $("#" + bin).find(".included").empty().append(result["included"]);
@@ -422,7 +425,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     var rndInt  = randomIntFromInterval(500, 2000);
                     wait_time   += rndInt;
 
-                    (function(rndInt){
+                    (function (rndInt) {
                         $.ajax({
                             url: ajax_endpoint,
                             method: 'POST',
@@ -432,6 +435,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             },
                             dataType: 'json'
                         }).done(function (result) {
+                            decode_object(result)
                             setTimeout(function () {
                                 pullModal.setRowStatus(result.id, true, result.message);
                             }, rndInt);
@@ -484,7 +488,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     var rndInt  = randomIntFromInterval(500, 2000);
                     wait_time   += rndInt;
 
-                    (function(rndInt){
+                    (function (rndInt) {
                         $.ajax({
                             url: ajax_endpoint,
                             method: 'POST',
@@ -494,6 +498,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             },
                             dataType: 'json'
                         }).done(function (result) {
+                            decode_object(result)
                             setTimeout(function () {
                                 pushModal.setRowStatus(result.id, true, result.message);
                             }, rndInt);
