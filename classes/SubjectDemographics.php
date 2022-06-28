@@ -75,7 +75,9 @@ class SubjectDemographics
      */
     public function setAllSubjects(): void
     {
-        $records = db_query("select * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS . " ");
+        $sql = sprintf("SELECT * from %s ", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS));
+
+        $records = db_query($sql);
         if (db_num_rows($records) == 0) {
             $this->allSubjects = [];
         } else {
