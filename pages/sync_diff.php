@@ -165,21 +165,23 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         background-size: contain;
     }
 </style>
-<script src="<?= $notif_js ?>" type="text/javascript"></script>
-<script src="<?= $adjudication_js ?>" type="text/javascript"></script>
-<script>
-    $(document).ready(function () {
-        var ajax_endpoint   = "<?=$ajax_endpoint?>";
+    <!--<script src="--><?//= $notif_js
+    ?><!--" type="text/javascript"></script>-->
+    <script src="<?= $adjudication_js ?>" type="text/javascript"></script>
+    <script>
+        $(document).ready(function () {
+            var ajax_endpoint = "<?=$ajax_endpoint?>";
+            var redcap_csrf_token = "<?=$module->getCSRFToken()?>";
 
-        //SHOW "no diff" MATCHES
-        $("body").on("click",".show_all_matched", function (e) {
-            e.preventDefault();
-            if (!$(this).hasClass('expanded')) {
-                $(".show_all_matched").html("Show Less");
-                $("tr td.rc_data, tr td.oc_data").show();
-                $(this).addClass('expanded')
-            } else {
-                $(".show_all_matched").html("Show All");
+            //SHOW "no diff" MATCHES
+            $("body").on("click", ".show_all_matched", function (e) {
+                e.preventDefault();
+                if (!$(this).hasClass('expanded')) {
+                    $(".show_all_matched").html("Show Less");
+                    $("tr td.rc_data, tr td.oc_data").show();
+                    $(this).addClass('expanded')
+                } else {
+                    $(".show_all_matched").html("Show All");
                 $("tr td.rc_data, tr td.oc_data").hide();
                 $(this).removeClass('expanded')
             }
@@ -211,21 +213,22 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             var _parent_tbody       = $("tbody." + subject_mrn);
             var _parent_form        = _parent_tbody.closest(".oncore_match");
 
-            var exclude_include     = $(this).hasClass("exclude_subject") ? "excludeSubject" : "includeSubject";
+            var exclude_include = $(this).hasClass("exclude_subject") ? "excludeSubject" : "includeSubject";
 
             var _this = $(this);
-            _this.addClass("loading").prop("disabled","disabled");
+            _this.addClass("loading").prop("disabled", "disabled");
             $.ajax({
                 url: ajax_endpoint,
                 method: 'POST',
                 data: {
                     "action": exclude_include,
                     "entity_record_id": entity_record_id,
+                    "redcap_csrf_token": redcap_csrf_token
                 },
-                dataType: 'json'
+                // dataType: 'json'
             }).done(function (result) {
                 //fade the row
-                decode_object(result)
+                result = decode_object(result)
                 if (exclude_include == "excludeSubject") {
                     var _parent_clone = _parent_tbody.clone();
                     _parent_tbody.fadeOut("fast", function () {
@@ -249,6 +252,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 _parent_clone.find(".loading").removeClass("loading").prop("disabled", false);
                 $("#refresh_sync_diff").trigger("click");
             }).fail(function (e) {
+                e.responseJSON = decode_object(e.responseText)
                 _this.removeClass("loading").prop("disabled", false);
 
                 var be_status = "";
@@ -270,33 +274,35 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             $(".pushDATA form").submit();
         });
 
-        //do fresh data manual pull
-        $("#refresh_sync_diff").on("click", function (e) {
-            e.preventDefault();
-            var _this = $(this);
-            _this.addClass("loading").prop("disabled", "disabled");
+            //do fresh data manual pull
+            $("#refresh_sync_diff").on("click", function (e) {
+                e.preventDefault();
+                var _this = $(this);
+                _this.addClass("loading").prop("disabled", "disabled");
 
-            $.ajax({
-                url: ajax_endpoint,
-                method: 'POST',
-                data: {
-                    "action": "syncDiff"
-                },
-                dataType: 'json'
-            }).done(function (syncsummary) {
-                decode_object(syncsummary)
-                _this.removeClass("loading").prop("disabled", false);
-                updateOverview(syncsummary);
-            }).fail(function (e) {
-                _this.removeClass("loading").prop("disabled", false);
+                $.ajax({
+                    url: ajax_endpoint,
+                    method: 'POST',
+                    data: {
+                        "action": "syncDiff",
+                        "redcap_csrf_token": redcap_csrf_token
+                    },
+                    //dataType: 'json'
+                }).done(function (syncsummary) {
+                    syncsummary = decode_object(syncsummary)
+                    _this.removeClass("loading").prop("disabled", false);
+                    updateOverview(syncsummary);
+                }).fail(function (e) {
+                    e.responseJSON = decode_object(e.responseText)
+                    _this.removeClass("loading").prop("disabled", false);
 
-                var be_status = "";
-                var be_lead = "";
-                if (e.hasOwnProperty("responseJSON")) {
-                    var response = e.responseJSON
-                    be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
-                    be_lead         = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
-                }
+                    var be_status = "";
+                    var be_lead = "";
+                    if (e.hasOwnProperty("responseJSON")) {
+                        var response = e.responseJSON
+                        be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
+                        be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
+                    }
 
                 var headline    = be_status + "Failed to sync records";
                 var lead        = be_lead + "Please try again";
@@ -314,9 +320,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         var par      = _this.closest(".stat-group");
 
         _this.addClass("loading");
-        $(".getadjudication").prop("disabled","disabled");
+            $(".getadjudication").prop("disabled", "disabled");
 
-        $(".tab-pane").removeClass("active");
+            $(".tab-pane").removeClass("active");
 
             $.ajax({
                 url: ajax_endpoint,
@@ -324,10 +330,12 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 data: {
                     "action": "getSyncDiff",
                     "bin": bin,
+                    "redcap_csrf_token": redcap_csrf_token,
                 },
-                dataType: 'json'
+                //dataType: 'json'
             }).done(function (result) {
-                decode_object(result)
+
+                result = decode_object(result)
                 _this.removeClass("loading");
 
                 //POP OPEN THE MODAL
@@ -340,26 +348,27 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
             $("#" + bin).addClass("active");
             $("#" + bin).find(".included").empty().append(result["included"]);
-            $("#" + bin).find(".excluded").empty().append(result["excluded"]);
+                $("#" + bin).find(".excluded").empty().append(result["excluded"]);
 
-            $("#"+bin).clone().appendTo($("#pushModal .pushDATA"));
+                $("#" + bin).clone().appendTo($("#pushModal .pushDATA"));
 
-            var footer_action   = $(result["footer_action"]);
-            var show_all        = $(result["show_all"]);
-            $("#pushModal .footer_action").append(footer_action);
-            $("#pushModal .show_all").append(show_all);
-            // $("#pushModal .show_all").prepend(footer_action.clone());
-        }).fail(function (e) {
-            _this.removeClass("loading");
-            $(".getadjudication").prop("disabled", false);
+                var footer_action = $(result["footer_action"]);
+                var show_all = $(result["show_all"]);
+                $("#pushModal .footer_action").append(footer_action);
+                $("#pushModal .show_all").append(show_all);
+                // $("#pushModal .show_all").prepend(footer_action.clone());
+            }).fail(function (e) {
+                e.responseJSON = decode_object(e.responseText)
+                _this.removeClass("loading");
+                $(".getadjudication").prop("disabled", false);
 
-            var be_status = "";
-            var be_lead = "";
-            if (e.hasOwnProperty("responseJSON")) {
-                var response = e.responseJSON
-                be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
-                be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
-            }
+                var be_status = "";
+                var be_lead = "";
+                if (e.hasOwnProperty("responseJSON")) {
+                    var response = e.responseJSON
+                    be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
+                    be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
+                }
 
             var headline = be_status + "Failed to load adjudication records";
             var lead = be_lead + "Please try again";
@@ -422,8 +431,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     var temp    = {"redcap": rc_id, "oncore": oncore, "mrn" : _mrn}
 
                     //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
-                    var rndInt  = randomIntFromInterval(500, 2000);
-                    wait_time   += rndInt;
+                    var rndInt = randomIntFromInterval(500, 2000);
+                    wait_time += rndInt;
 
                     (function (rndInt) {
                         $.ajax({
@@ -431,15 +440,17 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             method: 'POST',
                             data: {
                                 "action": "approveSync",
-                                "record": temp
+                                "record": temp,
+                                "redcap_csrf_token": redcap_csrf_token
                             },
-                            dataType: 'json'
+                            //    dataType: 'json'
                         }).done(function (result) {
-                            decode_object(result)
+                            result = decode_object(result)
                             setTimeout(function () {
                                 pullModal.setRowStatus(result.id, true, result.message);
                             }, rndInt);
                         }).fail(function (e) {
+                            e.responseJSON = decode_object(e.responseText)
                             setTimeout(function () {
                                 pullModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
                             }, rndInt);
@@ -485,8 +496,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     var temp    = {"value": rc_id, "mrn": mrn}
 
                     //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
-                    var rndInt  = randomIntFromInterval(500, 2000);
-                    wait_time   += rndInt;
+                    var rndInt = randomIntFromInterval(500, 2000);
+                    wait_time += rndInt;
 
                     (function (rndInt) {
                         $.ajax({
@@ -494,15 +505,17 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             method: 'POST',
                             data: {
                                 "action": "pushToOncore",
-                                "record": temp
+                                "record": temp,
+                                "redcap_csrf_token": redcap_csrf_token
                             },
-                            dataType: 'json'
+                            //dataType: 'json'
                         }).done(function (result) {
-                            decode_object(result)
+                            result = decode_object(result)
                             setTimeout(function () {
                                 pushModal.setRowStatus(result.id, true, result.message);
                             }, rndInt);
                         }).fail(function (e) {
+                            e.responseJSON = decode_object(e.responseText)
                             setTimeout(function () {
                                 pushModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
                             }, rndInt);
