@@ -172,6 +172,36 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         var ajax_endpoint       = "<?=$ajax_endpoint?>";
         var redcap_csrf_token   = "<?=$module->getCSRFToken()?>";
 
+
+        //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACH OTHER
+        var ajaxQueue = {
+            queuedRequests: [],
+            addRequest: function (req) {
+                this.queuedRequests.push(req);
+                // if it's the first request, start execution
+                if (this.queuedRequests.length === 1) {
+                    this.executeNextRequest();
+                }
+            },
+            clearQueue: function () {
+                this.queuedRequests = [];
+            },
+            executeNextRequest: function () {
+                var queuedRequests = this.queuedRequests;
+                // console.log("request started");
+                queuedRequests[0]().then(function (data) {
+                    // console.log("request complete", data);
+                    // remove completed request from queue
+                    queuedRequests.shift();
+                    // if there are more requests, execute the next in line
+                    if (queuedRequests.length) {
+                        ajaxQueue.executeNextRequest();
+                    }
+                });
+            }
+        };
+
+
         //SHOW "no diff" MATCHES
         $("body").on("click",".show_all_matched", function (e) {
             e.preventDefault();
@@ -434,23 +464,31 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     wait_time += rndInt;
 
                     (function (temp, rndInt) {
-                            setTimeout(function () {
-                                $.ajax({
-                                    url: ajax_endpoint,
-                                    method: 'POST',
-                                    data: {
-                                        "action": "approveSync",
-                                        "record": temp,
-                                        "redcap_csrf_token": redcap_csrf_token
-                                    }
-                                }).done(function (result) {
-                                    result = decode_object(result);
-                                    pullModal.setRowStatus(result.id, true, result.message);
-                                }).fail(function (e) {
-                                    var result = decode_object(e.responseText);
-                                    pullModal.setRowStatus(result.id, false, result.message);
-                                });
-                            }, rndInt);
+                        ajaxQueue.addRequest(function () {
+                            // -- your ajax request goes here --
+                            return $.ajax({
+                                url: ajax_endpoint,
+                                method: 'POST',
+                                data: {
+                                    "action": "approveSync",
+                                    "record": temp,
+                                    "redcap_csrf_token": redcap_csrf_token
+                                }
+                            }).done(function (result) {
+                                result = decode_object(result);
+                                console.log(result);
+                                pullModal.setRowStatus(result.id, true, result.message);
+                            }).fail(function (e) {
+                                var result = decode_object(e.responseText);
+                                pullModal.setRowStatus(result.id, false, result.message);
+                            });
+
+                            return new Promise(function (resolve, reject) {
+                                setTimeout(function () {
+                                    resolve(data);
+                                }, rndInt);
+                            });
+                        });
                     })(temp, rndInt);
                 }
 
@@ -496,8 +534,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     wait_time += rndInt;
 
                     (function (temp, rndInt) {
-                        setTimeout(function () {
-                            $.ajax({
+                        ajaxQueue.addRequest(function () {
+                            // -- your ajax request goes here --
+                            return $.ajax({
                                 url: ajax_endpoint,
                                 method: 'POST',
                                 data: {
@@ -512,7 +551,13 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                                 var result = decode_object(e.responseText);
                                 pushModal.setRowStatus(result.id, false, result.message);
                             });
-                        }, rndInt);
+
+                            return new Promise(function (resolve, reject) {
+                                setTimeout(function () {
+                                    resolve(data);
+                                }, rndInt);
+                            });
+                        });
                     })(temp, rndInt);
                 }
 
