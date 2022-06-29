@@ -165,23 +165,22 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         background-size: contain;
     }
 </style>
-    <!--<script src="--><?//= $notif_js
-    ?><!--" type="text/javascript"></script>-->
-    <script src="<?= $adjudication_js ?>" type="text/javascript"></script>
-    <script>
-        $(document).ready(function () {
-            var ajax_endpoint = "<?=$ajax_endpoint?>";
-            var redcap_csrf_token = "<?=$module->getCSRFToken()?>";
+<!--<script src="--><?//= $notif_js ?><!--" type="text/javascript"></script>-->
+<script src="<?= $adjudication_js ?>" type="text/javascript"></script>
+<script>
+    $(document).ready(function () {
+        var ajax_endpoint       = "<?=$ajax_endpoint?>";
+        var redcap_csrf_token   = "<?=$module->getCSRFToken()?>";
 
-            //SHOW "no diff" MATCHES
-            $("body").on("click", ".show_all_matched", function (e) {
-                e.preventDefault();
-                if (!$(this).hasClass('expanded')) {
-                    $(".show_all_matched").html("Show Less");
-                    $("tr td.rc_data, tr td.oc_data").show();
-                    $(this).addClass('expanded')
-                } else {
-                    $(".show_all_matched").html("Show All");
+        //SHOW "no diff" MATCHES
+        $("body").on("click",".show_all_matched", function (e) {
+            e.preventDefault();
+            if (!$(this).hasClass('expanded')) {
+                $(".show_all_matched").html("Show Less");
+                $("tr td.rc_data, tr td.oc_data").show();
+                $(this).addClass('expanded')
+            } else {
+                $(".show_all_matched").html("Show All");
                 $("tr td.rc_data, tr td.oc_data").hide();
                 $(this).removeClass('expanded')
             }
@@ -431,31 +430,28 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     var temp    = {"redcap": rc_id, "oncore": oncore, "mrn" : _mrn}
 
                     //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
-                    var rndInt = randomIntFromInterval(500, 2000);
+                    var rndInt = randomIntFromInterval(500, 1500);
                     wait_time += rndInt;
 
-                    (function (rndInt) {
-                        $.ajax({
-                            url: ajax_endpoint,
-                            method: 'POST',
-                            data: {
-                                "action": "approveSync",
-                                "record": temp,
-                                "redcap_csrf_token": redcap_csrf_token
-                            },
-                            //    dataType: 'json'
-                        }).done(function (result) {
-                            result = decode_object(result)
+                    (function (temp, rndInt) {
                             setTimeout(function () {
-                                pullModal.setRowStatus(result.id, true, result.message);
+                                $.ajax({
+                                    url: ajax_endpoint,
+                                    method: 'POST',
+                                    data: {
+                                        "action": "approveSync",
+                                        "record": temp,
+                                        "redcap_csrf_token": redcap_csrf_token
+                                    }
+                                }).done(function (result) {
+                                    result = decode_object(result);
+                                    pullModal.setRowStatus(result.id, true, result.message);
+                                }).fail(function (e) {
+                                    var result = decode_object(e.responseText);
+                                    pullModal.setRowStatus(result.id, false, result.message);
+                                });
                             }, rndInt);
-                        }).fail(function (e) {
-                            e.responseJSON = decode_object(e.responseText)
-                            setTimeout(function () {
-                                pullModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
-                            }, rndInt);
-                        });
-                    })(rndInt);
+                    })(temp, rndInt);
                 }
 
                 //ONLY TRIGGER THE REFRESH SYNC ONCE AFTER ALL THE TIMEOUTS ARE SUMMED UP AND ACTED ON
@@ -496,31 +492,28 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     var temp    = {"value": rc_id, "mrn": mrn}
 
                     //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
-                    var rndInt = randomIntFromInterval(500, 2000);
+                    var rndInt = randomIntFromInterval(500, 1500);
                     wait_time += rndInt;
 
-                    (function (rndInt) {
-                        $.ajax({
-                            url: ajax_endpoint,
-                            method: 'POST',
-                            data: {
-                                "action": "pushToOncore",
-                                "record": temp,
-                                "redcap_csrf_token": redcap_csrf_token
-                            },
-                            //dataType: 'json'
-                        }).done(function (result) {
-                            result = decode_object(result)
-                            setTimeout(function () {
+                    (function (temp, rndInt) {
+                        setTimeout(function () {
+                            $.ajax({
+                                url: ajax_endpoint,
+                                method: 'POST',
+                                data: {
+                                    "action": "pushToOncore",
+                                    "record": temp,
+                                    "redcap_csrf_token": redcap_csrf_token
+                                }
+                            }).done(function (result) {
+                                result = decode_object(result);
                                 pushModal.setRowStatus(result.id, true, result.message);
-                            }, rndInt);
-                        }).fail(function (e) {
-                            e.responseJSON = decode_object(e.responseText)
-                            setTimeout(function () {
-                                pushModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
-                            }, rndInt);
-                        });
-                    })(rndInt);
+                            }).fail(function (e) {
+                                var result = decode_object(e.responseText);
+                                pushModal.setRowStatus(result.id, false, result.message);
+                            });
+                        }, rndInt);
+                    })(temp, rndInt);
                 }
 
                 //ONLY TRIGGER THE REFRESH SYNC ONCE AFTER ALL THE TIMEOUTS ARE SUMMED UP AND ACTED ON

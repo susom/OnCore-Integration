@@ -248,10 +248,11 @@ try {
                 $temp = !empty($_POST["record"]) ? filter_var_array($_POST["record"], FILTER_SANITIZE_STRING) : null;
                 $mrn = $temp['mrn'];
                 unset($temp["mrn"]);
-                $id = $temp["oncore"];
-                $res = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($temp);
-                $result = array("mrn" => $mrn, "id" => $res["id"], 'message' => 'Record synced successfully!');
-
+                $id     = $temp["oncore"];
+                $res    = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($temp);
+                if(is_array($res)){
+                    $result = array("mrn" => $mrn, "id" => $res["id"], 'message' => 'Record synced successfully!');
+                }
                 break;
 
             case "pushToOncore":
