@@ -4,8 +4,6 @@ namespace Stanford\OnCoreIntegration;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
 
-require_once 'Subjects.php';
-
 /**
  * This class can be used as a helper class when trying to verify if the SubjectDemographics values
  * are valid to send to OnCore.  This class performs checking for each field based on the format
