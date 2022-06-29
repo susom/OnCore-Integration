@@ -184,9 +184,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 <script src="<?= $notif_js ?>" type="text/javascript"></script>
 <script>
     $(document).ready(function () {
-        var ajax_endpoint       = "<?=$ajax_endpoint?>";
-        var oncore_fields       = <?=json_encode($oncore_fields)?>;
-        var pushpull_pref       = <?=json_encode($pushpull_pref)?>;
+        var ajax_endpoint = "<?=$ajax_endpoint?>";
+        var oncore_fields = <?=json_encode($oncore_fields)?>;
+        var pushpull_pref = <?=json_encode($pushpull_pref)?>;
+        var redcap_csrf_token = "<?=$module->getCSRFToken()?>";
 
         //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACH OTHER
         var ajaxQueue = {
@@ -256,14 +257,16 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                             method: 'POST',
                             data: {
                                 "action": "deleteMapping",
-                                "push_pull": push_pull
+                                "push_pull": push_pull,
+                                "redcap_csrf_token": redcap_csrf_token
                             },
-                            dataType: 'json'
+                            //dataType: 'json'
                         }).done(function (result) {
                             //done
-                            decode_object(result)
+                            result = decode_object(result)
                             console.log("deleteMapping done");
                         }).fail(function (e) {
+                            e.responseJSON = decode_object(e.responseText)
                             var be_status = "";
                             var be_lead = "";
                             if (e.hasOwnProperty("responseJSON")) {
@@ -272,8 +275,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                             }
 
                             var headline = be_status;
-                            var lead        = be_lead;
-                            var notif = new notifModal(lead,headline);
+                            var lead = be_lead;
+                            var notif = new notifModal(lead, headline);
                         });
 
                         return new Promise(function (resolve, reject) {
@@ -295,14 +298,16 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     method: 'POST',
                     data: {
                         "action": "savePushPullPref",
-                        "pushpull_pref": tab_state
+                        "pushpull_pref": tab_state,
+                        "redcap_csrf_token": redcap_csrf_token
                     },
-                    dataType: 'json'
+                    // dataType: 'json'
                 }).done(function (result) {
                     //done
-                    decode_object(result)
+                    result = decode_object(result)
                     console.log("savePushPullPref done");
                 }).fail(function (e) {
+                    e.responseJSON = decode_object(e.responseText)
                     var be_status = "";
                     var be_lead = "";
                     if (e.hasOwnProperty("responseJSON")) {
@@ -311,8 +316,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     }
 
                     var headline = be_status;
-                    var lead        = be_lead;
-                    var notif = new notifModal(lead,headline);
+                    var lead = be_lead;
+                    var notif = new notifModal(lead, headline);
                     notif.show();
                 });
 
@@ -405,12 +410,13 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         data: {
                             "action": "saveMapping",
                             "field_mappings": field_maps,
-                            "update_oppo": _update_oppo
+                            "update_oppo": _update_oppo,
+                            "redcap_csrf_token": redcap_csrf_token
                         },
-                        dataType: 'json'
+                        // dataType: 'json'
                     }).done(function (result) {
                         // console.log("if upddate oppo,then update the vmaps too", _update_oppo);
-                        decode_object(result)
+                        result = decode_object(result)
                         _select.removeClass("second_level_trigger");
 
                         updatePushPullStatus(oncore_field, redcap_field, result);
@@ -422,7 +428,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                             if (_update_oppo) {
                                 makeValueMappingRow(result, oncore_field, !is_rc_mapping);
                             }
-                        }else{
+                        } else {
                             var parent_id = is_rc_mapping ? "#redcap_mapping" : "#oncore_mapping"
                             $(parent_id + " tr.more." + oncore_field).remove();
                         }
@@ -430,16 +436,17 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         //remove spinners
                         $("#field_mapping .loading").removeClass("loading");
                     }).fail(function (e) {
-                        var be_status   = "";
-                        var be_lead     = "";
-                        if( e.hasOwnProperty("responseJSON") ){
-                            be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
-                            be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                        e.responseJSON = decode_object(e.responseText)
+                        var be_status = "";
+                        var be_lead = "";
+                        if (e.hasOwnProperty("responseJSON")) {
+                            be_status = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                            be_lead = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
                         }
 
-                        var headline    = be_status + "Failed to save Mapping";
-                        var lead        = be_lead + "Please refresh page and try again";
-                        var notif       = new notifModal(lead,headline);
+                        var headline = be_status + "Failed to save Mapping";
+                        var lead = be_lead + "Please refresh page and try again";
+                        var notif = new notifModal(lead, headline);
                         notif.show();
                     });
 
@@ -528,7 +535,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             var _this       = $(this);
             var oncore_prop = _this.data("val");
 
-            $("#oncore_prop_selector .dropdown-toggle").prop("disabled","disabled");
+            $("#oncore_prop_selector .dropdown-toggle").prop("disabled", "disabled");
 
             disableSelects();
             ajaxQueue.addRequest(function () {
@@ -538,11 +545,12 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     method: 'POST',
                     data: {
                         "action": "saveOncoreSubset",
-                        "oncore_prop": oncore_prop
+                        "oncore_prop": oncore_prop,
+                        "redcap_csrf_token": redcap_csrf_token
                     },
-                    dataType: 'json'
+                    //  dataType: 'json'
                 }).done(function (result) {
-                    decode_object(result)
+                    result = decode_object(result)
                     // result["pull"] = unescape(result["pull"])
                     enableSelects();
                     $("#oncore_mapping tbody").empty().append(result["pull"]);
@@ -552,16 +560,17 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     var fake_result = {"overallPull": false, "overallPush": null};
                     updateOverAllStatus(fake_result);
                 }).fail(function (e) {
+                    e.responseJSON = decode_object(e.responseText)
                     var be_status = "";
-                    var be_lead     = "";
-                    if( e.hasOwnProperty("responseJSON") ){
-                        be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
-                        be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                    var be_lead = "";
+                    if (e.hasOwnProperty("responseJSON")) {
+                        be_status = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                        be_lead = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
                     }
 
-                    var headline    = be_status + "Failed to add property";
-                    var lead        = be_lead + "Please refresh page and try again";
-                    var notif       = new notifModal(lead,headline);
+                    var headline = be_status + "Failed to add property";
+                    var lead = be_lead + "Please refresh page and try again";
+                    var notif = new notifModal(lead, headline);
                     notif.show();
                 });
 
@@ -576,7 +585,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         $("#oncore_mapping").on("click", ".delete_pull_prop", function(e){
             e.preventDefault(e);
             var oncore_prop = $(this).data("oncore_prop");
-            var _req        = $(this).data("req");
+            var _req = $(this).data("req");
             disableSelects();
             ajaxQueue.addRequest(function () {
                 // -- your ajax request goes here --
@@ -585,11 +594,12 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     method: 'POST',
                     data: {
                         "action": "deletePullField",
-                        "oncore_prop": oncore_prop
+                        "oncore_prop": oncore_prop,
+                        "redcap_csrf_token": redcap_csrf_token
                     },
-                    dataType: 'json'
+                    //dataType: 'json'
                 }).done(function (result) {
-                    decode_object(result)
+                    result = decode_object(result)
                     enableSelects();
                     $("#oncore_mapping tr." + oncore_prop).fadeOut(function () {
                         $(this).remove();
@@ -605,16 +615,17 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         updateOverAllStatus(result);
                     });
                 }).fail(function (e) {
+                    e.responseJSON = decode_object(e.responseText)
                     enableSelects();
 
-                    var be_status   = "";
-                    var be_lead     = "";
-                    if( e.hasOwnProperty("responseJSON") ){
-                        be_status   = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
-                        be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                    var be_status = "";
+                    var be_lead = "";
+                    if (e.hasOwnProperty("responseJSON")) {
+                        be_status = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                        be_lead = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
                     }
-                    var headline    = be_status + "Failed to delete field";
-                    var lead        = be_lead + "Please refresh page and try again";
+                    var headline = be_status + "Failed to delete field";
+                    var lead = be_lead + "Please refresh page and try again";
                     var notif       = new notifModal(lead,headline);
                     notif.show();
                 });
@@ -638,7 +649,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             var site_study_subset = $(this).find("input:checked").serializeArray();
 
             var sss = [];
-            $(this).find("input:checked").each(function(){
+            $(this).find("input:checked").each(function () {
                 sss.push($(this).val());
             });
 
@@ -647,25 +658,27 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 method: 'POST',
                 data: {
                     "action": "saveSiteStudies",
-                    "site_studies_subset": sss
+                    "site_studies_subset": sss,
+                    "redcap_csrf_token": redcap_csrf_token
                 },
-                dataType: 'json'
+                //dataType: 'json'
             }).done(function (result) {
-                decode_object(result)
+                result = decode_object(result)
                 $("#study_sites .loading").removeClass("loading");
                 $("#study_sites input").prop("disabled", false);
                 //done
             }).fail(function (e) {
+                e.responseJSON = decode_object(e.responseText)
                 $("#study_sites .loading").removeClass("loading");
                 $("#study_sites input").prop("disabled", false);
                 var be_status = "";
                 var be_lead = "";
                 if (e.hasOwnProperty("responseJSON")) {
                     be_status = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
-                    be_lead     = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                    be_lead = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
                 }
 
-                var headline    = be_status + "Failed to save Study Site";
+                var headline = be_status + "Failed to save Study Site";
                 var lead        = be_lead + "Please refresh the page and try again";
                 var notif       = new notifModal(lead,headline);
                 notif.show();

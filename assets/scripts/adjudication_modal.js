@@ -103,8 +103,11 @@ class adjudicationModal{
 
     setRowStatus(id, status, note){
         var status_txt = "failed";
-        if(status){
+        if (status) {
             status_txt = "ok";
+        } else {
+            // log only errors in error box.
+            this.logMessage(note);
         }
 
         this.setRowNote(id, note)
@@ -113,7 +116,7 @@ class adjudicationModal{
     }
 
     setRowNote(id, note){
-        this.logMessage(note);
+        //this.logMessage(note);
         $(".pushDATA td[data-note_rowid='" + id + "']").html(note.replace(/(?:\r\n|\r|\n)/g, '<br>'));
     }
 
