@@ -171,6 +171,34 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
     $(document).ready(function () {
         var ajax_endpoint   = "<?=$ajax_endpoint?>";
 
+        //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACH OTHER
+        var ajaxQueue = {
+            queuedRequests: [],
+            addRequest: function (req) {
+                this.queuedRequests.push(req);
+                // if it's the first request, start execution
+                if (this.queuedRequests.length === 1) {
+                    this.executeNextRequest();
+                }
+            },
+            clearQueue: function () {
+                this.queuedRequests = [];
+            },
+            executeNextRequest: function () {
+                var queuedRequests = this.queuedRequests;
+                // console.log("request started");
+                queuedRequests[0]().then(function (data) {
+                    // console.log("request complete", data);
+                    // remove completed request from queue
+                    queuedRequests.shift();
+                    // if there are more requests, execute the next in line
+                    if (queuedRequests.length) {
+                        ajaxQueue.executeNextRequest();
+                    }
+                });
+            }
+        };
+
         //SHOW "no diff" MATCHES
         $("body").on("click",".show_all_matched", function (e) {
             e.preventDefault();
@@ -426,24 +454,35 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     wait_time   += rndInt;
 
                     (function (rndInt) {
-                        $.ajax({
-                            url: ajax_endpoint,
-                            method: 'POST',
-                            data: {
-                                "action": "approveSync",
-                                "record": temp
-                            },
-                            dataType: 'json'
-                        }).done(function (result) {
-                            decode_object(result)
-                            setTimeout(function () {
-                                pullModal.setRowStatus(result.id, true, result.message);
-                            }, rndInt);
-                        }).fail(function (e) {
-                            setTimeout(function () {
-                                pullModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
-                            }, rndInt);
+
+                        ajaxQueue.addRequest(function () {
+                            // -- your ajax request goes here --
+                            return $.ajax({
+                                url: ajax_endpoint,
+                                method: 'POST',
+                                data: {
+                                    "action": "approveSync",
+                                    "record": temp
+                                },
+                                dataType: 'json'
+                            }).done(function (result) {
+                                decode_object(result)
+                                setTimeout(function () {
+                                    pullModal.setRowStatus(result.id, true, result.message);
+                                }, rndInt);
+                            }).fail(function (e) {
+                                setTimeout(function () {
+                                    pullModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
+                                }, rndInt);
+                            });
+
+                            return new Promise(function (resolve, reject) {
+                                setTimeout(function () {
+                                    resolve(data);
+                                }, rndInt);
+                            });
                         });
+
                     })(rndInt);
                 }
 
@@ -489,24 +528,35 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     wait_time   += rndInt;
 
                     (function (rndInt) {
-                        $.ajax({
-                            url: ajax_endpoint,
-                            method: 'POST',
-                            data: {
-                                "action": "pushToOncore",
-                                "record": temp
-                            },
-                            dataType: 'json'
-                        }).done(function (result) {
-                            decode_object(result)
-                            setTimeout(function () {
-                                pushModal.setRowStatus(result.id, true, result.message);
-                            }, rndInt);
-                        }).fail(function (e) {
-                            setTimeout(function () {
-                                pushModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
-                            }, rndInt);
+                        ajaxQueue.addRequest(function () {
+                            // -- your ajax request goes here --
+                            return $.ajax({
+                                url: ajax_endpoint,
+                                method: 'POST',
+                                data: {
+                                    "action": "pushToOncore",
+                                    "record": temp
+                                },
+                                dataType: 'json'
+                            }).done(function (result) {
+                                decode_object(result)
+                                setTimeout(function () {
+                                    pushModal.setRowStatus(result.id, true, result.message);
+                                }, rndInt);
+                            }).fail(function (e) {
+                                setTimeout(function () {
+                                    pushModal.setRowStatus(e.responseJSON.id, false, e.responseJSON.message);
+                                }, rndInt);
+                            });
+
+                            return new Promise(function (resolve, reject) {
+                                setTimeout(function () {
+                                    resolve(data);
+                                }, rndInt);
+                            });
                         });
+
+
                     })(rndInt);
                 }
 
