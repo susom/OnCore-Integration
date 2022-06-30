@@ -482,13 +482,13 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                                 }
                             }).done(function (result) {
                                 result = decode_object(result);
-                                console.log(result);
                                 pullModal.setRowStatus(result.id, true, result.message);
                             }).fail(function (e) {
-                                var result = decode_object(e.responseText);
+                                var result  = decode_object(e.responseText);
+                                result.id   = result.id == '' ? temp["oncore"] :  result.id;
                                 pullModal.setRowStatus(result.id, false, result.message);
 
-                                console.log("failure exception , restart queue?");
+                                // console.log("failure exception , restart queue?", result);
                                 ajaxQueue.executeNextRequest(1);
                             });
 
@@ -557,10 +557,11 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                                 result = decode_object(result);
                                 pushModal.setRowStatus(result.id, true, result.message);
                             }).fail(function (e) {
-                                var result = decode_object(e.responseText);
+                                var result  = decode_object(e.responseText);
+                                result.id   = result.id == '' ? temp["value"] :  result.id;
                                 pushModal.setRowStatus(result.id, false, result.message);
 
-                                console.log("failure exception , restart queue?");
+                                // console.log("failure exception , restart queue?", result);
                                 ajaxQueue.executeNextRequest(1);
                             });
 
