@@ -866,7 +866,8 @@ class Mapping
                         $id_info[] = "MRN : $mrn";
                     }
                     if (!empty($rc_id)) {
-                        $id_info[] = "REDCap ID : $rc_id";
+                        $url = OnCoreIntegration::getRecordURL($this->module->getProjectId(), $rc_id);
+                        $id_info[] = "REDCap ID : <a target='_blank' href='$url'>$rc_id</a>";
                     }
                     if (!empty($oc_pr_id)) {
                         $id_info[] = "OnCore Subject ID : $oc_pr_id";
@@ -989,7 +990,8 @@ class Mapping
                         $id_info[] = "MRN : $mrn";
                     }
                     if (!empty($rc_id)) {
-                        $id_info[] = "REDCap ID : $rc_id";
+                        $url = OnCoreIntegration::getRecordURL($this->module->getProjectId(), $rc_id);
+                        $id_info[] = "REDCap ID : <a target='_blank' href='$url'>$rc_id</a>";
                     }
                     if (!empty($oc_pr_id)) {
                         $id_info[] = "OnCore Subject ID : $oc_pr_id";
@@ -1093,7 +1095,8 @@ class Mapping
                         $id_info[] = "MRN : $mrn";
                     }
                     if (!empty($rc_id)) {
-                        $id_info[] = "REDCap ID : $rc_id";
+                        $url = OnCoreIntegration::getRecordURL($this->module->getProjectId(), $rc_id);
+                        $id_info[] = "REDCap ID : <a target='_blank' href='$url'>$rc_id</a>";
                     }
 
 

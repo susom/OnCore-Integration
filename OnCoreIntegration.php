@@ -1019,6 +1019,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     }
 
+    public static function getRecordURL($pid, $recordId)
+    {
+        return APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/') . "DataEntry/record_home.php?pid=$pid&id=$recordId";
+    }
+
     /**
      * @return array
      */
