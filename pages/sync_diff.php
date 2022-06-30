@@ -195,15 +195,17 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     queuedRequests.shift();
                 }
 
-                queuedRequests[0]().then(function (data) {
-                    // console.log("request complete", data);
-                    // remove completed request from queue
-                    queuedRequests.shift();
-                    // if there are more requests, execute the next in line
-                    if (queuedRequests.length) {
-                        ajaxQueue.executeNextRequest();
-                    }
-                });
+                if(queuedRequests.length){
+                    queuedRequests[0]().then(function (data) {
+                        // console.log("request complete", data);
+                        // remove completed request from queue
+                        queuedRequests.shift();
+                        // if there are more requests, execute the next in line
+                        if (queuedRequests.length) {
+                            ajaxQueue.executeNextRequest();
+                        }
+                    });
+                }
             }
         };
 

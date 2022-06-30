@@ -110,14 +110,14 @@ class adjudicationModal{
             this.logMessage(note);
         }
 
-        this.setRowNote(id, note)
+        this.setRowNote(id, status_txt, note)
         this.incFinished();
-        $(".pushDATA td[data-status_rowid='" + id + "']").html(status_txt);
+        $(".pushDATA td[data-status_rowid='" + id + "']").addClass(status_txt).html(status_txt);
     }
 
-    setRowNote(id, note){
+    setRowNote(id, status, note){
         //this.logMessage(note);
-        $(".pushDATA td[data-note_rowid='" + id + "']").html(note.replace(/(?:\r\n|\r|\n)/g, '<br>'));
+        $(".pushDATA td[data-note_rowid='" + id + "']").addClass(status).html(note.replace(/(?:\r\n|\r|\n)/g, '<br>'));
     }
 
     logMessage(msg) {
