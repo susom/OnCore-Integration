@@ -866,11 +866,12 @@ class Mapping
                         $id_info[] = "MRN : $mrn";
                     }
                     if (!empty($rc_id)) {
-                        $url = OnCoreIntegration::getRecordURL($this->module->getProjectId(), $rc_id);
+                        $url = $this->module->getProtocols()->getSubjects()->getREDCapRecordURL($this->module->getProjectId(), $rc_id);
                         $id_info[] = "REDCap ID : <a target='_blank' href='$url'>$rc_id</a>";
                     }
                     if (!empty($oc_pr_id)) {
-                        $id_info[] = "OnCore Subject ID : $oc_pr_id";
+                        $url = $this->module->getProtocols()->getSubjects()->getOnCoreSubjectURL($oc_pr_id);
+                        $id_info[] = "OnCore Subject ID : <a target='_blank' href='$url'>$oc_pr_id</a>";
                     }
                     if (!empty($oc_status)) {
                         $id_info[] = "OnCore Subject Status : $oc_status";
@@ -990,11 +991,12 @@ class Mapping
                         $id_info[] = "MRN : $mrn";
                     }
                     if (!empty($rc_id)) {
-                        $url = OnCoreIntegration::getRecordURL($this->module->getProjectId(), $rc_id);
+                        $url = $this->module->getProtocols()->getSubjects()->getREDCapRecordURL($this->module->getProjectId(), $rc_id);
                         $id_info[] = "REDCap ID : <a target='_blank' href='$url'>$rc_id</a>";
                     }
                     if (!empty($oc_pr_id)) {
-                        $id_info[] = "OnCore Subject ID : $oc_pr_id";
+                        $url = $this->module->getProtocols()->getSubjects()->getOnCoreSubjectURL($oc_pr_id);
+                        $id_info[] = "OnCore Subject ID : <a target='_blank' href='$url'>$oc_pr_id</a>";
                     }
                     if (!empty($oc_status)) {
                         $id_info[] = "OnCore Subject Status : $oc_status";
@@ -1095,7 +1097,7 @@ class Mapping
                         $id_info[] = "MRN : $mrn";
                     }
                     if (!empty($rc_id)) {
-                        $url = OnCoreIntegration::getRecordURL($this->module->getProjectId(), $rc_id);
+                        $url = $this->module->getProtocols()->getSubjects()->getREDCapRecordURL($this->module->getProjectId(), $rc_id);
                         $id_info[] = "REDCap ID : <a target='_blank' href='$url'>$rc_id</a>";
                     }
 

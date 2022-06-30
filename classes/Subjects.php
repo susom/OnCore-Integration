@@ -377,6 +377,25 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     * @param $pid
+     * @param $recordId
+     * @return string
+     */
+    public function getREDCapRecordURL($pid, $recordId)
+    {
+        return APP_PATH_WEBROOT_FULL . ltrim(APP_PATH_WEBROOT, '/') . "DataEntry/record_home.php?pid=$pid&id=$recordId";
+    }
+
+    /**
+     * @param $subjectId
+     * @return string
+     */
+    public function getOnCoreSubjectURL($subjectId)
+    {
+        return $this->getUser()->getApiURL() . "smrs/SubjectStudyDataControlServlet?hdn_function=SUBJECT_INQUIRY&hdn_function_type=VIEW_ALL&protocol_subject_id=$subjectId&console=SUBJECT-CONSOLE";
+    }
+
+    /**
      * @return mixed
      */
     public function getRedcapProjectRecords()
