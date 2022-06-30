@@ -957,6 +957,7 @@ class Mapping
                 $rc_data = $row["rc_data"];
                 $oc_data = $row["oc_data"];
 
+                $oc_status = $row['oc_status'];
                 $oc_alias = $this->getOncoreAlias($oc_field);
                 $oc_description = $this->getOncoreDesc($oc_field);
                 $oc_type = $this->getOncoreType($oc_field);

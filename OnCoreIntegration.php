@@ -908,9 +908,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             $entity_id = $record["entity_id"];
             $excluded = $record["excluded"] ?? 0;
 
-            if ($entity_id == '3298') {
-                $aa = 1;
-            }
+
             $oncore = null;
             $redcap = null;
 
