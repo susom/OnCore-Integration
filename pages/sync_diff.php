@@ -186,9 +186,15 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             clearQueue: function () {
                 this.queuedRequests = [];
             },
-            executeNextRequest: function () {
+            executeNextRequest: function (subtract) {
                 var queuedRequests = this.queuedRequests;
                 // console.log("request started");
+
+                if(subtract){
+                    console.log("something messed up subtract and continue");
+                    queuedRequests.shift();
+                }
+
                 queuedRequests[0]().then(function (data) {
                     // console.log("request complete", data);
                     // remove completed request from queue
@@ -550,6 +556,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             }).fail(function (e) {
                                 var result = decode_object(e.responseText);
                                 pushModal.setRowStatus(result.id, false, result.message);
+
+                                console.log("failure exception , restart queue?");
+                                ajaxQueue.executeNextRequest(1);
                             });
 
                             return new Promise(function (resolve, reject) {
