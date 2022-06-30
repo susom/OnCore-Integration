@@ -88,6 +88,13 @@
     margin:10px 0;
 }
 
+.pushDATA td.ok{
+    color:forestgreen;
+}
+.pushDATA td.failed{
+    color:indianred;
+}
+
 .pushTBL {
     width: calc(100% - 30px);
     margin: 15px;
