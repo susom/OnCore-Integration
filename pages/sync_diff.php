@@ -487,6 +487,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             }).fail(function (e) {
                                 var result = decode_object(e.responseText);
                                 pullModal.setRowStatus(result.id, false, result.message);
+
+                                console.log("failure exception , restart queue?");
+                                ajaxQueue.executeNextRequest(1);
                             });
 
                             return new Promise(function (resolve, reject) {
