@@ -176,7 +176,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     margin-left:10px; width:30px; height:30px;
     background-size:contain;
 }
-#field_mapping #study_sites .loading::after{
+
+#field_mapping #study_sites .loading::after {
     top: 12px;
     right: 25px;
 }
@@ -185,8 +186,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 <script>
     $(document).ready(function () {
         var ajax_endpoint = "<?=$ajax_endpoint?>";
-        var oncore_fields = <?=json_encode($oncore_fields)?>;
-        var pushpull_pref = <?=json_encode($pushpull_pref)?>;
+        //var oncore_fields = <?//=json_encode($oncore_fields)?>//;
+        var oncore_fields = decode_object("<?=htmlentities(json_encode($oncore_fields, JSON_THROW_ON_ERROR)); ?>");
+        //var pushpull_pref = <?//=json_encode($pushpull_pref)?>//;
+        var pushpull_pref = decode_object("<?=htmlentities(json_encode($pushpull_pref, JSON_THROW_ON_ERROR)); ?>");
         var redcap_csrf_token = "<?=$module->getCSRFToken()?>";
 
         //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACH OTHER

@@ -567,16 +567,25 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $has_oncore_integration = $this->hasOnCoreIntegration();
         ?>
         <link rel="stylesheet" href="<?= $notif_css ?>">
+
+        <script src="<?= $oncore_js ?>" type="text/javascript"></script>
         <script>
             var ajax_endpoint = "<?=$ajax_endpoint?>";
             var field_map_url = "<?=$field_map_url?>";
 
-            var oncore_protocols = <?=json_encode($available_oncore_protocols); ?>;
-            var oncore_integrations = <?=json_encode($oncore_integrations); ?>;
-            var has_oncore_integration = <?=json_encode($has_oncore_integration); ?>;
+            //var oncore_integrations = <?//=json_encode($oncore_integrations); ?>//;
+            //var has_oncore_integration = <?//=json_encode($has_oncore_integration); ?>//;
+            //
+            //var has_field_mappings = <?//=json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false); ?>//;
+            //var last_adjudication = <?//=json_encode($this->getSyncDiffSummary()); ?>//;
 
-            var has_field_mappings = <?=json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false); ?>;
-            var last_adjudication = <?=json_encode($this->getSyncDiffSummary()); ?>;
+
+            var oncore_protocols = decode_object("<?=htmlentities(json_encode($available_oncore_protocols, JSON_THROW_ON_ERROR)); ?>");
+            var oncore_integrations = decode_object("<?=htmlentities(json_encode($oncore_integrations, JSON_THROW_ON_ERROR)); ?>");
+            var has_oncore_integration = decode_object("<?=htmlentities(json_encode($has_oncore_integration, JSON_THROW_ON_ERROR)); ?>");
+
+            var has_field_mappings = decode_object("<?=htmlentities(json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false, JSON_THROW_ON_ERROR)); ?>");
+            var last_adjudication = decode_object("<?=htmlentities(json_encode($this->getSyncDiffSummary(), JSON_THROW_ON_ERROR)); ?>");
 
             var make_oncore_module = function () {
                 if ($("#setupChklist-modify_project").length) {
@@ -767,7 +776,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             }
         </style>
         <script src="<?= $notif_js ?>" type="text/javascript"></script>
-        <script src="<?= $oncore_js ?>" type="text/javascript"></script>
         <?php
     }
 
