@@ -936,7 +936,7 @@ class Mapping
         $html .= "</tr>";
         $html .= "</thead>";
 
-        foreach ($records as $mrn => $rows) {
+        foreach ($records as $oc_pr_id => $rows) {
             if ($noredcap) {
                 $rc_id = "";
             }
@@ -944,13 +944,13 @@ class Mapping
             $print_rowspan = false;
 
             $ts_last_scan = null;
-
+            $mrn = end($rows)['mrn'];
             $html .= "<tbody class='$mrn' data-subject_mrn='$mrn'>";
             foreach ($rows as $row) {
                 $entity_id = $row["entity_id"];
 
                 $oc_id = $row["oc_id"];
-                $oc_pr_id = $row["oc_pr_id"];
+//                $oc_pr_id = $row["oc_pr_id"];
                 $rc_id = $row["rc_id"];
 
                 $oc_field = $row["oc_field"];
