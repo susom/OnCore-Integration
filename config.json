@@ -56,6 +56,11 @@
                 "name": "OnCore Subjects table",
                 "icon": "fas fa-database",
                 "url": "pages/subjects_viewer.php"
+            },
+            {
+                "name": "REDCap OnCore Linked Records",
+                "icon": "fas fa-database",
+                "url": "pages/linkage_viewer.php"
             }
         ],
         "project": [
