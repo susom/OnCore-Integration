@@ -95,10 +95,22 @@ class adjudicationModal{
 
     completeMsg(){
         if(this.totalItems == this.completedItems) {
+            this.enableSubmit();
+
             $(".batch_counter em").text("Completed!");
         }else{
+            this.disableSubmit();
+
             $(".batch_counter em").text("");
         }
+    }
+
+    disableSubmit(){
+        this.modal.find(".footer_action button").attr("disabled","disabled");
+    }
+
+    enableSubmit(){
+        this.modal.find(".footer_action button[disabled='disabled']").attr("disabled",false);
     }
 
     setRowStatus(id, status, note){
