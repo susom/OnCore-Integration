@@ -1,19 +1,27 @@
 function decode_object(obj) {
-    // parse text to json object
-    var parsedObj = obj;
-    if (typeof obj === 'string') {
-        var temp = obj.replace(/&quot;/g, '"')
-        parsedObj = JSON.parse(temp);
+    try {
+        // parse text to json object
+        var parsedObj = obj;
+        if (typeof obj === 'string') {
+            var temp = obj.replace(/&quot;/g, '"').replace(/[\n\r\t\s]+/g, ' ')
+            parsedObj = JSON.parse(temp);
+        }
+
+        for (key in parsedObj) {
+            if (typeof parsedObj[key] === 'object') {
+                parsedObj[key] = decode_object(parsedObj[key])
+            } else {
+                parsedObj[key] = decode_string(parsedObj[key])
+            }
+        }
+        return parsedObj
+    } catch (error) {
+        console.error(error);
+        alert(error)
+        // expected output: ReferenceError: nonExistentFunction is not defined
+        // Note - error messages will vary depending on browser
     }
 
-    for (key in parsedObj) {
-        if (typeof parsedObj[key] === 'object') {
-            parsedObj[key] = decode_object(parsedObj[key])
-        } else {
-            parsedObj[key] = decode_string(parsedObj[key])
-        }
-    }
-    return parsedObj
 }
 
 function decode_string(input) {

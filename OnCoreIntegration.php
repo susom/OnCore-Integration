@@ -695,6 +695,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         document.location.reload();
                     }).fail(function (e) {
                         console.log("failed to integrate", e);
+                        e.responseJSON = decode_object(e.responseText)
                         $(".getadjudication").prop("disabled", false);
 
                         var be_status = "";
