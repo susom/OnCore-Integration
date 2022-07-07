@@ -64,6 +64,18 @@ class Users extends Clients
         if (empty($this->getRolesAllowedToPush()) || empty($this->getOnCoreContact())) {
             return false;
         }
+
+        /**
+         * if contact has stopDate check if expired
+         */
+        if ($this->getOnCoreContact()['stopDate']) {
+            $stopDate = strtotime($this->getOnCoreContact()['stopDate']);
+            if (time() > $stopDate) {
+                Entities::createLog($this->getOnCoreContact()['additionalIdentifiers'][0]['id'] . ' stop date ' . $this->getOnCoreContact()['stopDate'] . ' is expired. Permission denied.');
+                return false;
+            }
+        }
+
         $result = in_array(strtolower($this->getOnCoreContact()['role']), $this->getRolesAllowedToPush());
         if (!$result) {
             Entities::createLog($this->getOnCoreContact()['additionalIdentifiers'][0]['id'] . ' does not have correct Role. Current role' . $this->getOnCoreContact()['role']);
