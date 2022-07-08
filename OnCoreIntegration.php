@@ -136,12 +136,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function redcap_save_record($project_id, $record, $instrument, $event_id, $group_id, $survey_hash, $response_id, $repeat_instance)
     {
-        $protocol = Protocols::getOnCoreProtocolEntityRecord($project_id);
-        if (!empty($protocol)) {
-            if ($protocol['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES) {
-                $this->initiateProtocol();
-                $this->getProtocols()->syncIndividualRecord($record);
+        try {
+            $protocol = Protocols::getOnCoreProtocolEntityRecord($project_id);
+            if (!empty($protocol)) {
+                if ($protocol['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES) {
+                    $this->initiateProtocol();
+                    $this->getProtocols()->syncIndividualRecord($record);
+                }
             }
+        } catch (\Exception $e) {
+            Entities::createException($e->getMessage());
+            $this->emError($e->getMessage());
         }
     }
 
