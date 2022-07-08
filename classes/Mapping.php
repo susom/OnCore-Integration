@@ -1129,7 +1129,7 @@ class Mapping
                         $footer_action = "<div class='alert alert-warning'>You can't push REDCap records Subjects. To push you must define push fields on <a href='" . $this->module->getUrl('pages/field_map.php') . "'>mapping page</a>.</div>";
                     }
                 } else {
-                    $footer_action = "<div class='alert alert-warning'>You can't push REDCap records to OnCore Protocol. Because Protocol is not approved or its status is not valid.</div>";
+                    $footer_action = "<div class='alert alert-warning'>You can't push REDCap records to OnCore Protocol.</div>";
                 }
             }
         }
