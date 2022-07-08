@@ -138,9 +138,10 @@ class Protocols
                 'excluded' => OnCoreIntegration::NO,
                 'status' => OnCoreIntegration::REDCAP_ONLY
             );
-            $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+            $e = (new Entities);
+            $entity = $e->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
             if (!$entity) {
-                throw new \Exception(implode(',', $entity->errors));
+                throw new \Exception(implode(',', $e->errors));
             }
             $record = $entity->getData();
         }
