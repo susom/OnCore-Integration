@@ -348,7 +348,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 ],
                 'redcap_record_id' => [
                     'name' => 'REDCap record Id',
-                    'type' => 'integer',
+                    'type' => 'text',
                     'required' => false,
                 ],
                 'oncore_protocol_subject_id' => [
