@@ -562,17 +562,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     //ONCORE INTEGRATION/STATUS METHODS
     public function injectIntegrationUI()
     {
-        $field_map_url = $this->getUrl("pages/field_map.php");
-        $ajax_endpoint = $this->getUrl("ajax/handler.php");
-        $notif_css = $this->getUrl("assets/styles/notif_modal.css");
-        $notif_js = $this->getUrl("assets/scripts/notif_modal.js");
-        $oncore_js = $this->getUrl("assets/scripts/oncore.js");
+        $field_map_url  = $this->getUrl("pages/field_map.php");
+        $ajax_endpoint  = $this->getUrl("ajax/handler.php");
+        $notif_css      = $this->getUrl("assets/styles/notif_modal.css");
+        $notif_js       = $this->getUrl("assets/scripts/notif_modal.js");
+        $oncore_js      = $this->getUrl("assets/scripts/oncore.js");
         $available_oncore_protocols = $this->getOnCoreProtocols();
-        $oncore_integrations = $this->getOnCoreIntegrations();
+        $oncore_integrations    = $this->getOnCoreIntegrations();
         $has_oncore_integration = $this->hasOnCoreIntegration();
         ?>
         <link rel="stylesheet" href="<?= $notif_css ?>">
-
         <script src="<?= $oncore_js ?>" type="text/javascript"></script>
         <script>
             var ajax_endpoint = "<?=$ajax_endpoint?>";
@@ -585,12 +584,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             //var last_adjudication = <?//=json_encode($this->getSyncDiffSummary()); ?>//;
 
 
-            var oncore_protocols = decode_object("<?=htmlentities(json_encode($available_oncore_protocols, JSON_THROW_ON_ERROR)); ?>");
-            var oncore_integrations = decode_object("<?=htmlentities(json_encode($oncore_integrations, JSON_THROW_ON_ERROR)); ?>");
-            var has_oncore_integration = decode_object("<?=htmlentities(json_encode($has_oncore_integration, JSON_THROW_ON_ERROR)); ?>");
+            var oncore_protocols        = decode_object("<?=htmlentities(json_encode($available_oncore_protocols, JSON_THROW_ON_ERROR)); ?>");
+            var oncore_integrations     = decode_object("<?=htmlentities(json_encode($oncore_integrations, JSON_THROW_ON_ERROR)); ?>");
+            var has_oncore_integration  = decode_object("<?=htmlentities(json_encode($has_oncore_integration, JSON_THROW_ON_ERROR)); ?>");
 
-            var has_field_mappings = decode_object("<?=htmlentities(json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false, JSON_THROW_ON_ERROR)); ?>");
-            var last_adjudication = decode_object("<?=htmlentities(json_encode($this->getSyncDiffSummary(), JSON_THROW_ON_ERROR)); ?>");
+            var has_field_mappings      = decode_object("<?=htmlentities(json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false, JSON_THROW_ON_ERROR)); ?>");
+            var last_adjudication       = decode_object("<?=htmlentities(json_encode($this->getSyncDiffSummary(), JSON_THROW_ON_ERROR)); ?>");
 
             var make_oncore_module = function () {
                 if ($("#setupChklist-modify_project").length) {
@@ -700,22 +699,27 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         // console.log(oncore_integrated);
                         document.location.reload();
                     }).fail(function (e) {
-                        console.log("failed to integrate", e);
                         e.responseJSON = decode_object(e.responseText)
-                        $(".getadjudication").prop("disabled", false);
 
-                        var be_status = "";
-                        var be_lead = "";
-                        if (e.hasOwnProperty("responseJSON")) {
-                            var response = e.responseJSON
-                            be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
-                            be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
+                        //it gets a Fail State for some reason when status is "OK"
+                        if(e.responseJSON){
+                            document.location.reload();
+                        }else{
+                            $(".getadjudication").prop("disabled", false);
+
+                            var be_status = "";
+                            var be_lead = "";
+                            if (e.hasOwnProperty("responseJSON")) {
+                                var response = e.responseJSON
+                                be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
+                                be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
+                            }
+
+                            var headline = be_status + "Failed to load adjudication records";
+                            var lead = be_lead + "Please try again";
+                            var notif = new notifModal(lead, headline);
+                            notif.show();
                         }
-
-                        var headline = be_status + "Failed to load adjudication records";
-                        var lead = be_lead + "Please try again";
-                        var notif = new notifModal(lead, headline);
-                        notif.show();
                     });
                 });
 
