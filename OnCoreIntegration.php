@@ -577,7 +577,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         <script>
             var ajax_endpoint = "<?=$ajax_endpoint?>";
             var field_map_url = "<?=$field_map_url?>";
-
+            var redcap_csrf_token = "<?=$this->getCSRFToken()?>";
             //var oncore_integrations = <?//=json_encode($oncore_integrations); ?>//;
             //var has_oncore_integration = <?//=json_encode($has_oncore_integration); ?>//;
             //
@@ -692,9 +692,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         data: {
                             "action": "integrateOnCore",
                             "integrate": need_to_integrate,
-                            "entity_record_id": entity_record_id
+                            "entity_record_id": entity_record_id,
+                            "redcap_csrf_token": redcap_csrf_token
                         },
-                        dataType: 'json'
+                        //dataType: 'json'
                     }).done(function (oncore_integrated) {
                         // console.log(oncore_integrated);
                         document.location.reload();
@@ -728,9 +729,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         method: 'POST',
                         data: {
                             "action": "triggerIRBSweep",
-                            "irb": irb
+                            "irb": irb,
+                            "redcap_csrf_token": redcap_csrf_token
                         },
-                        dataType: 'json'
+                        //dataType: 'json'
                     }).done(function (e) {
                         console.log("triggerIRBSweep done");
                         document.location.reload();
