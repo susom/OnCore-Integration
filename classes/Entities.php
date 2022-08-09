@@ -23,7 +23,7 @@ class Entities extends \REDCapEntity\EntityFactory
             'type' => $type
         );
         // use this to reduce Mysql Server Gone error.
-        $sql = sprintf("INSERT INTO %s (message, url, response, type) VALUES ('%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type));
+        $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()));
         //$entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_API_ACTIONS_LOG, $data);
         $entity = db_query($sql);
         if (!$entity) {
