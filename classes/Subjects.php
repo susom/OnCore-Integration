@@ -105,14 +105,14 @@ class Subjects extends SubjectDemographics
                 ]);
             } catch (Exception $ex) {
 
-                $this->emError("Exception calling endpoint: " . $ex);
+//                $this->emError("Exception calling endpoint: " . $ex);
                 Entities::createException("Exception calling endpoint: " . $ex);
             }
 
             // Make the API call was successful.
             $returnStatus = $resp->getStatusCode();
             if ($returnStatus <> 200) {
-                $this->emError("API call to $url, HTTP Return Code is: $returnStatus");
+//                $this->emError("API call to $url, HTTP Return Code is: $returnStatus");
                 Entities::createException("API call to $url, HTTP Return Code is: $returnStatus");
             } else {
                 // Everything worked so retrieve the demographics data
@@ -464,7 +464,7 @@ class Subjects extends SubjectDemographics
      */
     public function updateLinkageRecord($id, $data)
     {
-        $entity = (new Entities)->getInstance(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $id);
+        $entity = (new Entities)->getFactory()->getInstance(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $id);
         if ($entity->setData($data)) {
             $entity->save();
         } else {

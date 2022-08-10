@@ -115,7 +115,7 @@ class Protocols
             if ($record) {
                 $this->getSubjects()->updateLinkageRecord($record['id'], $data);
             } else {
-                $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                $entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                 if (!$entity) {
                     throw new \Exception(implode(',', $entity->errors));
                 }
@@ -138,7 +138,7 @@ class Protocols
                 'excluded' => OnCoreIntegration::NO,
                 'status' => OnCoreIntegration::REDCAP_ONLY
             );
-            $e = (new Entities);
+            $e = (new Entities)->getFactory();
             $entity = $e->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
             if (!$entity) {
                 throw new \Exception(implode(',', $e->errors));
@@ -164,7 +164,7 @@ class Protocols
                 'status' => OnCoreIntegration::ONCORE_ONLY
             );
 
-            $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+            $entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
             if (!$entity) {
                 throw new \Exception(implode(',', $entity->errors));
             }
@@ -387,7 +387,7 @@ class Protocols
                         'last_date_scanned' => time()
                     );
 
-                    $entity = (new Entities)->create(OnCoreIntegration::ONCORE_PROTOCOLS, $data);
+                    $entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_PROTOCOLS, $data);
 
                     if ($entity) {
                         Entities::createLog('OnCore Protocol Entity table record created for IRB: ' . $irb . '.');
