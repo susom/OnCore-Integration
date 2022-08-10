@@ -22,7 +22,7 @@ if ($db_exists) {
         ->render('control_center');
 
 } else {
-    $module->emError("Table does not exist.  Please go create it first");
+    Entities::createException("Table does not exist.  Please go create it first");
     $url = 'http://localhost/redcap_v12.2.2/ExternalModules/?prefix=redcap_entity&page=manager%2Fschema';
 }
 

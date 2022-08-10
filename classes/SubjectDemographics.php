@@ -108,7 +108,7 @@ class SubjectDemographics
                         return [];
                     } else {
                         // create entity table record before return.
-                        $entity = (new Entities)->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
+                        $entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
                         if ($entity) {
                             return $data;
                         } else {

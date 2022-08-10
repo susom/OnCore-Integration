@@ -2,9 +2,14 @@
 
 namespace Stanford\OnCoreIntegration;
 
-class Entities extends \REDCapEntity\EntityFactory
+class Entities
 {
     use emLoggerTrait;
+
+    /**
+     * @var \REDCapEntity\EntityFactory
+     */
+    private $factory;
 
     /**
      * Create log record in Entity OnCore Actions log table
@@ -28,8 +33,9 @@ class Entities extends \REDCapEntity\EntityFactory
         $entity = db_query($sql);
         if (!$entity) {
             \REDCap::logEvent('Could not create log');
-            (new Entities)->emError('Could not create log');
-            (new Entities)->emLog($data);
+            $e = (new Entities);
+            $e->emError('Could not create log');
+            $e->emLog($data);
         }
 //        else {
 //            (new Entities)->emLog($data);
@@ -46,5 +52,24 @@ class Entities extends \REDCapEntity\EntityFactory
     {
         (new Entities)->emError('Could not create log');
         self::createLog('EXCEPTION: ' . $message);
+    }
+
+    /**
+     * @return \REDCapEntity\EntityFactory
+     */
+    public function getFactory(): \REDCapEntity\EntityFactory
+    {
+        if (!$this->factory) {
+            $this->setFactory(new \REDCapEntity\EntityFactory);
+        }
+        return $this->factory;
+    }
+
+    /**
+     * @param \REDCapEntity\EntityFactory $factory
+     */
+    public function setFactory(\REDCapEntity\EntityFactory $factory): void
+    {
+        $this->factory = $factory;
     }
 }

@@ -4,10 +4,7 @@ namespace Stanford\OnCoreIntegration;
 
 require_once "emLoggerTrait.php";
 require_once 'classes/Users.php';
-if (class_exists('\REDCapEntity\EntityFactory')) {
-    require_once 'classes/Entities.php';
-}
-
+require_once 'classes/Entities.php';
 require_once 'classes/Protocols.php';
 require_once 'classes/Subjects.php';
 require_once 'classes/Mapping.php';
@@ -146,7 +143,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             }
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            $this->emError($e->getMessage());
+//            $this->emError($e->getMessage());
         }
     }
 
@@ -163,10 +160,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $enabled = $this->isModuleEnabled('redcap_entity');
         if (!$enabled) {
             // TODO: what to do when redcap_entity is not enabled in the system
-            $this->emError("Cannot use this module OncoreIntegration because it is dependent on the REDCap Entities EM");
+            Entities::createException("Cannot use this module OncoreIntegration because it is dependent on the REDCap Entities EM");
+//            $this->emError("Cannot use this module OncoreIntegration because it is dependent on the REDCap Entities EM");
         } else {
             \REDCapEntity\EntityDB::buildSchema($this->PREFIX);
-            $this->emDebug("Created all OnCore Entity tables");
+            Entities::createLog("Created all OnCore Entity tables");
+//            $this->emDebug("Created all OnCore Entity tables");
         }
     }
 
@@ -1198,7 +1197,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             }
 
         } catch (\Exception $e) {
-            $this->emError($e->getMessage());
+//            $this->emError($e->getMessage());
             \REDCap::logEvent('CRON JOB ERROR: ' . $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
@@ -1235,7 +1234,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             }
 
         } catch (\Exception $e) {
-            $this->emError($e->getMessage());
+//            $this->emError($e->getMessage());
             \REDCap::logEvent('CRON JOB ERROR: ' . $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
@@ -1262,11 +1261,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 }
                 $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id . '&action=subjects';
                 $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
-                $this->emDebug("running cron for $url on project " . $project['app_title']);
+//                $this->emDebug("running cron for $url on project " . $project['app_title']);
+                Entities::createLog("running cron for $url on project " . $project['app_title']);
             }
 
         } catch (\Exception $e) {
-            $this->emError($e->getMessage());
+//            $this->emError($e->getMessage());
             \REDCap::logEvent('CRON JOB ERROR: ' . $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
