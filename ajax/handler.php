@@ -14,7 +14,10 @@ try {
         $result = null;
         $module->initiateProtocol();
 
-        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush()) {
+        // actions exempt from allow to push
+        $exemptActions = array('triggerIRBSweep');
+
+        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && !in_array($action, $exemptActions)) {
             throw new \Exception('You do not have permissions to pull/push data from this protocol.');
         }
         switch ($action) {
