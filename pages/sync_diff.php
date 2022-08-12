@@ -27,6 +27,12 @@ $excluded_count         = $sync_summ['excluded_count'];
 $oncore_count           = $sync_summ["oncore_only_count"];
 $redcap_count           = $sync_summ["redcap_only_count"];
 
+$filter_logic           = $module->getMapping()->getOncoreConsentFilterLogic();
+$use_filter             = "";
+if(!empty($filter_logic)){
+    $use_filter = '<label class="pull-right"><input type="checkbox" id="filter_logic" class="accept_diff" value="1"> Filter for Consented Participants</label>';
+}
+
 require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 ?>
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
@@ -143,6 +149,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
     </div>
     <div class="tab-pane" id="redcap">
         <form id="pushToOncore" class="oncore_match">
+            <?= $use_filter ?>
+
             <input type="hidden" name="matchtype" value="redcaponly"/>
             <div class="included"></div>
             <br>
@@ -311,8 +319,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             $(".pushDATA form").submit();
         });
 
-            //do fresh data manual pull
-            $("#refresh_sync_diff").on("click", function (e) {
+        //do fresh data manual pull
+        $("#refresh_sync_diff").on("click", function (e) {
                 e.preventDefault();
                 var _this = $(this);
                 _this.addClass("loading").prop("disabled", "disabled");
@@ -350,69 +358,71 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
         //show hide adjudcation tables
         $(".getadjudication").click(function(e){
-        var _this    = $(this);
-        var bin      = _this.data("bin");
+            var _this       = $(this);
+            var bin         = _this.data("bin");
+            var use_filter  = _this.data("use_filter");
 
-        $(".stat-group").removeClass("picked");
-        var par      = _this.closest(".stat-group");
+            $(".stat-group").removeClass("picked");
+            var par      = _this.closest(".stat-group");
 
-        _this.addClass("loading");
-            $(".getadjudication").prop("disabled", "disabled");
+            _this.addClass("loading");
+                $(".getadjudication").prop("disabled", "disabled");
 
-            $(".tab-pane").removeClass("active");
+                $(".tab-pane").removeClass("active");
 
-            $.ajax({
-                url: ajax_endpoint,
-                method: 'POST',
-                data: {
-                    "action": "getSyncDiff",
-                    "bin": bin,
-                    "redcap_csrf_token": redcap_csrf_token,
-                },
-                //dataType: 'json'
-            }).done(function (result) {
+                $.ajax({
+                    url: ajax_endpoint,
+                    method: 'POST',
+                    data: {
+                        "action": "getSyncDiff",
+                        "bin": bin,
+                        "filter" : use_filter,
+                        "redcap_csrf_token": redcap_csrf_token,
+                    },
+                    //dataType: 'json'
+                }).done(function (result) {
 
-                result = decode_object(result)
-                _this.removeClass("loading");
+                    result = decode_object(result)
+                    _this.removeClass("loading");
 
-                //POP OPEN THE MODAL
-                var adjModal = new adjudicationModal(bin);
-                window.adjModal = adjModal;
-                adjModal.show();
+                    //POP OPEN THE MODAL
+                    var adjModal = new adjudicationModal(bin);
+                    window.adjModal = adjModal;
+                    adjModal.show();
 
-                $(".getadjudication").prop("disabled", false);
-                par.addClass("picked");
+                    $(".getadjudication").prop("disabled", false);
+                    par.addClass("picked");
 
-            $("#" + bin).addClass("active");
-            $("#" + bin).find(".included").empty().append(result["included"]);
-                $("#" + bin).find(".excluded").empty().append(result["excluded"]);
+                $("#" + bin).addClass("active");
+                $("#" + bin).find(".included").empty().append(result["included"]);
+                    $("#" + bin).find(".excluded").empty().append(result["excluded"]);
 
-                $("#" + bin).clone().appendTo($("#pushModal .pushDATA"));
+                    $("#" + bin).clone().appendTo($("#pushModal .pushDATA"));
 
-                var footer_action = $(result["footer_action"]);
-                var show_all = $(result["show_all"]);
-                $("#pushModal .footer_action").append(footer_action);
-                $("#pushModal .show_all").append(show_all);
-                // $("#pushModal .show_all").prepend(footer_action.clone());
-            }).fail(function (e) {
-                e.responseJSON = decode_object(e.responseText)
-                _this.removeClass("loading");
-                $(".getadjudication").prop("disabled", false);
+                    var footer_action = $(result["footer_action"]);
+                    var show_all = $(result["show_all"]);
+                    $("#pushModal .footer_action").append(footer_action);
+                    $("#pushModal .show_all").append(show_all);
+                    // $("#pushModal .show_all").prepend(footer_action.clone());
+                }).fail(function (e) {
+                    e.responseJSON = decode_object(e.responseText)
+                    _this.removeClass("loading");
+                    $(".getadjudication").prop("disabled", false);
 
-                var be_status = "";
-                var be_lead = "";
-                if (e.hasOwnProperty("responseJSON")) {
-                    var response = e.responseJSON
-                    be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
-                    be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
-                }
+                    var be_status = "";
+                    var be_lead = "";
+                    if (e.hasOwnProperty("responseJSON")) {
+                        var response = e.responseJSON
+                        be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
+                        be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
+                    }
 
-            var headline = be_status + "Failed to load adjudication records";
-            var lead = be_lead + "Please try again";
-            var notif = new notifModal(lead, headline);
-            notif.show();
+                var headline = be_status + "Failed to load adjudication records";
+                var lead = be_lead + "Please try again";
+                var notif = new notifModal(lead, headline);
+                notif.show();
+            });
         });
-    });
 
         //oncore only
         $(document).on('click', '.submit_pullFromOnCore', function (e) {
@@ -433,6 +443,18 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
             e.preventDefault();
             var form = $('.pushDATA').find('#pushToOncore');
             push(form);
+        });
+
+        $(document).on('click', '#filter_logic', function (e) {
+            if( $(this).is(":checked") ){
+                //ajax new set of results with filter flag
+                $("#push_data").data("use_filter", true);
+                $("#push_data").trigger("click");
+            }else{
+                //ajax full set of results
+                $("#push_data").data("use_filter", false);
+                $("#push_data").trigger("click");
+            }
         });
 
         //ACCEPT ADJUDICATIONS

@@ -337,8 +337,9 @@ class Protocols
     /**
      * @return array|void
      */
-    public function getSyncedRecords()
+    public function getSyncedRecords($use_filter = null)
     {
+        //TODO WHEN $use_filter is true, need to use the stored filter logic from the Mapping class getOncoreConsentFilterLogic()
         if ($this->getEntityRecord()) {
             $this->getSubjects()->setSyncedRecords($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id']);
             return $this->getSubjects()->getSyncedRecords();
