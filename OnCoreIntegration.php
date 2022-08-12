@@ -902,7 +902,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function getSyncDiff()
     {
         $this->initiateProtocol();
-        $this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
+        //$this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
 
         //THIS MA
         $fields_event   = $this->redcapFieldEventIDMap();

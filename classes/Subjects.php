@@ -411,7 +411,8 @@ class Subjects extends SubjectDemographics
     {
         $param = array(
             'project_id' => $redcapProjectId,
-            'return_format' => 'array'
+            'return_format' => 'array',
+            'filterLogic' => $this->getMapping()->getRedcapFilterLogic(),
         );
         $this->redcapProjectRecords = \REDCap::getData($param);
     }
@@ -503,8 +504,12 @@ class Subjects extends SubjectDemographics
         if (db_num_rows($q) > 0) {
             while ($row = db_fetch_assoc($q)) {
                 $record = array();
-                if ($row['redcap_record_id']) {
+                // if redcap logic filter is defined make sure redcap_record_id satisfies the logic.
+                if ($row['redcap_record_id'] && $this->getREDCapRecord($row['redcap_record_id'])) {
                     $record['redcap'] = $this->getREDCapRecord($row['redcap_record_id']);
+                } elseif ($row['redcap_record_id']) {
+                    // if record exists in linkage entity table but in redcap records array that means record did not satisfy filter logic. add empty array for it.
+                    $record['redcap'] = array();
                 }
                 if ($row['oncore_protocol_subject_id']) {
                     $record['oncore'] = $this->getOnCoreProtocolSubject($onCoreProtocolId, $row['oncore_protocol_subject_id']);

@@ -15,13 +15,17 @@ class Mapping
     private $project_mapping;
     private $oncore_subset;
     private $pushpull_pref;
+    private $redcap_filter_logic = '';
 
     public function __construct($module)
     {
-        $this->module               = $module;
-        $this->oncore_fields        = $this->getOnCoreFieldDefinitions();
-        $this->redcap_fields        = $this->getProjectFieldDictionary();
-        $this->project_mapping      = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull"=>array(),"push"=>array());
+        $this->module = $module;
+        $this->oncore_fields = $this->getOnCoreFieldDefinitions();
+        $this->redcap_fields = $this->getProjectFieldDictionary();
+        $this->project_mapping = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull" => array(), "push" => array());
+        // TODO verify logic is valid
+        //$this->setRedcapFilterLogic($this->module->getProjectSetting('redcap_filter_logic'));
+//        $this->setRedcapFilterLogic('[suo_gender] = 3');
     }
 
     /**
@@ -1060,12 +1064,16 @@ class Mapping
         $html .= "</thead>";
 
         foreach ($records as $mrn => $rows) {
+            // MRN is empty when record exists in redcap but does not satisfy filter logic.
+            if ($mrn == '') {
+                continue;
+            }
             if ($noredcap) {
                 $rc_id = "";
             }
-            $rowspan        = count($rows);
-            $print_rowspan  = false;
-            $ts_last_scan   = null;
+            $rowspan = count($rows);
+            $print_rowspan = false;
+            $ts_last_scan = null;
 
             $html .= "<tbody class='$mrn' data-subject_mrn='$mrn'>";
 
@@ -1173,4 +1181,22 @@ class Mapping
         }
         return [];
     }
+
+    /**
+     * @return string
+     */
+    public function getRedcapFilterLogic(): string
+    {
+        return $this->redcap_filter_logic;
+    }
+
+    /**
+     * @param string $redcap_filter_logic
+     */
+    public function setRedcapFilterLogic(string $redcap_filter_logic): void
+    {
+        $this->redcap_filter_logic = $redcap_filter_logic;
+    }
+
+
 }
