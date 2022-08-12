@@ -227,9 +227,6 @@ try {
                 $bin        = htmlspecialchars($_POST["bin"]);
                 $use_filter = htmlspecialchars($_POST["filter"]);
 
-                //TODO if $use_filter is true, then return filtered results with the stored filter_logic
-                $module->emDebug("use_filter", $use_filter);
-
                 $bin = $bin ?: null;
                 $sync_diff = $module->getSyncDiff($use_filter);
 

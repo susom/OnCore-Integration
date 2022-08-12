@@ -913,6 +913,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         //THIS MA
         $fields_event   = $this->redcapFieldEventIDMap();
 
+        
         $records        = $this->getProtocols()->getSyncedRecords($use_filter);
         $mapped_fields  = $this->getMapping()->getProjectFieldMappings();
 
