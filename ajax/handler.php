@@ -24,10 +24,12 @@ try {
 
             case "saveSiteStudies":
                 $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : null;
-
                 $module->getMapping()->setProjectSiteStudies($result);
+                break;
 
-
+            case "saveFilterLogic":
+                $result = !empty($_POST["filter_logic_str"]) ? filter_var($_POST["filter_logic_str"], FILTER_SANITIZE_STRING) : null;
+                $module->getMapping()->setOncoreConsentFilterLogic($result);
                 break;
 
             case "saveMapping":
@@ -222,9 +224,14 @@ try {
                 break;
 
             case "getSyncDiff":
-                $bin = htmlspecialchars($_POST["bin"]);
+                $bin        = htmlspecialchars($_POST["bin"]);
+                $use_filter = htmlspecialchars($_POST["filter"]);
+
+                //TODO if $use_filter is true, then return filtered results with the stored filter_logic
+                $module->emDebug("use_filter", $use_filter);
+
                 $bin = $bin ?: null;
-                $sync_diff = $module->getSyncDiff();
+                $sync_diff = $module->getSyncDiff($use_filter);
 
                 $result = array("included" => "", "excluded" => "", "footer_action" => "", "show_all" => "");
                 if ($bin == "partial"){

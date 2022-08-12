@@ -52,6 +52,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const ONCORE_PROTOCOL_STATUS_YES = 2;
 
+    const ONCORE_CONSENT_FILTER_LOGIC = 'redcap-oncore-consent-filter-logic';
+
     const YES = 1;
 
     const NO = 0;
@@ -903,7 +905,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     /**
      * @return sync_diff
      */
-    public function getSyncDiff()
+    public function getSyncDiff($use_filter = null)
     {
         $this->initiateProtocol();
         $this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
@@ -911,7 +913,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         //THIS MA
         $fields_event   = $this->redcapFieldEventIDMap();
 
-        $records        = $this->getProtocols()->getSyncedRecords();
+        $records        = $this->getProtocols()->getSyncedRecords($use_filter);
         $mapped_fields  = $this->getMapping()->getProjectFieldMappings();
 
         $sync_diff      = array();

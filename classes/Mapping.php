@@ -15,6 +15,7 @@ class Mapping
     private $project_mapping;
     private $oncore_subset;
     private $pushpull_pref;
+    private $filter_logic;
 
     public function __construct($module)
     {
@@ -173,7 +174,6 @@ class Mapping
         }
         return $req_fields;
     }
-
 
     //GET INDIVIDUAL FIELD/PROPERTIES
     /**
@@ -1137,6 +1137,18 @@ class Mapping
         return array("html" => $html, "footer_action" => $footer_action, "show_all" => $show_all_btn);
     }
 
+
+    //FILTER LOGIC GET SET
+    public function getOncoreConsentFilterLogic(){
+        if(empty($this->filter_logic) ) {
+            $this->filter_logic = json_decode($this->module->getProjectSetting(OnCoreIntegration::ONCORE_CONSENT_FILTER_LOGIC), true);
+        }
+        return $this->filter_logic;
+    }
+
+    public function setOncoreConsentFilterLogic(string $filter_logic_str): void{
+        $this->module->setProjectSetting(OnCoreIntegration::ONCORE_CONSENT_FILTER_LOGIC, json_encode($filter_logic_str));
+    }
 
 
 
