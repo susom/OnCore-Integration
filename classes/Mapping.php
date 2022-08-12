@@ -15,7 +15,7 @@ class Mapping
     private $project_mapping;
     private $oncore_subset;
     private $pushpull_pref;
-    private $redcap_filter_logic = '';
+    private $filter_logic;
 
     public function __construct($module)
     {
@@ -24,10 +24,6 @@ class Mapping
         $this->redcap_fields = $this->getProjectFieldDictionary();
         $this->project_mapping = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull" => array(), "push" => array());
 
-        if ($this->module->getProjectSetting('redcap_filter_logic')) {
-            //$this->setRedcapFilterLogic($this->module->getProjectSetting('redcap_filter_logic'));
-            $this->setRedcapFilterLogic('[suo_gender] = 3');
-        }
 
     }
 
@@ -180,7 +176,6 @@ class Mapping
         }
         return $req_fields;
     }
-
 
     //GET INDIVIDUAL FIELD/PROPERTIES
     /**
@@ -1149,6 +1144,19 @@ class Mapping
     }
 
 
+    //FILTER LOGIC GET SET
+    public function getOncoreConsentFilterLogic()
+    {
+        if (empty($this->filter_logic)) {
+            $this->filter_logic = json_decode($this->module->getProjectSetting(OnCoreIntegration::ONCORE_CONSENT_FILTER_LOGIC), true);
+        }
+        return $this->filter_logic;
+    }
+
+    public function setOncoreConsentFilterLogic(string $filter_logic_str): void
+    {
+        $this->module->setProjectSetting(OnCoreIntegration::ONCORE_CONSENT_FILTER_LOGIC, json_encode($filter_logic_str));
+    }
 
 
     /**
@@ -1185,26 +1193,6 @@ class Mapping
         return [];
     }
 
-    /**
-     * @return string
-     */
-    public function getRedcapFilterLogic(): string
-    {
-        return $this->redcap_filter_logic;
-    }
-
-    /**
-     * @param string $redcap_filter_logic
-     */
-    public function setRedcapFilterLogic(string $redcap_filter_logic): void
-    {
-        // check if logic is valid.
-        if (\LogicTester::isValid($redcap_filter_logic)) {
-            $this->redcap_filter_logic = $redcap_filter_logic;
-        } else {
-            Entities::createLog($redcap_filter_logic . ' is not valid logic');
-        }
-    }
 
 
 }

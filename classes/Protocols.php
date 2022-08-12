@@ -337,9 +337,14 @@ class Protocols
     /**
      * @return array|void
      */
-    public function getSyncedRecords()
+    public function getSyncedRecords($use_filter = null)
     {
         if ($this->getEntityRecord()) {
+            // reset redcap records array and apply saved filter.
+            if ($use_filter) {
+                $this->getSubjects()->setRedcapProjectRecords($this->getEntityRecord()['redcap_project_id'], true);
+            }
+
             $this->getSubjects()->setSyncedRecords($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id']);
             return $this->getSubjects()->getSyncedRecords();
         } else {

@@ -52,6 +52,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const ONCORE_PROTOCOL_STATUS_YES = 2;
 
+    const ONCORE_CONSENT_FILTER_LOGIC = 'redcap-oncore-consent-filter-logic';
+
     const YES = 1;
 
     const NO = 0;
@@ -571,7 +573,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $has_oncore_integration = $this->hasOnCoreIntegration();
         ?>
         <link rel="stylesheet" href="<?= $notif_css ?>">
-
         <script src="<?= $oncore_js ?>" type="text/javascript"></script>
         <script>
             var ajax_endpoint = "<?=$ajax_endpoint?>";
@@ -699,22 +700,27 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         // console.log(oncore_integrated);
                         document.location.reload();
                     }).fail(function (e) {
-                        console.log("failed to integrate", e);
                         e.responseJSON = decode_object(e.responseText)
-                        $(".getadjudication").prop("disabled", false);
 
-                        var be_status = "";
-                        var be_lead = "";
-                        if (e.hasOwnProperty("responseJSON")) {
-                            var response = e.responseJSON
-                            be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
-                            be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
+                        //it gets a Fail State for some reason when status is "OK"
+                        if (e.responseJSON) {
+                            document.location.reload();
+                        } else {
+                            $(".getadjudication").prop("disabled", false);
+
+                            var be_status = "";
+                            var be_lead = "";
+                            if (e.hasOwnProperty("responseJSON")) {
+                                var response = e.responseJSON
+                                be_status = response.hasOwnProperty("status") ? response.status + ". " : "";
+                                be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
+                            }
+
+                            var headline = be_status + "Failed to load adjudication records";
+                            var lead = be_lead + "Please try again";
+                            var notif = new notifModal(lead, headline);
+                            notif.show();
                         }
-
-                        var headline = be_status + "Failed to load adjudication records";
-                        var lead = be_lead + "Please try again";
-                        var notif = new notifModal(lead, headline);
-                        notif.show();
                     });
                 });
 
@@ -899,24 +905,25 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     /**
      * @return sync_diff
      */
-    public function getSyncDiff()
+    public function getSyncDiff($use_filter = null)
     {
         $this->initiateProtocol();
         //$this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
 
         //THIS MA
-        $fields_event   = $this->redcapFieldEventIDMap();
+        $fields_event = $this->redcapFieldEventIDMap();
 
-        $records        = $this->getProtocols()->getSyncedRecords();
-        $mapped_fields  = $this->getMapping()->getProjectFieldMappings();
 
-        $sync_diff      = array();
-        $bin_match      = array("excluded" => array(), "included" => array());
-        $bin_partial    = array("excluded" => array(), "included" => array());
-        $bin_oncore     = array("excluded" => array(), "included" => array());
-        $bin_redcap     = array("excluded" => array(), "included" => array());
-        $bin_array      = array("bin_redcap", "bin_oncore", "bin_match", "bin_partial");
-        $exclude        = array("mrn");
+        $records = $this->getProtocols()->getSyncedRecords($use_filter);
+        $mapped_fields = $this->getMapping()->getProjectFieldMappings();
+
+        $sync_diff = array();
+        $bin_match = array("excluded" => array(), "included" => array());
+        $bin_partial = array("excluded" => array(), "included" => array());
+        $bin_oncore = array("excluded" => array(), "included" => array());
+        $bin_redcap = array("excluded" => array(), "included" => array());
+        $bin_array = array("bin_redcap", "bin_oncore", "bin_match", "bin_partial");
+        $exclude = array("mrn");
 
         foreach ($records as $record) {
             $link_status = $record["status"];

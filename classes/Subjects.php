@@ -407,12 +407,12 @@ class Subjects extends SubjectDemographics
      * set all redcap records
      * @param mixed $redcapProjectRecords
      */
-    public function setRedcapProjectRecords($redcapProjectId): void
+    public function setRedcapProjectRecords($redcapProjectId, $useFilter = false): void
     {
         $param = array(
             'project_id' => $redcapProjectId,
             'return_format' => 'array',
-            'filterLogic' => $this->getMapping()->getRedcapFilterLogic(),
+            'filterLogic' => $useFilter ? ($this->getMapping()->getOncoreConsentFilterLogic() ?: '') : '',
         );
         $this->redcapProjectRecords = \REDCap::getData($param);
     }
