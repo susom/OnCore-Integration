@@ -563,13 +563,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     //ONCORE INTEGRATION/STATUS METHODS
     public function injectIntegrationUI()
     {
-        $field_map_url  = $this->getUrl("pages/field_map.php");
-        $ajax_endpoint  = $this->getUrl("ajax/handler.php");
-        $notif_css      = $this->getUrl("assets/styles/notif_modal.css");
-        $notif_js       = $this->getUrl("assets/scripts/notif_modal.js");
-        $oncore_js      = $this->getUrl("assets/scripts/oncore.js");
+        $field_map_url = $this->getUrl("pages/field_map.php");
+        $ajax_endpoint = $this->getUrl("ajax/handler.php");
+        $notif_css = $this->getUrl("assets/styles/notif_modal.css");
+        $notif_js = $this->getUrl("assets/scripts/notif_modal.js");
+        $oncore_js = $this->getUrl("assets/scripts/oncore.js");
         $available_oncore_protocols = $this->getOnCoreProtocols();
-        $oncore_integrations    = $this->getOnCoreIntegrations();
+        $oncore_integrations = $this->getOnCoreIntegrations();
         $has_oncore_integration = $this->hasOnCoreIntegration();
         ?>
         <link rel="stylesheet" href="<?= $notif_css ?>">
@@ -585,12 +585,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             //var last_adjudication = <?//=json_encode($this->getSyncDiffSummary()); ?>//;
 
 
-            var oncore_protocols        = decode_object("<?=htmlentities(json_encode($available_oncore_protocols, JSON_THROW_ON_ERROR)); ?>");
-            var oncore_integrations     = decode_object("<?=htmlentities(json_encode($oncore_integrations, JSON_THROW_ON_ERROR)); ?>");
-            var has_oncore_integration  = decode_object("<?=htmlentities(json_encode($has_oncore_integration, JSON_THROW_ON_ERROR)); ?>");
+            var oncore_protocols = decode_object("<?=htmlentities(json_encode($available_oncore_protocols, JSON_THROW_ON_ERROR)); ?>");
+            var oncore_integrations = decode_object("<?=htmlentities(json_encode($oncore_integrations, JSON_THROW_ON_ERROR)); ?>");
+            var has_oncore_integration = decode_object("<?=htmlentities(json_encode($has_oncore_integration, JSON_THROW_ON_ERROR)); ?>");
 
-            var has_field_mappings      = decode_object("<?=htmlentities(json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false, JSON_THROW_ON_ERROR)); ?>");
-            var last_adjudication       = decode_object("<?=htmlentities(json_encode($this->getSyncDiffSummary(), JSON_THROW_ON_ERROR)); ?>");
+            var has_field_mappings = decode_object("<?=htmlentities(json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false, JSON_THROW_ON_ERROR)); ?>");
+            var last_adjudication = decode_object("<?=htmlentities(json_encode($this->getSyncDiffSummary(), JSON_THROW_ON_ERROR)); ?>");
 
             var make_oncore_module = function () {
                 if ($("#setupChklist-modify_project").length) {
@@ -703,9 +703,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         e.responseJSON = decode_object(e.responseText)
 
                         //it gets a Fail State for some reason when status is "OK"
-                        if(e.responseJSON){
+                        if (e.responseJSON) {
                             document.location.reload();
-                        }else{
+                        } else {
                             $(".getadjudication").prop("disabled", false);
 
                             var be_status = "";
@@ -908,22 +908,22 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function getSyncDiff($use_filter = null)
     {
         $this->initiateProtocol();
-        $this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
+        //$this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
 
         //THIS MA
-        $fields_event   = $this->redcapFieldEventIDMap();
+        $fields_event = $this->redcapFieldEventIDMap();
 
-        
-        $records        = $this->getProtocols()->getSyncedRecords($use_filter);
-        $mapped_fields  = $this->getMapping()->getProjectFieldMappings();
 
-        $sync_diff      = array();
-        $bin_match      = array("excluded" => array(), "included" => array());
-        $bin_partial    = array("excluded" => array(), "included" => array());
-        $bin_oncore     = array("excluded" => array(), "included" => array());
-        $bin_redcap     = array("excluded" => array(), "included" => array());
-        $bin_array      = array("bin_redcap", "bin_oncore", "bin_match", "bin_partial");
-        $exclude        = array("mrn");
+        $records = $this->getProtocols()->getSyncedRecords($use_filter);
+        $mapped_fields = $this->getMapping()->getProjectFieldMappings();
+
+        $sync_diff = array();
+        $bin_match = array("excluded" => array(), "included" => array());
+        $bin_partial = array("excluded" => array(), "included" => array());
+        $bin_oncore = array("excluded" => array(), "included" => array());
+        $bin_redcap = array("excluded" => array(), "included" => array());
+        $bin_array = array("bin_redcap", "bin_oncore", "bin_match", "bin_partial");
+        $exclude = array("mrn");
 
         foreach ($records as $record) {
             $link_status = $record["status"];

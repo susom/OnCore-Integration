@@ -8,7 +8,8 @@ namespace Stanford\OnCoreIntegration;
 $oncore_css             = $module->getUrl("assets/styles/field_mapping.css");
 $notif_css              = $module->getUrl("assets/styles/notif_modal.css");
 
-$notif_js               = $module->getUrl("assets/scripts/notif_modal.js");
+$notif_js = $module->getUrl("assets/scripts/notif_modal.js");
+$oncore_js = $module->getUrl("assets/scripts/oncore.js");
 
 $icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
 $ajax_endpoint          = $module->getUrl("ajax/handler.php");
@@ -93,37 +94,202 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 <p class="lead">Some configurations need to be set before using this module:</p>
 
                 <label class="map_dir">
-                    <input type="checkbox" class="pCheck" data-tab="pull_mapping" value="1"> Do you want to PULL subject data from OnCore to REDCap
+                    <input type="checkbox" class="pCheck" data-tab="pull_mapping" value="1"> Do you want to PULL subject
+                    data from OnCore to REDCap
                 </label>
 
                 <label class="map_dir">
-                    <input type="checkbox" class="pCheck" data-tab="push_mapping" value="2"> Do you want to PUSH subject data from REDCap to OnCore
+                    <input type="checkbox" class="pCheck" data-tab="push_mapping" value="2"> Do you want to PUSH subject
+                    data from REDCap to OnCore
                 </label>
             </form>
 
             <form id="consent_logic" class="container">
                 <h2>Consented Participants Filtering Logic</h2>
-                <p class="lead">Each REDCap project may define "consented" differently.  Save the filtering logic statement here to allow for (optional) filtering UI by consented participants:</p>
+                <p class="lead">Each REDCap project may define "consented" differently. Save the filtering logic
+                    statement here to allow for (optional) filtering UI by consented participants:</p>
 
                 <label class="map_dir">
                     <div style="margin:0 30px;float:right;">
-                        <a href="javascript:;" style="text-decoration:underline;font-size:11px;font-weight:normal; margin-right:20px;" onclick="helpPopup('5','category_33_question_1_tab_5');">How do I use special functions?</a>
+                        <a href="javascript:;"
+                           style="text-decoration:underline;font-size:11px;font-weight:normal; margin-right:20px;"
+                           onclick="helpPopup('5','category_33_question_1_tab_5');">How do I use special functions?</a>
                     </div>
 
-                    <textarea id="advanced_logic" placeholder='(e.g., [age] > 30 and [sex] = "1")' name="advanced_logic" class="x-form-field notesbox" onfocus="openLogicEditor($(this))" style="width:95%;height:75px;resize:auto;" onkeydown="logicSuggestSearchTip(this, event);" onblur="logicHideSearchTip(this); "></textarea>
-                    <div style="border: 0; font-weight: bold; text-align: left; vertical-align: middle; height: 20px;" id="advanced_logic_Ok">&nbsp;</div>
+                    <textarea id="advanced_logic" placeholder='(e.g., [age] > 30 and [sex] = "1")' name="advanced_logic"
+                              class="x-form-field notesbox" onfocus="openLogicEditor($(this))"
+                              style="width:95%;height:75px;resize:auto;" onkeydown="logicSuggestSearchTip(this, event);"
+                              onblur="logicHideSearchTip(this); "><?= $module->getMapping()->getOncoreConsentFilterLogic() ?></textarea>
+                    <div style="border: 0; font-weight: bold; text-align: left; vertical-align: middle; height: 20px;"
+                         id="advanced_logic_Ok">&nbsp;
+                    </div>
 
-                    <p style="margin:10px 0;"><button class="button btn btn-info" id="saveFilterLogic">Save Filter Logic</button></p>
+                    <p style="margin:10px 0;">
+                        <button class="button btn btn-info" id="saveFilterLogic">Save Filter Logic</button>
+                    </p>
                 </label>
 
-                <style id="ace-tm">.ace-tm .ace_gutter {background: #f0f0f0;color: #333;}.ace-tm .ace_print-margin {width: 1px;background: #e8e8e8;}.ace-tm .ace_fold {background-color: #6B72E6;}.ace-tm {background-color: #FFFFFF;color: black;}.ace-tm .ace_cursor {color: black;}.ace-tm .ace_invisible {color: rgb(191, 191, 191);}.ace-tm .ace_storage,.ace-tm .ace_keyword {color: blue;}.ace-tm .ace_constant {color: rgb(197, 6, 11);}.ace-tm .ace_constant.ace_buildin {color: rgb(88, 72, 246);}.ace-tm .ace_constant.ace_language {color: rgb(88, 92, 246);}.ace-tm .ace_constant.ace_library {color: rgb(6, 150, 14);}.ace-tm .ace_invalid {background-color: rgba(255, 0, 0, 0.1);color: red;}.ace-tm .ace_support.ace_function {color: rgb(60, 76, 114);}.ace-tm .ace_support.ace_constant {color: rgb(6, 150, 14);}.ace-tm .ace_support.ace_type,.ace-tm .ace_support.ace_class {color: rgb(109, 121, 222);}.ace-tm .ace_keyword.ace_operator {color: rgb(104, 118, 135);}.ace-tm .ace_string {color: rgb(3, 106, 7);}.ace-tm .ace_comment {color: rgb(76, 136, 107);}.ace-tm .ace_comment.ace_doc {color: rgb(0, 102, 255);}.ace-tm .ace_comment.ace_doc.ace_tag {color: rgb(128, 159, 191);}.ace-tm .ace_constant.ace_numeric {color: rgb(0, 0, 205);}.ace-tm .ace_variable {color: rgb(49, 132, 149);}.ace-tm .ace_xml-pe {color: rgb(104, 104, 91);}.ace-tm .ace_entity.ace_name.ace_function {color: #0000A2;}.ace-tm .ace_heading {color: rgb(12, 7, 255);}.ace-tm .ace_list {color:rgb(185, 6, 144);}.ace-tm .ace_meta.ace_tag {color:rgb(0, 22, 142);}.ace-tm .ace_string.ace_regex {color: rgb(255, 0, 0)}.ace-tm .ace_marker-layer .ace_selection {background: rgb(181, 213, 255);}.ace-tm.ace_multiselect .ace_selection.ace_start {box-shadow: 0 0 3px 0px white;}.ace-tm .ace_marker-layer .ace_step {background: rgb(252, 255, 0);}.ace-tm .ace_marker-layer .ace_stack {background: rgb(164, 229, 101);}.ace-tm .ace_marker-layer .ace_bracket {margin: -1px 0 0 -1px;border: 1px solid rgb(192, 192, 192);}.ace-tm .ace_marker-layer .ace_active-line {background: rgba(0, 0, 0, 0.07);}.ace-tm .ace_gutter-active-line {background-color : #dcdcdc;}.ace-tm .ace_marker-layer .ace_selected-word {background: rgb(250, 250, 255);border: 1px solid rgb(200, 200, 250);}.ace-tm .ace_indent-guide {background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==") right repeat-y;}
+                <style id="ace-tm">.ace-tm .ace_gutter {
+                        background: #f0f0f0;
+                        color: #333;
+                    }
+
+                    .ace-tm .ace_print-margin {
+                        width: 1px;
+                        background: #e8e8e8;
+                    }
+
+                    .ace-tm .ace_fold {
+                        background-color: #6B72E6;
+                    }
+
+                    .ace-tm {
+                        background-color: #FFFFFF;
+                        color: black;
+                    }
+
+                    .ace-tm .ace_cursor {
+                        color: black;
+                    }
+
+                    .ace-tm .ace_invisible {
+                        color: rgb(191, 191, 191);
+                    }
+
+                    .ace-tm .ace_storage, .ace-tm .ace_keyword {
+                        color: blue;
+                    }
+
+                    .ace-tm .ace_constant {
+                        color: rgb(197, 6, 11);
+                    }
+
+                    .ace-tm .ace_constant.ace_buildin {
+                        color: rgb(88, 72, 246);
+                    }
+
+                    .ace-tm .ace_constant.ace_language {
+                        color: rgb(88, 92, 246);
+                    }
+
+                    .ace-tm .ace_constant.ace_library {
+                        color: rgb(6, 150, 14);
+                    }
+
+                    .ace-tm .ace_invalid {
+                        background-color: rgba(255, 0, 0, 0.1);
+                        color: red;
+                    }
+
+                    .ace-tm .ace_support.ace_function {
+                        color: rgb(60, 76, 114);
+                    }
+
+                    .ace-tm .ace_support.ace_constant {
+                        color: rgb(6, 150, 14);
+                    }
+
+                    .ace-tm .ace_support.ace_type, .ace-tm .ace_support.ace_class {
+                        color: rgb(109, 121, 222);
+                    }
+
+                    .ace-tm .ace_keyword.ace_operator {
+                        color: rgb(104, 118, 135);
+                    }
+
+                    .ace-tm .ace_string {
+                        color: rgb(3, 106, 7);
+                    }
+
+                    .ace-tm .ace_comment {
+                        color: rgb(76, 136, 107);
+                    }
+
+                    .ace-tm .ace_comment.ace_doc {
+                        color: rgb(0, 102, 255);
+                    }
+
+                    .ace-tm .ace_comment.ace_doc.ace_tag {
+                        color: rgb(128, 159, 191);
+                    }
+
+                    .ace-tm .ace_constant.ace_numeric {
+                        color: rgb(0, 0, 205);
+                    }
+
+                    .ace-tm .ace_variable {
+                        color: rgb(49, 132, 149);
+                    }
+
+                    .ace-tm .ace_xml-pe {
+                        color: rgb(104, 104, 91);
+                    }
+
+                    .ace-tm .ace_entity.ace_name.ace_function {
+                        color: #0000A2;
+                    }
+
+                    .ace-tm .ace_heading {
+                        color: rgb(12, 7, 255);
+                    }
+
+                    .ace-tm .ace_list {
+                        color: rgb(185, 6, 144);
+                    }
+
+                    .ace-tm .ace_meta.ace_tag {
+                        color: rgb(0, 22, 142);
+                    }
+
+                    .ace-tm .ace_string.ace_regex {
+                        color: rgb(255, 0, 0)
+                    }
+
+                    .ace-tm .ace_marker-layer .ace_selection {
+                        background: rgb(181, 213, 255);
+                    }
+
+                    .ace-tm.ace_multiselect .ace_selection.ace_start {
+                        box-shadow: 0 0 3px 0px white;
+                    }
+
+                    .ace-tm .ace_marker-layer .ace_step {
+                        background: rgb(252, 255, 0);
+                    }
+
+                    .ace-tm .ace_marker-layer .ace_stack {
+                        background: rgb(164, 229, 101);
+                    }
+
+                    .ace-tm .ace_marker-layer .ace_bracket {
+                        margin: -1px 0 0 -1px;
+                        border: 1px solid rgb(192, 192, 192);
+                    }
+
+                    .ace-tm .ace_marker-layer .ace_active-line {
+                        background: rgba(0, 0, 0, 0.07);
+                    }
+
+                    .ace-tm .ace_gutter-active-line {
+                        background-color: #dcdcdc;
+                    }
+
+                    .ace-tm .ace_marker-layer .ace_selected-word {
+                        background: rgb(250, 250, 255);
+                        border: 1px solid rgb(200, 200, 250);
+                    }
+
+                    .ace-tm .ace_indent-guide {
+                        background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==") right repeat-y;
+                    }
+
                     /*# sourceURL=ace/css/ace-tm */</style>
             </form>
 
             <form id="study_sites" class="container">
                 <h2>Select subset of study sites for this project</h2>
                 <p class="lead">No selections will default to using the entire set.</p>
-                <?=implode("", $site_selection) ?>
+                <?= implode("", $site_selection) ?>
             </form>
         </div>
 
@@ -192,9 +358,11 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 #field_mapping .loading::after{
     content:"";
     background:url(<?=$icon_ajax?>) 0 0 no-repeat;
-    position:absolute;
-    margin-left:10px; width:30px; height:30px;
-    background-size:contain;
+    position: absolute;
+    margin-left: 10px;
+    width: 30px;
+    height: 30px;
+    background-size: contain;
 }
 
 #field_mapping #study_sites .loading::after {
@@ -202,7 +370,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     right: 25px;
 }
 </style>
-<!--<script src="--><?//= $notif_js ?><!--" type="text/javascript"></script>-->
+<!--<script src="--><? //= $notif_js
+?><!--" type="text/javascript"></script>-->
+<script src="<?= $oncore_js ?>" type="text/javascript"></script>
 <script>
     $(document).ready(function () {
         var ajax_endpoint = "<?=$ajax_endpoint?>";
@@ -702,15 +872,15 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 }
 
                 var headline = be_status + "Failed to save Study Site";
-                var lead        = be_lead + "Please refresh the page and try again";
-                var notif       = new notifModal(lead,headline);
+                var lead = be_lead + "Please refresh the page and try again";
+                var notif = new notifModal(lead, headline);
                 notif.show();
             });
         });
 
 
         //SAVE FILTER LOGIC
-        $("body").on("click", "#saveFilterLogic", function(e){
+        $(document).on("click", "#saveFilterLogic", function (e) {
             e.preventDefault();
 
             var fls = $("#advanced_logic").val();
@@ -728,7 +898,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 console.log("some UI to show it is saved");
                 //done
             }).fail(function (e) {
-                console.log("ERRRORR",fls);
+                console.log("ERRRORR", fls);
                 return;
                 e.responseJSON = decode_object(e.responseText)
                 $("#study_sites .loading").removeClass("loading");
@@ -741,21 +911,21 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 }
 
                 var headline = be_status + "Failed to save Filter Logic";
-                var lead        = be_lead + "Please refresh the page and try again";
-                var notif       = new notifModal(lead,headline);
+                var lead = be_lead + "Please refresh the page and try again";
+                var notif = new notifModal(lead, headline);
                 notif.show();
             });
         });
     });
 
-    function disableSelects(){
-        $("#field_mapping select").each(function(){
-            $(this).prop("disabled","disabled");
+    function disableSelects() {
+        $("#field_mapping select").each(function () {
+            $(this).prop("disabled", "disabled");
         });
     }
 
-    function enableSelects(){
-        $("#field_mapping select").each(function(){
+    function enableSelects() {
+        $("#field_mapping select").each(function () {
             $(this).prop("disabled",false);
         });
     }

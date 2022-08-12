@@ -19,10 +19,12 @@ class Mapping
 
     public function __construct($module)
     {
-        $this->module               = $module;
-        $this->oncore_fields        = $this->getOnCoreFieldDefinitions();
-        $this->redcap_fields        = $this->getProjectFieldDictionary();
-        $this->project_mapping      = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull"=>array(),"push"=>array());
+        $this->module = $module;
+        $this->oncore_fields = $this->getOnCoreFieldDefinitions();
+        $this->redcap_fields = $this->getProjectFieldDictionary();
+        $this->project_mapping = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull" => array(), "push" => array());
+
+
     }
 
     /**
@@ -1060,12 +1062,16 @@ class Mapping
         $html .= "</thead>";
 
         foreach ($records as $mrn => $rows) {
+            // MRN is empty when record exists in redcap but does not satisfy filter logic.
+            if ($mrn == '') {
+                continue;
+            }
             if ($noredcap) {
                 $rc_id = "";
             }
-            $rowspan        = count($rows);
-            $print_rowspan  = false;
-            $ts_last_scan   = null;
+            $rowspan = count($rows);
+            $print_rowspan = false;
+            $ts_last_scan = null;
 
             $html .= "<tbody class='$mrn' data-subject_mrn='$mrn'>";
 
@@ -1139,17 +1145,18 @@ class Mapping
 
 
     //FILTER LOGIC GET SET
-    public function getOncoreConsentFilterLogic(){
-        if(empty($this->filter_logic) ) {
+    public function getOncoreConsentFilterLogic()
+    {
+        if (empty($this->filter_logic)) {
             $this->filter_logic = json_decode($this->module->getProjectSetting(OnCoreIntegration::ONCORE_CONSENT_FILTER_LOGIC), true);
         }
         return $this->filter_logic;
     }
 
-    public function setOncoreConsentFilterLogic(string $filter_logic_str): void{
+    public function setOncoreConsentFilterLogic(string $filter_logic_str): void
+    {
         $this->module->setProjectSetting(OnCoreIntegration::ONCORE_CONSENT_FILTER_LOGIC, json_encode($filter_logic_str));
     }
-
 
 
     /**
@@ -1185,4 +1192,7 @@ class Mapping
         }
         return [];
     }
+
+
+
 }

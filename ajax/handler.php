@@ -14,7 +14,10 @@ try {
         $result = null;
         $module->initiateProtocol();
 
-        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush()) {
+        // actions exempt from allow to push
+        $exemptActions = array('triggerIRBSweep');
+
+        if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && !in_array($action, $exemptActions)) {
             throw new \Exception('You do not have permissions to pull/push data from this protocol.');
         }
         switch ($action) {
@@ -35,10 +38,10 @@ try {
             case "saveMapping":
                 //Saves to em project settings
                 //MAKE THIS A MORE GRANULAR SAVE.  GET
-                $project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
-                $current_mapping        = $module->getMapping()->getProjectMapping();
-                $result                 = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
-                $update_oppo            = !empty($_POST["update_oppo"]) ? filter_var($_POST["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
+                $project_oncore_subset = $module->getMapping()->getProjectOncoreSubset();
+                $current_mapping = $module->getMapping()->getProjectMapping();
+                $result = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
+                $update_oppo = !empty($_POST["update_oppo"]) ? filter_var($_POST["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
 
                 $pull_mapping       = !empty($result["mapping"]) ? $result["mapping"] : null;
                 $oncore_field       = !empty($result["oncore_field"]) && $result["oncore_field"] !== "-99" ? $result["oncore_field"] : null;
@@ -224,17 +227,17 @@ try {
                 break;
 
             case "getSyncDiff":
-                $bin        = htmlspecialchars($_POST["bin"]);
+                $bin = htmlspecialchars($_POST["bin"]);
                 $use_filter = htmlspecialchars($_POST["filter"]);
 
                 $bin = $bin ?: null;
                 $sync_diff = $module->getSyncDiff($use_filter);
 
                 $result = array("included" => "", "excluded" => "", "footer_action" => "", "show_all" => "");
-                if ($bin == "partial"){
+                if ($bin == "partial") {
                     $included = $module->getMapping()->makeSyncTableHTML($sync_diff["partial"]["included"]);
                     $excluded = $module->getMapping()->makeSyncTableHTML($sync_diff["partial"]["excluded"], null, "disabled", true);
-                }elseif($bin == "redcap"){
+                } elseif ($bin == "redcap") {
                     $included = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["included"]);
                     $excluded = $module->getMapping()->makeRedcapTableHTML($sync_diff["redcap"]["excluded"], null, "disabled", true);
                 } elseif ($bin == "oncore") {
