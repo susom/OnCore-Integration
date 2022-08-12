@@ -23,9 +23,12 @@ class Mapping
         $this->oncore_fields = $this->getOnCoreFieldDefinitions();
         $this->redcap_fields = $this->getProjectFieldDictionary();
         $this->project_mapping = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull" => array(), "push" => array());
-        // TODO verify logic is valid
-        //$this->setRedcapFilterLogic($this->module->getProjectSetting('redcap_filter_logic'));
-//        $this->setRedcapFilterLogic('[suo_gender] = 3');
+
+        if ($this->module->getProjectSetting('redcap_filter_logic')) {
+            //$this->setRedcapFilterLogic($this->module->getProjectSetting('redcap_filter_logic'));
+            $this->setRedcapFilterLogic('[suo_gender] = 3');
+        }
+
     }
 
     /**
@@ -1195,7 +1198,12 @@ class Mapping
      */
     public function setRedcapFilterLogic(string $redcap_filter_logic): void
     {
-        $this->redcap_filter_logic = $redcap_filter_logic;
+        // check if logic is valid.
+        if (\LogicTester::isValid($redcap_filter_logic)) {
+            $this->redcap_filter_logic = $redcap_filter_logic;
+        } else {
+            Entities::createLog($redcap_filter_logic . ' is not valid logic');
+        }
     }
 
 
