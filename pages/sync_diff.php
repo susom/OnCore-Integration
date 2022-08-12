@@ -360,7 +360,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         $(".getadjudication").click(function(e){
             var _this       = $(this);
             var bin         = _this.data("bin");
-            var use_filter  = _this.data("use_filter");
+            var use_filter  = _this.data("use_filter") == "1" ? 1 : null;
 
             $(".stat-group").removeClass("picked");
             var par      = _this.closest(".stat-group");
@@ -393,8 +393,15 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     $(".getadjudication").prop("disabled", false);
                     par.addClass("picked");
 
-                $("#" + bin).addClass("active");
-                $("#" + bin).find(".included").empty().append(result["included"]);
+                    $("#" + bin).addClass("active");
+                    $("#" + bin).find(".included").empty().append(result["included"]);
+
+                    if(use_filter){
+                        $("#" + bin).find("#filter_logic").attr("checked", true);
+                    }else{
+                        $("#" + bin).find("#filter_logic").attr("checked", false);
+                    }
+
                     $("#" + bin).find(".excluded").empty().append(result["excluded"]);
 
                     $("#" + bin).clone().appendTo($("#pushModal .pushDATA"));
@@ -448,11 +455,11 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
         $(document).on('click', '#filter_logic', function (e) {
             if( $(this).is(":checked") ){
                 //ajax new set of results with filter flag
-                $("#push_data").data("use_filter", true);
+                $("#push_data").data("use_filter", 1);
                 $("#push_data").trigger("click");
             }else{
                 //ajax full set of results
-                $("#push_data").data("use_filter", false);
+                $("#push_data").data("use_filter", "");
                 $("#push_data").trigger("click");
             }
         });
