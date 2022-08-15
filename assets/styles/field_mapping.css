@@ -211,6 +211,19 @@ table.value_map th {
 }
 
 
+#field_mapping button.loading::after{
+    top: 0px;
+    right: 5px;
+}
+#field_mapping button.loading{
+    padding-right:40px;
+}
+
+#field_mapping .loading::after {
+    top: 12px;
+    right: 25px;
+}
+
 
 #study_sites{
     margin-bottom:50px;

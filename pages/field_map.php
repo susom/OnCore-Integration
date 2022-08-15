@@ -364,11 +364,6 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     height: 30px;
     background-size: contain;
 }
-
-#field_mapping #study_sites .loading::after {
-    top: 12px;
-    right: 25px;
-}
 </style>
 <!--<script src="--><? //= $notif_js
 ?><!--" type="text/javascript"></script>-->
@@ -880,10 +875,13 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
 
         //SAVE FILTER LOGIC
-        $(document).on("click", "#saveFilterLogic", function (e) {
+        $("#saveFilterLogic").click(function (e) {
             e.preventDefault();
 
             var fls = $("#advanced_logic").val();
+
+            var _this = $(this);
+            _this.addClass("loading").prop("disabled", "disabled");
 
             $.ajax({
                 url: ajax_endpoint,
@@ -896,9 +894,12 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 //dataType: 'json'
             }).done(function (result) {
                 console.log("some UI to show it is saved");
+                _this.removeClass("loading").prop("disabled", false);
                 //done
             }).fail(function (e) {
                 console.log("ERRRORR", fls);
+                _this.removeClass("loading").prop("disabled", false);
+
                 return;
                 e.responseJSON = decode_object(e.responseText)
                 $("#study_sites .loading").removeClass("loading");
