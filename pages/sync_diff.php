@@ -363,9 +363,9 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
             //show hide adjudcation tables
             $(".getadjudication").click(function (e) {
-                var _this = $(this);
-                var bin = _this.data("bin");
-                var use_filter = _this.data("use_filter") == "1" ? 1 : null;
+                var _this       = $(this);
+                var bin         = _this.data("bin");
+                var use_filter  = _this.data("use_filter") == "1" ? 1 : null;
 
                 $(".stat-group").removeClass("picked");
                 var par = _this.closest(".stat-group");
@@ -391,7 +391,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     _this.removeClass("loading");
 
                     //POP OPEN THE MODAL
-                    var adjModal = new adjudicationModal(bin);
+                    var adjModal    = new adjudicationModal(bin);
                     window.adjModal = adjModal;
                     adjModal.show();
 

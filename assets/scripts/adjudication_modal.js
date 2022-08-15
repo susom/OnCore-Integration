@@ -40,6 +40,9 @@ class adjudicationModal{
     buildHTML(){
         var _this   = this;
 
+
+        this.hide();
+        
         let modalID = _this.id;
         var opaque  = $("<div>").attr("id",modalID);
 
