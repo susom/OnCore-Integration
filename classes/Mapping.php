@@ -1193,6 +1193,41 @@ class Mapping
         return [];
     }
 
+    /**
+     * @param $field
+     * @param $allowDefault
+     * @param $defaultValue
+     * @return bool
+     */
+    public function canUseDefaultValue($field, $allowDefault, $defaultValue = '')
+    {
+        if ($allowDefault) {
+            if ($defaultValue != '') {
+                return true;
+            } elseif ($field == OnCoreIntegration::ONCORE_BIRTHDATE_FIELD) {
+                return true;
+            }
+        }
+        return false;
+    }
 
+    /**
+     * @param $keys
+     * @return bool
+     */
+    public function excludeBirthDate($keys)
+    {
+        $field = $this->getOncoreField(OnCoreIntegration::ONCORE_BIRTHDATE_FIELD);
+        if ($this->canUseDefaultValue(OnCoreIntegration::ONCORE_BIRTHDATE_FIELD, $field['allow_default']) && in_array(OnCoreIntegration::ONCORE_BIRTHDATE_NOT_REQUIRED_FIELD, $keys)) {
+            return true;
+        }
+        return false;
+    }
 
+    function compareIsEqualArray(array $array1, array $array2): bool
+    {
+
+        return (array_diff($array1, $array2) == [] && array_diff($array2, $array1) == []);
+
+    }
 }

@@ -54,6 +54,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const ONCORE_CONSENT_FILTER_LOGIC = 'redcap-oncore-consent-filter-logic';
 
+    const ONCORE_BIRTHDATE_FIELD = 'birthDate';
+    const ONCORE_BIRTHDATE_NOT_REQUIRED_FIELD = 'birthDateNotAvailable';
+
     const YES = 1;
 
     const NO = 0;

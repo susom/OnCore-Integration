@@ -570,7 +570,14 @@ class Subjects extends SubjectDemographics
                     $diff = array_diff(OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS, $intersect);
                 }
 //                throw new \Exception("Following field/s are missing: " . implode(',', $diff));
-                $errors[] = "Following field/s are not mapped: " . implode(', ', $diff);
+                // special case for birthdate field. if no value provided for DOB and birthDateNotAvailable is set to true
+                if ($this->getMapping()->compareIsEqualArray($diff, array(OnCoreIntegration::ONCORE_BIRTHDATE_FIELD))) {
+                    if (!$this->getMapping()->excludeBirthDate($keys)) {
+                        $errors[] = "Following field/s are not filled: " . implode(', ', $diff);
+                    }
+                } else {
+                    $errors[] = "Following field/s are not filled: " . implode(', ', $diff);
+                }
             }
 
             /**
@@ -579,13 +586,20 @@ class Subjects extends SubjectDemographics
             $e = [];
             //make sure to check the default OnCore required fields and other non-required by default but are set as required in the EM system settings
             $fields = array_unique(array_merge($this->getMapping()->getOncoreRequiredFields(), OnCoreIntegration::$ONCORE_DEMOGRAPHICS_REQUIRED_FIELDS));
+            // if birthdate is not provided and not required make sure to exclude it from empty values.
+            if ($this->getMapping()->excludeBirthDate($keys)) {
+                if (($key = array_search(OnCoreIntegration::ONCORE_BIRTHDATE_FIELD, $fields)) !== false) {
+                    unset($fields[$key]);
+                }
+
+            }
             foreach ($fields as $field) {
                 if ($subjectDemographics[$field] == '') {
                     $e[] = $field;
                 }
             }
 
-            if (!empty($errors)) {
+            if (!empty($e)) {
 //                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
                 $errors[] = "Following field/s are empty: " . implode(', ', $e);
             }
@@ -755,54 +769,66 @@ class Subjects extends SubjectDemographics
         $data = [];
         foreach ($fields as $key => $field) {
             unset($map);
-            $redcapValue = $record[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
-            if (!isset($field['value_mapping'])) {
-
-                $a = gettype($redcapValue);
-                if (!in_array($a, $oncoreFieldsDef[$key]['oncore_field_type'])) {
-                    //throw new \Exception('datatype does not match');
-                    continue;
+            // check if default values are allowed for the field and a default value already defined on current redcap project.
+            if ($this->getMapping()->canUseDefaultValue($key, $oncoreFieldsDef[$key]['allow_default'], $field['default_value'])) {
+                // special case only for birthdate to allow empty default value
+                if ($key == OnCoreIntegration::ONCORE_BIRTHDATE_FIELD) {
+                    $data[OnCoreIntegration::ONCORE_BIRTHDATE_NOT_REQUIRED_FIELD] = true;
+                } else {
+                    $data[$key] = $field['default_value'];
                 }
-
-                // if no value and its not required then do not add it. because onCore API will consider some field required if key is presented.
-                if ($redcapValue == '' && !($oncoreFieldsDef[$key]['required'] == 'true' ? true : false)) {
-                    continue;
-                }
-
-                $data[$key] = $redcapValue;
             } else {
-                if (in_array('array', $oncoreFieldsDef[$key]['oncore_field_type'])) {
-                    $redcapValue = $record[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
-                    //redcap is checkbox
-                    $options = [];
-                    if (is_array($redcapValue)) {
-                        foreach ($redcapValue as $id => $value) {
-                            //checkbox not checked
-                            if (!$value) {
+                $redcapValue = $record[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+
+
+                if (!isset($field['value_mapping'])) {
+
+                    $a = gettype($redcapValue);
+                    if (!in_array($a, $oncoreFieldsDef[$key]['oncore_field_type'])) {
+                        //throw new \Exception('datatype does not match');
+                        continue;
+                    }
+
+                    // if no value and its not required then do not add it. because onCore API will consider some field required if key is presented.
+                    if ($redcapValue == '' && !($oncoreFieldsDef[$key]['required'] == 'true' ? true : false)) {
+                        continue;
+                    }
+
+                    $data[$key] = $redcapValue;
+                } else {
+                    if (in_array('array', $oncoreFieldsDef[$key]['oncore_field_type'])) {
+                        $redcapValue = $record[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                        //redcap is checkbox
+                        $options = [];
+                        if (is_array($redcapValue)) {
+                            foreach ($redcapValue as $id => $value) {
+                                //checkbox not checked
+                                if (!$value) {
+                                    continue;
+                                }
+                                $map = $this->getMapping()->getREDCapMappedValue($id, $field);
+                                if (!$map) {
+                                    throw new \Exception('cant find map for redcap value ' . $id);
+                                }
+                                $options[] = $map['oc'];
+                            }
+                            $data[$key] = $options;
+                        } else {
+                            $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
+                            if (!$map) {
+//                            throw new \Exception('cant find map for redcap value ' . $redcapValue);
                                 continue;
                             }
-                            $map = $this->getMapping()->getREDCapMappedValue($id, $field);
-                            if (!$map) {
-                                throw new \Exception('cant find map for redcap value ' . $id);
-                            }
-                            $options[] = $map['oc'];
+                            $data[$key] = array($map['oc']);
                         }
-                        $data[$key] = $options;
                     } else {
                         $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
                         if (!$map) {
-//                            throw new \Exception('cant find map for redcap value ' . $redcapValue);
+//                        throw new \Exception('cant find map for redcap value ' . $redcapValue);
                             continue;
                         }
-                        $data[$key] = array($map['oc']);
+                        $data[$key] = $map['oc'];
                     }
-                } else {
-                    $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
-                    if (!$map) {
-//                        throw new \Exception('cant find map for redcap value ' . $redcapValue);
-                        continue;
-                    }
-                    $data[$key] = $map['oc'];
                 }
             }
 
