@@ -184,6 +184,7 @@ Until the status update is manually performed in OnCore, those participants will
 {
     "subjectDemographicsId": {
         "alias": "",
+        "allow_default": "false",
         "description": "subject Demographics Id",
         "oncore_field_type": [
             "string"
@@ -193,69 +194,77 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "subjectSource": {
         "alias": "",
+        "allow_default": "false",
         "description": "subject Source",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
-        "required": "true"
+        "required": "false"
     },
     "mrn": {
         "alias": "",
+        "allow_default": "false",
         "description": "MRN",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "true"
     },
     "lastName": {
         "alias": "",
+        "allow_default": "false",
         "description": "last Name",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "true"
     },
     "firstName": {
         "alias": "",
+        "allow_default": "false",
         "description": "first Name",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "true"
     },
     "middleName": {
         "alias": "",
+        "allow_default": "false",
         "description": "middle Name",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
-        "required": "true"
+        "required": "false"
     },
     "suffix": {
         "alias": "",
+        "allow_default": "false",
         "description": "suffix",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "birthDate": {
         "alias": "",
+        "allow_default": "false",
         "description": "Date of Birth",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "true"
     },
     "approximateBirthDate": {
         "alias": "",
+        "allow_default": "false",
         "description": "approximate Birth Date",
         "oncore_field_type": [
             "bool"
@@ -265,6 +274,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "birthDateNotAvailable": {
         "alias": "",
+        "allow_default": "false",
         "description": "birth Date Not Available",
         "oncore_field_type": [
             "bool"
@@ -274,15 +284,17 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "expiredDate": {
         "alias": "",
+        "allow_default": "false",
         "description": "expired Date",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "approximateExpiredDate": {
         "alias": "",
+        "allow_default": "false",
         "description": "approximate Expired Date",
         "oncore_field_type": [
             "bool"
@@ -292,27 +304,30 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "lastDateKnownAlive": {
         "alias": "",
+        "allow_default": "false",
         "description": "last Date Known Alive",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "ssn": {
         "alias": "",
+        "allow_default": "false",
         "description": "Social Security Number",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "gender": {
         "alias": "",
+        "allow_default": "false",
         "description": "Gender",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [
             "Male",
@@ -323,9 +338,10 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "ethnicity": {
         "alias": "",
+        "allow_default": "false",
         "description": "Ethnicity",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [
             "Hispanic or Latino",
@@ -337,6 +353,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "race": {
         "alias": "",
+        "allow_default": "false",
         "description": "Race",
         "oncore_field_type": [
             "array"
@@ -354,15 +371,17 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "subjectComments": {
         "alias": "",
+        "allow_default": "false",
         "description": "subject Comments",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "additionalSubjectIds": {
         "alias": "",
+        "allow_default": "false",
         "description": "additional Subject Ids",
         "oncore_field_type": [
             "array"
@@ -372,90 +391,100 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "streetAddress": {
         "alias": "",
+        "allow_default": "false",
         "description": "street Address",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "addressLine2": {
         "alias": "",
+        "allow_default": "false",
         "description": "address Line 2",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "city": {
         "alias": "",
+        "allow_default": "false",
         "description": "City",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "state": {
         "alias": "",
+        "allow_default": "false",
         "description": "State",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "zip": {
         "alias": "",
+        "allow_default": "false",
         "description": "ZIP",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "county": {
         "alias": "",
+        "allow_default": "false",
         "description": "County",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "country": {
         "alias": "",
+        "allow_default": "false",
         "description": "Country",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "phoneNo": {
         "alias": "",
+        "allow_default": "false",
         "description": "Phone",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "alternatePhoneNo": {
         "alias": "",
+        "allow_default": "false",
         "description": "alternate Phone",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"
     },
     "email": {
         "alias": "",
+        "allow_default": "false",
         "description": "Email",
         "oncore_field_type": [
-            "text"
+            "string"
         ],
         "oncore_valid_values": [],
         "required": "false"

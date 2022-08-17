@@ -48,7 +48,8 @@ try {
                 $redcap_field       = !empty($result["redcap_field"]) && $result["redcap_field"] !== "-99" ? $result["redcap_field"] : null;
                 $eventname          = !empty($result["event"]) ? $result["event"] : null;
                 $ftype              = !empty($result["field_type"]) ? $result["field_type"] : null;
-                $vmap               = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
+                $vmap = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
+                $default_value = !empty($result["default_value"]) ? $result["default_value"] : null;
 
                 //$pull_mapping tells me the actual click (pull or push side)... doing the opposite side is more just a convenience..
                 if($pull_mapping == "pull"){
@@ -60,17 +61,19 @@ try {
                         if(!$vmap && $update_oppo){
                             //if its just a one to one mapping, then just go ahead and map the other direction
                             $current_mapping["push"][$oncore_field] = array(
-                                "redcap_field"  => $redcap_field,
-                                "event"         => $eventname,
-                                "field_type"    => $ftype,
+                                "redcap_field" => $redcap_field,
+                                "event" => $eventname,
+                                "field_type" => $ftype,
+                                "default_value" => $default_value,
                                 "value_mapping" => $vmap
                             );
                         }
 
                         $current_mapping[$pull_mapping][$oncore_field] = array(
-                            "redcap_field"  => $redcap_field,
-                            "event"         => $eventname,
-                            "field_type"    => $ftype,
+                            "redcap_field" => $redcap_field,
+                            "event" => $eventname,
+                            "field_type" => $ftype,
+                            "default_value" => $default_value,
                             "value_mapping" => $vmap
                         );
                     }
