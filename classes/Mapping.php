@@ -354,8 +354,6 @@ class Mapping
         $oc_field_map_pull  = $this->getMappedField($field_key);
         $oc_field_map_push  = $this->getMappedField($field_key, 1);
 
-
-
         //has pull mapping
         if (!empty($oc_field_map_pull)) {
             $redcap_field   = $this->getMappedRedcapField($field_key);
@@ -378,35 +376,37 @@ class Mapping
         }
 
         if (!empty($oc_field_map_push)) {
-            $redcap_field   = $this->getMappedRedcapField($field_key,1);
-            $rc_type        = $this->getRedcapType($redcap_field);
-            $oncore_vset    = $this->getOncoreValueSet($field_key);
-            $vmap_format    = $this->getMappedRedcapValueSet($field_key,1);
-            $rc_vset        = $this->getRedcapValueSet($redcap_field);
+            if(!empty($oc_field_map_push["default_value"])){
+                $push_status = true;
+            }else{
+                $redcap_field   = $this->getMappedRedcapField($field_key,1);
+                $rc_type        = $this->getRedcapType($redcap_field);
+                $oncore_vset    = $this->getOncoreValueSet($field_key);
+                $vmap_format    = $this->getMappedRedcapValueSet($field_key,1);
+                $rc_vset        = $this->getRedcapValueSet($redcap_field);
 
-            if (!empty($vmap_format)) {
-                //has value set mapping
-                $rc_coded_values = array_keys($rc_vset);
-                $redcap_coverage = array_diff($rc_coded_values, array_keys($vmap_format));
+                if (!empty($vmap_format)) {
+                    //has value set mapping
+                    $rc_coded_values = array_keys($rc_vset);
+                    $redcap_coverage = array_diff($rc_coded_values, array_keys($vmap_format));
 
-                if($field_key == "studySites"){
-                    //TODO THIS NEEDS A CUSTOM CALC, BUT CAN WE TRUST THE ONCORE PROP KEY TO REMAIN CONSTANT?
-                    $redcap_coverage = array_diff(array_keys($vmap_format), $rc_coded_values);
-                }
+                    if($field_key == "studySites"){
+                        //TODO THIS NEEDS A CUSTOM CALC, BUT CAN WE TRUST THE ONCORE PROP KEY TO REMAIN CONSTANT?
+                        $redcap_coverage = array_diff(array_keys($vmap_format), $rc_coded_values);
+                    }
 
-                if (empty($redcap_coverage)) {
-                    //this means all valid redcap values have been mapped to an oncore value
-                    $push_status = true;
-                }
-            } elseif ($rc_type == "text") {
-                //if redcap field type is text, then it can accept anything always
-                if (empty($oncore_vset)) {
-                    //if redcap field is text, but oncore only has fixed value set, then push is not always true
-                    $push_status = true;
+                    if (empty($redcap_coverage)) {
+                        //this means all valid redcap values have been mapped to an oncore value
+                        $push_status = true;
+                    }
+                } elseif ($rc_type == "text") {
+                    //if redcap field type is text, then it can accept anything always
+                    if (empty($oncore_vset)) {
+                        //if redcap field is text, but oncore only has fixed value set, then push is not always true
+                        $push_status = true;
+                    }
                 }
             }
-
-
         }
 
         return array("pull" => $pull_status, "push" => $push_status);
@@ -559,19 +559,20 @@ class Mapping
         }
         $rc_select .= "</select>\r\n";
 
+
         //OnCore Static Field names need mapping to REDCap fields
         foreach($oncore_fields as $field => $field_details) {
             //ONLY SHOW THOSE IN THE CHOSEN SUBSET
 
             //each select will have different input['name']
             $rc_map_select     = str_replace("[ONCORE_FIELD]", $field, $rc_select);
-
             if(in_array($field, $project_oncore_sub)){
                 $pull_status            = "";
                 $pull_value_map_html    = "";
                 $event_name             = "";
                 $pull_rc_map_select     = $rc_map_select;
                 $required               = $field_details["required"];
+                $has_default            = $field_details["allow_default"];
                 if (array_key_exists($field, $project_mappings["pull"])) {
                     $rc_field               = $project_mappings["pull"][$field];
                     $rc_field_name          = $rc_field["redcap_field"];
@@ -607,20 +608,28 @@ class Mapping
             $push_value_map_html    = "";
             $event_name             = "";
             $push_rc_map_select     = $rc_map_select;
+            $default_value          = "";
+            $default_checked        = "";
 
             if (array_key_exists($field, $project_mappings["push"])) {
-                $rc_field_name          = $this->getMappedRedcapField($field,1 );
-                $oncore_field           = $field;
-                $event_name             = $this->getRedcapEventName($rc_field_name);
-                $rc_type                = $this->getRedcapType($rc_field_name);
+                $oncore_field = $field;
 
-                $push_value_map_html    = $this->makeValueMappingUI_RC($oncore_field, $rc_field_name);
-                $json_vmapping          = json_encode($this->getMappedRedcapValueSet($oncore_field, 1));
-                $data_value_mapping     = "data-val_mapping='{$json_vmapping}'";
+                if(!empty($project_mappings["push"][$oncore_field]["default_value"])){
+                    $default_value          = $project_mappings["push"][$oncore_field]["default_value"];
+                    $default_checked        = "checked";
+                    $push_value_map_html    = $this->makeValueMappingUI_UseDefault($oncore_field, $default_value);
+                }else{
+                    $rc_field_name          = $this->getMappedRedcapField($field,1 );
+                    $event_name             = $this->getRedcapEventName($rc_field_name);
+                    $rc_type                = $this->getRedcapType($rc_field_name);
 
-                $push_rc_map_select     = str_replace("'$rc_field_name'", "'$rc_field_name' selected ", $push_rc_map_select);
-                $push_rc_map_select     = str_replace("'vmap-$rc_field_name'", $data_value_mapping, $push_rc_map_select);
+                    $push_value_map_html    = $this->makeValueMappingUI_RC($oncore_field, $rc_field_name);
+                    $json_vmapping          = json_encode($this->getMappedRedcapValueSet($oncore_field, 1));
+                    $data_value_mapping     = "data-val_mapping='{$json_vmapping}'";
 
+                    $push_rc_map_select     = str_replace("'$rc_field_name'", "'$rc_field_name' selected ", $push_rc_map_select);
+                    $push_rc_map_select     = str_replace("'vmap-$rc_field_name'", $data_value_mapping, $push_rc_map_select);
+                }
                 $push_status            = $this->getPushStatus($oncore_field) ? "ok" : "";
                 $push_rc_map_select     = str_replace("property_select", "property_select $push_status", $push_rc_map_select);
             }
@@ -629,9 +638,10 @@ class Mapping
 
             $required = $field_details["required"];
             if($required === "true"){
+                $use_default = filter_var($has_default,FILTER_VALIDATE_BOOLEAN) ? "<label><input class='use_default' data-oncore_field='$field' type='checkbox' name='use_default' $default_checked value='1'/> Use Default</label>" : "";
                 $push_html .= "<tr class='$field'>\r\n";
-                $push_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></td>";
-                $push_html .= "<td class='rc_selects'>$push_rc_map_select</i></td>";
+                $push_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></i></td>";
+                $push_html .= "<td class='rc_selects'>$push_rc_map_select $use_default</td>";
                 $push_html .= "<td class='rc_event centered'>$event_name</td>";
                 $push_html .= "<td class='centered status push $push_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
                 $push_html .= "</tr>\r\n";
@@ -655,7 +665,6 @@ class Mapping
         foreach($project_oncore_sub as $prop){
             $html_pull[] =  $pull_temp[$prop];
         }
-
 
         return array(   "project_mappings"  => $project_mappings,
                         "oncore_fields"     => $oncore_fields,
@@ -780,6 +789,78 @@ class Mapping
             $value_map_html .= "</tr>\r\n";
             $value_map_html .= "</table>\r\n</td><td colspan='2'></td></tr>\r\n";
         }
+        return array("html" => $value_map_html);
+    }
+
+
+    /**
+     * Get dropdown UI for REDCap fields that need value mapping (race, ethnicity, etc..)
+     * @return array
+     */
+    public function makeValueMappingUI_UseDefault($oncore_field, $default_value){
+        $mapped_field   = $this->getMappedField($oncore_field,1);
+
+        $value_map_html = "";
+        $oc_values      = $this->getOncoreValueSet($oncore_field);
+        $special_oncore = !empty($oc_values);
+
+        //MAKE GENERIC REDCAP VALUE DROP DOWN
+        $v_select   = "";
+        if(!empty($oc_values)){
+            $v_select = "<select class='form-select form-select-sm value_select default_select' name='[REDCAP_FIELD_VALUE]'>\r\n";
+            $v_select .= "<option value=-99>-Map OnCore Value-</option>\r\n";
+            foreach ($oc_values as $oc_idx => $oc_value) {
+                $v_select .= "<option value='$oc_value'>$oc_value</option>\r\n";
+            }
+            $v_select .= "</select>\r\n";
+        }
+
+        if ($special_oncore) {
+            // IF OVER LAPPING MAPPING OF VALUES THEN PULL AND PUSH IS POSSIBLE
+            $value_map_html .= "<tr class='$oncore_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
+            $value_map_html .= "<tr><th colspan=4 class='info'><i >If a suitable REDCap field does not exist in this project, Please choose a valid 'default value' from the enumerated choices for this required OnCore Field in order to Push data from REDCap to OnCore.</i></th></tr>\r\n";
+            $value_map_html .= "<tr><th class='td_oc_vset'></th><th class='td_rc_vset'>Valid Default Values</th><th class='centered td_map_status'>Map Status</th><th class='td_vset_spacer'></th></tr>\r\n";
+
+            $value_map_status   = "";
+            $value_select       = str_replace("'[REDCAP_FIELD_VALUE]'", "'$oncore_field' data-oncore_field='$oncore_field'", $v_select);
+            $value_select       = str_replace("-Map OnCore Value-", "-Choose a Default Value-", $value_select);
+
+            if(!empty($default_value)){
+                $value_select       = str_replace(">$default_value", " selected>$default_value", $value_select);
+                $value_select       = str_replace("value_select", "value_select ok", $value_select);
+                $value_map_status   = "ok";
+            }
+
+            $value_map_html .= "<tr>\r\n";
+            $value_map_html .= "<td></td>\r\n";
+            $value_map_html .= "<td>$value_select</td>\r\n";
+            $value_map_html .= "<td class='centered value_map_status $value_map_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>\r\n";
+            $value_map_html .= "<td></td>\r\n";
+            $value_map_html .= "</tr>\r\n";
+
+            $value_map_html .= "</table>\r\n</td><td colspan='2'></td></tr>\r\n";
+        }else{
+            //NO PRESET OnCore Values PROVIDE A TEXT INPUT?
+            $value_map_html .= "<tr class='$oncore_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
+            $value_map_html .= "<tr><th colspan=4 class='info'><i >If a suitable REDCap field does not exist in this project, Please input a 'default value' for this required OnCore Field in order to Push data from REDCap to OnCore.</i></th></tr>\r\n";
+            $value_map_html .= "<tr><th class='td_oc_vset'></th><th class='td_rc_vset'>Input Default Value</th><th class='centered td_map_status'>Map Status</th><th class='td_vset_spacer'></th></tr>\r\n";
+
+            if(!empty($default_value)){
+                $value_map_status   = "ok";
+            }
+
+            $value_map_html .= "<tr>\r\n";
+            $value_map_html .= "<td></td>\r\n";
+            $value_map_html .= "<td><input type='text' class='form-input default_value' data-oncore_field='$oncore_field' value='$default_value' placeholder='Default value for $oncore_field'/></td>\r\n";
+            $value_map_html .= "<td class='centered value_map_status $value_map_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>\r\n";
+            $value_map_html .= "<td></td>\r\n";
+            $value_map_html .= "</tr>\r\n";
+
+            $value_map_html .= "</table>\r\n</td><td colspan='2'></td></tr>\r\n";
+        }
+
+//        $this->module->emDebug("fock off chicken little", $value_map_html);
+
         return array("html" => $value_map_html);
     }
 

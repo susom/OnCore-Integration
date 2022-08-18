@@ -38,18 +38,19 @@ try {
             case "saveMapping":
                 //Saves to em project settings
                 //MAKE THIS A MORE GRANULAR SAVE.  GET
-                $project_oncore_subset = $module->getMapping()->getProjectOncoreSubset();
-                $current_mapping = $module->getMapping()->getProjectMapping();
-                $result = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
-                $update_oppo = !empty($_POST["update_oppo"]) ? filter_var($_POST["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
+                $project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
+                $current_mapping        = $module->getMapping()->getProjectMapping();
+                $result                 = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
+                $update_oppo            = !empty($_POST["update_oppo"]) ? filter_var($_POST["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
 
-                $pull_mapping       = !empty($result["mapping"]) ? $result["mapping"] : null;
-                $oncore_field       = !empty($result["oncore_field"]) && $result["oncore_field"] !== "-99" ? $result["oncore_field"] : null;
-                $redcap_field       = !empty($result["redcap_field"]) && $result["redcap_field"] !== "-99" ? $result["redcap_field"] : null;
-                $eventname          = !empty($result["event"]) ? $result["event"] : null;
-                $ftype              = !empty($result["field_type"]) ? $result["field_type"] : null;
-                $vmap = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
-                $default_value = !empty($result["default_value"]) ? $result["default_value"] : null;
+                $pull_mapping           = !empty($result["mapping"]) ? $result["mapping"] : null;
+                $oncore_field           = !empty($result["oncore_field"]) && $result["oncore_field"] !== "-99" ? $result["oncore_field"] : null;
+                $redcap_field           = !empty($result["redcap_field"]) && $result["redcap_field"] !== "-99" ? $result["redcap_field"] : null;
+                $eventname              = !empty($result["event"]) ? $result["event"] : null;
+                $ftype                  = !empty($result["field_type"]) ? $result["field_type"] : null;
+                $vmap                   = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
+                $use_default            = !empty($result["use_default"]);
+                $default_value          = !empty($result["default_value"]) ? $result["default_value"] : null;
 
                 //$pull_mapping tells me the actual click (pull or push side)... doing the opposite side is more just a convenience..
                 if($pull_mapping == "pull"){
@@ -82,6 +83,15 @@ try {
                     //push side
                     if(!$redcap_field){
                         unset($current_mapping[$pull_mapping][$oncore_field]);
+                        if($use_default){
+                            $current_mapping[$pull_mapping][$oncore_field] = array(
+                                "redcap_field"  => $redcap_field,
+                                "event"         => $eventname,
+                                "field_type"    => $ftype,
+                                "value_mapping" => $vmap,
+                                "default_value" => $default_value
+                            );
+                        }
                     }else{
                         if(!$vmap && in_array($oncore_field, $project_oncore_subset) && $update_oppo){
                             //if its just a one to one mapping, then just go ahead and map the other direction
@@ -101,6 +111,7 @@ try {
                         );
                     }
                 }
+$module->emDebug($current_mapping[$pull_mapping]);
 
                 $module->getMapping()->setProjectFieldMappings($current_mapping);
             case "checkPushPullStatus":
@@ -139,7 +150,9 @@ try {
                 $rc_obj     = $module->getMapping()->getRedcapValueSet($redcap_field);
                 $oc_obj     = $module->getMapping()->getOncoreValueSet($oncore_field);
 
-                if(!empty($rc_obj) || !empty($oc_obj)){
+                if($use_default) {
+                    $res = $module->getMapping()->makeValueMappingUI_UseDefault($oncore_field, $default_value);
+                }elseif(!empty($rc_obj) || !empty($oc_obj)){
                     if ($rc_mapping) {
                         $res = $module->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
                     } else {

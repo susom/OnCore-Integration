@@ -8,8 +8,8 @@ namespace Stanford\OnCoreIntegration;
 $oncore_css             = $module->getUrl("assets/styles/field_mapping.css");
 $notif_css              = $module->getUrl("assets/styles/notif_modal.css");
 
-$notif_js = $module->getUrl("assets/scripts/notif_modal.js");
-$oncore_js = $module->getUrl("assets/scripts/oncore.js");
+$notif_js               = $module->getUrl("assets/scripts/notif_modal.js");
+$oncore_js              = $module->getUrl("assets/scripts/oncore.js");
 
 $icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
 $ajax_endpoint          = $module->getUrl("ajax/handler.php");
@@ -364,6 +364,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     height: 30px;
     background-size: contain;
 }
+
+#field_mapping .default_value{
+    padding:15px 10px;
+}
 </style>
 <!--<script src="--><? //= $notif_js
 ?><!--" type="text/javascript"></script>-->
@@ -590,6 +594,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
                 disableSelects();
 
+                console.log("field maps", field_maps);
                 ajaxQueue.addRequest(function () {
                     // -- your ajax request goes here --
                     return $.ajax({
@@ -916,6 +921,157 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 var notif = new notifModal(lead, headline);
                 notif.show();
             });
+        });
+
+
+        //USE DEFAULT VALUE (PRESENT THE ONCORE VALUES)
+        var savePushDefaultValue = function(oncore_field,default_value){
+            var redcap_field = null;
+            var field_maps = {
+                mapping: "push",
+                oncore_field: oncore_field,
+                default_value: default_value,
+                use_default: 1
+            };
+
+            disableSelects();
+            ajaxQueue.addRequest(function () {
+                // -- your ajax request goes here --
+                return $.ajax({
+                    url: ajax_endpoint,
+                    method: 'POST',
+                    data: {
+                        "action": "saveMapping",
+                        "field_mappings": field_maps,
+                        "update_oppo": null,
+                        "redcap_csrf_token": redcap_csrf_token
+                    },
+                    // dataType: 'json'
+                }).done(function (result) {
+                    result = decode_object(result)
+
+                    updatePushPullStatus(oncore_field, redcap_field, result);
+                    updateOverAllStatus(result);
+                    enableSelects();
+
+                    makeValueMappingRow(result, oncore_field, 1);
+
+                    //remove spinners
+                    $("#field_mapping .loading").removeClass("loading");
+                }).fail(function (e) {
+                    e.responseJSON = decode_object(e.responseText)
+                    var be_status = "";
+                    var be_lead = "";
+                    if (e.hasOwnProperty("responseJSON")) {
+                        be_status = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                        be_lead = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                    }
+
+                    var headline    = be_status + "Failed to save Mapping";
+                    var lead        = be_lead + "Please refresh page and try again";
+                    var notif       = new notifModal(lead, headline);
+                    notif.show();
+                });
+
+                return new Promise(function (resolve, reject) {
+                    setTimeout(function () {
+                        resolve(data);
+                    }, 100);
+                });
+            });
+        }
+        $("#redcap_mapping").on("click", ".use_default", function(){
+            var _this           = $(this);
+            var oncore_field    = _this.data("oncore_field");
+
+            var redcap_field    = null;
+            $(this).parent().addClass("loading");
+            disableSelects();
+
+            if(_this.is(":checked")){
+                _this.parents(".rc_selects").find('select[name=\''+oncore_field+'\'] option:selected').attr("selected",false);
+
+                //CHECKED, PRESENT THE DEFAULT VALUES FROM THE ONCORE FIELD
+                var field_maps = {
+                    mapping: "push",
+                    oncore_field: oncore_field,
+                    use_default: 1
+                };
+            }else{
+                //UNCHECKED, REMOVE THE PUSH MAP...
+                var field_maps = {
+                    mapping: "push",
+                    oncore_field: oncore_field,
+                    redcap_field: "-99"
+                };
+            }
+
+            ajaxQueue.addRequest(function () {
+                // -- your ajax request goes here --
+                return $.ajax({
+                    url: ajax_endpoint,
+                    method: 'POST',
+                    data: {
+                        "action": "saveMapping",
+                        "field_mappings": field_maps,
+                        "update_oppo": null,
+                        "redcap_csrf_token": redcap_csrf_token
+                    },
+                    // dataType: 'json'
+                }).done(function (result) {
+                    result = decode_object(result)
+
+                    updatePushPullStatus(oncore_field, redcap_field, result);
+                    updateOverAllStatus(result);
+                    enableSelects();
+
+                    makeValueMappingRow(result, oncore_field, 1);
+
+                    //remove spinners
+                    $("#field_mapping .loading").removeClass("loading");
+                }).fail(function (e) {
+                    e.responseJSON = decode_object(e.responseText)
+                    var be_status = "";
+                    var be_lead = "";
+                    if (e.hasOwnProperty("responseJSON")) {
+                        be_status = e.responseJSON.hasOwnProperty("status") ? e.responseJSON.status + ". " : "";
+                        be_lead = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
+                    }
+
+                    var headline    = be_status + "Failed to save Mapping";
+                    var lead        = be_lead + "Please refresh page and try again";
+                    var notif       = new notifModal(lead, headline);
+                    notif.show();
+                });
+
+                return new Promise(function (resolve, reject) {
+                    setTimeout(function () {
+                        resolve(data);
+                    }, 100);
+                });
+            });
+        });
+        $("#redcap_mapping").on("change", ".default_select", function(){
+            var _this           = $(this);
+            var oncore_field    = _this.data("oncore_field");
+            var default_value   = null;
+            _this.parent().addClass("loading");
+
+            if(_this.find(":selected").length){
+                //ITS A DROP DOWN
+                default_value = _this.find(":selected").val();
+            }
+
+            savePushDefaultValue(oncore_field,default_value);
+        });
+        $("#redcap_mapping").on("blur", ".default_value", function(){
+            var _this           = $(this);
+            var oncore_field    = _this.data("oncore_field");
+            var default_value   = _this.val();
+
+            _this.parent().addClass("loading");
+
+            savePushDefaultValue(oncore_field,default_value);
         });
     });
 

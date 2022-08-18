@@ -69,10 +69,10 @@
 }
 
 .td_oc_field{ width:35% }
-.td_rc_field{ width:35% }
+.td_rc_field{ width:36% }
 .td_rc_event{ width:15% }
 .td_pull{ width:15% }
-.td_push{ width:15% }
+.td_push{ width:14% }
 
 .td_oc_vset,
 .td_rc_vset{
@@ -85,6 +85,11 @@
     font-size:100%;
 }
 .td_vset_spacer {width:15%}
+
+.rc_selects label {
+    display:inline-block;
+    vertical-align:top;
+}
 
 .td_oc_vset,
 .td_rc_vset,
