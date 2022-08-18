@@ -563,6 +563,8 @@ class Mapping
         //OnCore Static Field names need mapping to REDCap fields
         foreach($oncore_fields as $field => $field_details) {
             //ONLY SHOW THOSE IN THE CHOSEN SUBSET
+            $required               = $field_details["required"];
+            $has_default            = $field_details["allow_default"];
 
             //each select will have different input['name']
             $rc_map_select     = str_replace("[ONCORE_FIELD]", $field, $rc_select);
@@ -571,8 +573,7 @@ class Mapping
                 $pull_value_map_html    = "";
                 $event_name             = "";
                 $pull_rc_map_select     = $rc_map_select;
-                $required               = $field_details["required"];
-                $has_default            = $field_details["allow_default"];
+                
                 if (array_key_exists($field, $project_mappings["pull"])) {
                     $rc_field               = $project_mappings["pull"][$field];
                     $rc_field_name          = $rc_field["redcap_field"];
@@ -638,6 +639,7 @@ class Mapping
 
             $required = $field_details["required"];
             if($required === "true"){
+                $this->module->emDebug("fock off", $field, $field_details);
                 $use_default = filter_var($has_default,FILTER_VALIDATE_BOOLEAN) ? "<label><input class='use_default' data-oncore_field='$field' type='checkbox' name='use_default' $default_checked value='1'/> Use Default</label>" : "";
                 $push_html .= "<tr class='$field'>\r\n";
                 $push_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></i></td>";
@@ -858,8 +860,6 @@ class Mapping
 
             $value_map_html .= "</table>\r\n</td><td colspan='2'></td></tr>\r\n";
         }
-
-//        $this->module->emDebug("fock off chicken little", $value_map_html);
 
         return array("html" => $value_map_html);
     }

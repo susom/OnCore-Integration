@@ -111,7 +111,6 @@ try {
                         );
                     }
                 }
-$module->emDebug($current_mapping[$pull_mapping]);
 
                 $module->getMapping()->setProjectFieldMappings($current_mapping);
             case "checkPushPullStatus":
