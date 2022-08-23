@@ -71,6 +71,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     const ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE = 'Onstage';
 
+    const SUBJECTS_MYSQL_LOCK = 'SUBJECTS_LOCK';
+
     public static $ONCORE_DEMOGRAPHICS_FIELDS = array(
         "subjectDemographicsId",
         "mrn",
