@@ -473,6 +473,16 @@ class Subjects extends SubjectDemographics
         }
     }
 
+    /**
+     * update oncore_protocol entity record timestampts
+     * @param $entityId
+     * @return void
+     */
+    public function updateLinkageEntityStatus($entityId, $status): void
+    {
+        $sql = sprintf("UPDATE %s set `status` = '%s' WHERE id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($entityId), db_escape($status));
+        db_query($sql);
+    }
 
     /**
      * @return array
@@ -916,13 +926,14 @@ class Subjects extends SubjectDemographics
         $id = $record['redcap'];
         $data = $this->prepareOnCoreRecordForSync($subject, $fields);
         // loop over every event defined in the field mapping.
-        foreach ($data as $event => $array) {
-            if (!$id) {
-                $array[\REDCap::getRecordIdField()] = \REDCap::reserveNewRecordId($projectId);
-            } else {
-                $array[\REDCap::getRecordIdField()] = $id;
-            }
-            $array['redcap_event_name'] = $event;
+        if ($this->getSubjectsLock($projectId)) {
+            foreach ($data as $event => $array) {
+                if (!$id) {
+                    $array[\REDCap::getRecordIdField()] = \REDCap::reserveNewRecordId($projectId);
+                } else {
+                    $array[\REDCap::getRecordIdField()] = $id;
+                }
+                $array['redcap_event_name'] = $event;
                 // TODO uncheck current checkboxes.
                 $response = \REDCap::saveData($projectId, 'json', json_encode(array($array)), 'overwrite');
                 if (!empty($response['errors'])) {
@@ -934,9 +945,13 @@ class Subjects extends SubjectDemographics
                 } else {
                     $id = end($response['ids']);
                     Entities::createLog('OnCore Subject ' . $record['oncore'] . ' got pull into REDCap record ' . $id);
+                    $this->updateLinkageEntityStatus($linkage['id'], OnCoreIntegration::FULL_MATCH);
                 }
+            }
+            unset($data);
+            $this->releaseSubjectsLock($projectId);
         }
-        unset($data);
+
 
         return $id;
     }
@@ -1016,6 +1031,26 @@ class Subjects extends SubjectDemographics
     public function setMapping(Mapping $mapping): void
     {
         $this->mapping = $mapping;
+    }
+
+    public function getSubjectsLock($projectId)
+    {
+        $sql = sprintf("SELECT GET_LOCK('%s', 3) as subject_lock", db_escape(OnCoreIntegration::SUBJECTS_MYSQL_LOCK . '_' . $projectId));
+        $q = db_query($sql);
+        $record = db_fetch_assoc($q);
+        if (!$record['subject_lock']) {
+            Entities::createLog('Subject lock is in place.');
+            throw new \Exception('Another Action is currently running on this project. Please try again later!');
+        }
+        return $record['subject_lock'];
+    }
+
+    public function releaseSubjectsLock($projectId)
+    {
+        $sql = sprintf("SELECT RELEASE_LOCK('%s') as subject_lock", db_escape(OnCoreIntegration::SUBJECTS_MYSQL_LOCK . '_' . $projectId));
+        $q = db_query($sql);
+        $record = db_fetch_assoc($q);
+        return $record['subject_lock'];
     }
 
 

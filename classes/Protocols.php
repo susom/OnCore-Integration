@@ -173,6 +173,7 @@ class Protocols
         return $record;
     }
 
+
     /**
      * This method will match redcap records to oncore protocol subjects. and save the result in entity table
      * @return void
@@ -182,6 +183,10 @@ class Protocols
     {
         if (!$this->getEntityRecord()) {
             throw new \Exception('No REDCap Project linked to OnCore Protocol found.');
+        }
+
+        if (!$this->getEntityRecord()['status']) {
+            throw new \Exception('Linkage between this REDCap project and OnCore protocol is not approved yet. Please approve the linkage then try again.');
         }
 
         if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
@@ -205,23 +210,33 @@ class Protocols
             throw new \Exception('Fields Pulling Map is not defined.');
         }
 
-        foreach ($oncoreProtocolSubjects as $subject) {
-            $onCoreMrn = $subject['demographics']['mrn'];
+        // make sure nothing else is running.
+        if ($this->getSubjects()->getSubjectsLock($this->getEntityRecord()['redcap_project_id'])) {
+            foreach ($oncoreProtocolSubjects as $subject) {
+                $onCoreMrn = $subject['demographics']['mrn'];
 //            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $this->getEntityRecord()['redcap_event_id'], $fields['mrn']);
-            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event']), $fields['pull']['mrn']['redcap_field']);
-            if ($redcapRecord) {
-                $this->matchREDCapRecordWithOnCoreSubject($redcapRecord, $subject, $fields);
-                // now remove redcap record from array
-                unset($redcapRecords[$redcapRecord['id']]);
-            } else {
-                $record = $this->processOnCoreOnlyRecord($subject);
+                $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event']), $fields['pull']['mrn']['redcap_field']);
+                if ($redcapRecord) {
+                    $this->matchREDCapRecordWithOnCoreSubject($redcapRecord, $subject, $fields);
+                    // now remove redcap record from array
+                    unset($redcapRecords[$redcapRecord['id']]);
+                } else {
+                    $record = $this->processOnCoreOnlyRecord($subject);
+                }
+                unset($redcapRecord);
             }
+
+
+            // left redcap records on redcap but not on oncore
+            foreach ($redcapRecords as $id => $redcapRecord) {
+                $record = $this->processREDCapOnlyRecord($id);
+            }
+
+
+            $this->getSubjects()->releaseSubjectsLock($this->getEntityRecord()['redcap_project_id']);
         }
 
-        // left redcap records on redcap but not on oncore
-        foreach ($redcapRecords as $id => $redcapRecord) {
-            $record = $this->processREDCapOnlyRecord($id);
-        }
+
         //TODO update entity table when redcap record or Oncore protocol subject is deleted.
     }
 
