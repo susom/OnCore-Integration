@@ -51,6 +51,7 @@ try {
                 $vmap                   = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
                 $use_default            = !empty($result["use_default"]);
                 $default_value          = !empty($result["default_value"]) ? $result["default_value"] : null;
+                $birthDateNotAvailable  = false;
 
                 //$pull_mapping tells me the actual click (pull or push side)... doing the opposite side is more just a convenience..
                 if($pull_mapping == "pull"){
@@ -84,6 +85,11 @@ try {
                     if(!$redcap_field){
                         unset($current_mapping[$pull_mapping][$oncore_field]);
                         if($use_default){
+                            if($oncore_field == "birthDate"){
+                                $birthDateNotAvailable = true;
+                                $default_value = "birthDateNotAvailable";
+                            }
+
                             $current_mapping[$pull_mapping][$oncore_field] = array(
                                 "redcap_field"  => $redcap_field,
                                 "event"         => $eventname,
@@ -111,7 +117,7 @@ try {
                         );
                     }
                 }
-
+                $module->emDebug("current mapping", $current_mapping[$pull_mapping]);
                 $module->getMapping()->setProjectFieldMappings($current_mapping);
             case "checkPushPullStatus":
                 if(!isset($oncore_field)){

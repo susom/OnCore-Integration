@@ -654,7 +654,6 @@ class Mapping
 
             $required = $field_details["required"];
             if($required === "true"){
-                $this->module->emDebug("fock off", $field, $field_details);
                 $use_default = filter_var($has_default,FILTER_VALIDATE_BOOLEAN) ? "<label><input class='use_default' data-oncore_field='$field' type='checkbox' name='use_default' $default_checked value='1'/> Use Default</label>" : "";
                 $push_html .= "<tr class='$field'>\r\n";
                 $push_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></i></td>";
@@ -832,6 +831,7 @@ class Mapping
             $v_select .= "</select>\r\n";
         }
 
+
         if ($special_oncore) {
             // IF OVER LAPPING MAPPING OF VALUES THEN PULL AND PUSH IS POSSIBLE
             $value_map_html .= "<tr class='$oncore_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
@@ -846,6 +846,11 @@ class Mapping
                 $value_select       = str_replace(">$default_value", " selected>$default_value", $value_select);
                 $value_select       = str_replace("value_select", "value_select ok", $value_select);
                 $value_map_status   = "ok";
+            }else{
+                $default_value = "Unknown";
+                $value_select       = str_replace(">$default_value", " selected>$default_value", $value_select);
+                $value_select       = str_replace("value_select", "value_select ok", $value_select);
+                $value_map_status   = "ok";
             }
 
             $value_map_html .= "<tr>\r\n";
@@ -857,18 +862,23 @@ class Mapping
 
             $value_map_html .= "</table>\r\n</td><td colspan='2'></td></tr>\r\n";
         }else{
+            $is_birthday    = $oncore_field == "birthDate" ? true : false;
+            if(!empty($default_value) || $is_birthday){
+                $value_map_status   = "ok";
+            }
+            $this->module->emDebug("default value", $default_value);
+
             //NO PRESET OnCore Values PROVIDE A TEXT INPUT?
             $value_map_html .= "<tr class='$oncore_field more'><td colspan='4'>\r\n<table class='value_map'>\r\n";
             $value_map_html .= "<tr><th colspan=4 class='info'><i >If a suitable REDCap field does not exist in this project, Please input a 'default value' for this required OnCore Field in order to Push data from REDCap to OnCore.</i></th></tr>\r\n";
             $value_map_html .= "<tr><th class='td_oc_vset'></th><th class='td_rc_vset'>Input Default Value</th><th class='centered td_map_status'>Map Status</th><th class='td_vset_spacer'></th></tr>\r\n";
 
-            if(!empty($default_value)){
-                $value_map_status   = "ok";
-            }
-
             $value_map_html .= "<tr>\r\n";
             $value_map_html .= "<td></td>\r\n";
-            $value_map_html .= "<td><input type='text' class='form-input default_value' data-oncore_field='$oncore_field' value='$default_value' placeholder='Default value for $oncore_field'/></td>\r\n";
+
+            $default_text   = $is_birthday ? "<span>Pass default 'Unknown' value</span>" : "<input type='text' class='form-input default_value' data-oncore_field='$oncore_field' value='$default_value' placeholder='Default value for $oncore_field'/>";
+            $value_map_html .= "<td>$default_text</td>\r\n";
+
             $value_map_html .= "<td class='centered value_map_status $value_map_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>\r\n";
             $value_map_html .= "<td></td>\r\n";
             $value_map_html .= "</tr>\r\n";
