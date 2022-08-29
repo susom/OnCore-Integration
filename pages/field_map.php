@@ -105,9 +105,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             </form>
 
             <form id="consent_logic" class="container">
-                <h2>Consented Participants Filtering Logic</h2>
-                <p class="lead">Each REDCap project may define "consented" differently. Save the filtering logic
-                    statement here to allow for (optional) filtering UI by consented participants:</p>
+                <h2>REDCap Filtering Logic</h2>
+                <p class="lead">Each REDCap project may have a unique set up. In order to push data from REDCap to OnCore it may be useful to filter records on the REDCap side.  Save filtering logic that can be applied (optional) in the Push to Oncore UI:</p>
 
                 <label class="map_dir">
                     <div style="margin:0 30px;float:right;">
@@ -1026,6 +1025,11 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     enableSelects();
 
                     makeValueMappingRow(result, oncore_field, 1);
+
+                    var html = result["html"];
+                    if($(html).find(":selected").length){
+                        $("select.default_select[name='"+oncore_field+"']").trigger("change");
+                    }
 
                     //remove spinners
                     $("#field_mapping .loading").removeClass("loading");
