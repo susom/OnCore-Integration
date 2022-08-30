@@ -984,6 +984,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             var oncore_field    = _this.data("oncore_field");
 
             var redcap_field    = null;
+
             $(this).parent().addClass("loading");
             disableSelects();
 
@@ -1003,6 +1004,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     oncore_field: oncore_field,
                     redcap_field: "-99"
                 };
+
             }
 
             ajaxQueue.addRequest(function () {
@@ -1020,11 +1022,12 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 }).done(function (result) {
                     result = decode_object(result)
 
-                    updatePushPullStatus(oncore_field, redcap_field, result);
-                    updateOverAllStatus(result);
                     enableSelects();
 
                     makeValueMappingRow(result, oncore_field, 1);
+
+                    updatePushPullStatus(oncore_field, redcap_field, result);
+                    updateOverAllStatus(result);
 
                     var html = result["html"];
                     if($(html).find(":selected").length){
@@ -1124,8 +1127,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     }
 
     function updateOverAllStatus(result){
-        var overallPull = result["overallPull"];
-        var overallPush = result["overallPush"];
+        var overallPull = JSON.parse(result["overallPull"]);
+        var overallPush = JSON.parse(result["overallPush"]);
 
         if(overallPull !== null){
             $(".nav-tabs .pull_mapping").removeClass("ok");
@@ -1149,10 +1152,12 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         _el.find("td.status.pull").removeClass("ok");
         _el2.find("td.status.push").removeClass("ok");
 
-        var pull_status = result["pull"] ? "ok" : "";
-        var push_status = result["push"] ? "ok" : "";
+        var pull_status = JSON.parse(result["pull"]) ? "ok" : "";
+        var push_status = JSON.parse(result["push"]) ? "ok" : "";
+
         _el.find("td.status.pull").addClass(pull_status);
         _el.find(".property_select").removeClass("ok").addClass(pull_status);
+
         _el2.find("td.status.push").addClass(push_status);
         _el2.find(".property_select").removeClass("ok").addClass(push_status);
     }
