@@ -625,22 +625,22 @@ class Mapping
             $default_checked        = "";
 
             if (array_key_exists($field, $project_mappings["push"])) {
-                $oncore_field = $field;
+                $oncore_field   = $field;
+                $rc_field_name  = $this->getMappedRedcapField($field, 1);
 
-//                if(!empty($project_mappings["push"][$oncore_field]["default_value"])){
-                $field_arr = $this->getOncoreField($oncore_field);
-                if ($this->canUseDefaultValue($oncore_field, $field_arr['allow_default'], $project_mappings["push"][$oncore_field]["default_value"])) {
-                    //if(!empty($project_mappings["push"][$oncore_field]["default_value"])){
-                    $default_value = $project_mappings["push"][$oncore_field]["default_value"];
-                    $default_checked = "checked";
-                    $push_value_map_html = $this->makeValueMappingUI_UseDefault($oncore_field, $default_value);
+                $field_arr      = $this->getOncoreField($oncore_field);
+                if ($this->canUseDefaultValue($oncore_field, $field_arr['allow_default'], $project_mappings["push"][$oncore_field]["default_value"])
+                    && empty($rc_field_name)) {
+
+                    $default_value          = $project_mappings["push"][$oncore_field]["default_value"];
+                    $default_checked        = "checked";
+                    $push_value_map_html    = $this->makeValueMappingUI_UseDefault($oncore_field, $default_value);
                 } else {
-                    $rc_field_name = $this->getMappedRedcapField($field, 1);
-                    $event_name = $this->getRedcapEventName($rc_field_name);
-                    $rc_type = $this->getRedcapType($rc_field_name);
+                    $event_name             = $this->getRedcapEventName($rc_field_name);
+                    $rc_type                = $this->getRedcapType($rc_field_name);
 
-                    $push_value_map_html = $this->makeValueMappingUI_RC($oncore_field, $rc_field_name);
-                    $json_vmapping = json_encode($this->getMappedRedcapValueSet($oncore_field, 1));
+                    $push_value_map_html    = $this->makeValueMappingUI_RC($oncore_field, $rc_field_name);
+                    $json_vmapping          = json_encode($this->getMappedRedcapValueSet($oncore_field, 1));
                     $data_value_mapping     = "data-val_mapping='{$json_vmapping}'";
 
                     $push_rc_map_select     = str_replace("'$rc_field_name'", "'$rc_field_name' selected ", $push_rc_map_select);
@@ -847,7 +847,7 @@ class Mapping
                 $value_select       = str_replace("value_select", "value_select ok", $value_select);
                 $value_map_status   = "ok";
             }else{
-                $default_value = "Unknown";
+                $default_value      = "Unknown";
                 $value_select       = str_replace(">$default_value", " selected>$default_value", $value_select);
                 $value_select       = str_replace("value_select", "value_select ok", $value_select);
                 $value_map_status   = "ok";
@@ -876,7 +876,7 @@ class Mapping
             $value_map_html .= "<tr>\r\n";
             $value_map_html .= "<td></td>\r\n";
 
-            $default_text   = $is_birthday ? "<span>Pass default 'Unknown' value</span>" : "<input type='text' class='form-input default_value' data-oncore_field='$oncore_field' value='$default_value' placeholder='Default value for $oncore_field'/>";
+            $default_text   = $is_birthday ? "<span>Pass default value</span>" : "<input type='text' class='form-input default_value' data-oncore_field='$oncore_field' value='$default_value' placeholder='Default value for $oncore_field'/>";
             $value_map_html .= "<td>$default_text</td>\r\n";
 
             $value_map_html .= "<td class='centered value_map_status $value_map_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>\r\n";

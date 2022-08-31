@@ -97,6 +97,10 @@ try {
                                 "value_mapping" => $vmap,
                                 "default_value" => $default_value
                             );
+
+                            if($birthDateNotAvailable){
+                                $current_mapping[$pull_mapping][$oncore_field]["birthDateNotAvailable"] = true;
+                            }
                         }
                     }else{
                         if(!$vmap && in_array($oncore_field, $project_oncore_subset) && $update_oppo){
