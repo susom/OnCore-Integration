@@ -40,7 +40,6 @@ foreach($study_sites as $site){
 }
 $site_selection[]       = "</ul>\r\n";
 
-
 //ONCORE PROPERTY DROP DOWN PICKER FOR PULL SIDE
 $oncore_props   = $mapping->getOnCoreFieldDefinitions();
 $req_field      = [];
@@ -128,7 +127,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     </p>
                 </label>
 
-                <style id="ace-tm">.ace-tm .ace_gutter {
+                <style id="ace-tm">
+                    .ace-tm .ace_gutter {
                         background: #f0f0f0;
                         color: #333;
                     }
