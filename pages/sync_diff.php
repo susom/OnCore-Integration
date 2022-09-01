@@ -488,60 +488,60 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 }
             });
 
-            if (approved_ids.length) {
-                var pullModal               = window.adjModal;
-                pullModal.completedItems    = 0;
-                pullModal.totalItems        = approved_ids.length;
-                pullModal.showProgressUI();
+                if (approved_ids.length) {
+                    var pullModal               = window.adjModal;
+                    pullModal.completedItems    = 0;
+                    pullModal.totalItems        = approved_ids.length;
+                    pullModal.showProgressUI();
 
-                var wait_time = 0;
-                for (var i in approved_ids) {
-                    var _mrn    = approved_ids[i]["mrn"];
-                    var rc_id   = approved_ids[i]["redcap"];
-                    var oncore  = approved_ids[i]["oncore"];
-                    var temp    = {"redcap": rc_id, "oncore": oncore, "mrn" : _mrn}
+                    var arr_length  = approved_ids.length - 1;
+                    for (var i in approved_ids) {
+                        var _mrn    = approved_ids[i]["mrn"];
+                        var rc_id   = approved_ids[i]["redcap"];
+                        var oncore  = approved_ids[i]["oncore"];
+                        var temp    = {"redcap": rc_id, "oncore": oncore, "mrn" : _mrn}
 
-                    //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
-                    var rndInt = randomIntFromInterval(500, 1500);
-                    wait_time += rndInt;
+                        //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
+                        var rndInt = randomIntFromInterval(500, 1500);
 
-                    (function (temp, rndInt) {
-                        ajaxQueue.addRequest(function () {
-                            // -- your ajax request goes here --
-                            return $.ajax({
-                                url: ajax_endpoint,
-                                method: 'POST',
-                                data: {
-                                    "action": "approveSync",
-                                    "record": temp,
-                                    "redcap_csrf_token": redcap_csrf_token
-                                }
-                            }).done(function (result) {
-                                result = decode_object(result);
-                                pullModal.setRowStatus(result.id, true, result.message);
-                            }).fail(function (e) {
-                                var result  = decode_object(e.responseText);
-                                result.id   = result.id == '' ? temp["oncore"] :  result.id;
-                                pullModal.setRowStatus(result.id, false, result.message);
+                        (function (temp, rndInt, inc, tot) {
+                            ajaxQueue.addRequest(function () {
+                                // -- your ajax request goes here --
+                                return $.ajax({
+                                    url: ajax_endpoint,
+                                    method: 'POST',
+                                    data: {
+                                        "action": "approveSync",
+                                        "record": temp,
+                                        "redcap_csrf_token": redcap_csrf_token
+                                    }
+                                }).done(function (result) {
+                                    result = decode_object(result);
+                                    pullModal.setRowStatus(result.id, true, result.message);
 
-                                // console.log("failure exception , restart queue?", result);
-                                ajaxQueue.executeNextRequest(1);
+                                    //TRIGGER REFRESH SYNC AFTER LAST RECORD
+                                    if(inc == tot){
+                                        $("#refresh_sync_diff").trigger("click");
+                                    }
+                                }).fail(function (e) {
+                                    var result  = decode_object(e.responseText);
+
+                                    result.id   = result.id == '' ? temp["oncore"] :  result.id;
+                                    pullModal.setRowStatus(result.id, false, result.message);
+
+                                    // console.log("failure exception , restart queue?", result);
+                                    ajaxQueue.executeNextRequest(1);
+                                });
+
+                                return new Promise(function (resolve, reject) {
+                                    setTimeout(function () {
+                                        resolve(data);
+                                    }, rndInt);
+                                });
                             });
-
-                            return new Promise(function (resolve, reject) {
-                                setTimeout(function () {
-                                    resolve(data);
-                                }, rndInt);
-                            });
-                        });
-                    })(temp, rndInt);
+                        })(temp, rndInt, i, arr_length);
+                    }
                 }
-
-                //ONLY TRIGGER THE REFRESH SYNC ONCE AFTER ALL THE TIMEOUTS ARE SUMMED UP AND ACTED ON
-                setTimeout(function () {
-                    $("#refresh_sync_diff").trigger("click");
-                }, wait_time);
-            }
         };
 
         function push(form) {
@@ -568,7 +568,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                 pushModal.totalItems        = approved_ids.length;
                 pushModal.showProgressUI();
 
-                var wait_time = 0;
+                var arr_length  = approved_ids.length - 1;
                 for (var i in approved_ids) {
                     var rc_id   = approved_ids[i]["value"];
                     var mrn     = approved_ids[i]["mrn"];
@@ -576,9 +576,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
                     //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
                     var rndInt = randomIntFromInterval(500, 1500);
-                    wait_time += rndInt;
 
-                    (function (temp, rndInt) {
+                    (function (temp, rndInt, inc, tot) {
                         ajaxQueue.addRequest(function () {
                             // -- your ajax request goes here --
                             return $.ajax({
@@ -592,6 +591,11 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                             }).done(function (result) {
                                 result = decode_object(result);
                                 pushModal.setRowStatus(result.id, true, result.message);
+
+                                //TRIGGER REFRESH SYNC AFTER LAST RECORD
+                                if(inc == tot){
+                                    $("#refresh_sync_diff").trigger("click");
+                                }
                             }).fail(function (e) {
                                 var result  = decode_object(e.responseText);
                                 result.id   = result.id == '' ? temp["value"] :  result.id;
@@ -607,13 +611,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                                 }, rndInt);
                             });
                         });
-                    })(temp, rndInt);
+                    })(temp, rndInt, i, arr_length);
                 }
-
-                //ONLY TRIGGER THE REFRESH SYNC ONCE AFTER ALL THE TIMEOUTS ARE SUMMED UP AND ACTED ON
-                setTimeout(function () {
-                    $("#refresh_sync_diff").trigger("click");
-                }, wait_time);
             }
         }
     });
