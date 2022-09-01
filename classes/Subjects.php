@@ -780,7 +780,7 @@ class Subjects extends SubjectDemographics
         foreach ($fields as $key => $field) {
             unset($map);
             // check if default values are allowed for the field and a default value already defined on current redcap project.
-            if ($this->getMapping()->canUseDefaultValue($key, $oncoreFieldsDef[$key]['allow_default'], $field['default_value'])) {
+            if ($this->getMapping()->canUseDefaultValue($key, $oncoreFieldsDef[$key]['allow_default'], $field['default_value']) && empty($field["redcap_field"])) {
                 // special case only for birthdate to allow empty default value
                 if ($key == OnCoreIntegration::ONCORE_BIRTHDATE_FIELD) {
                     $data[OnCoreIntegration::ONCORE_BIRTHDATE_NOT_REQUIRED_FIELD] = true;

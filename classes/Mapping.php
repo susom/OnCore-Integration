@@ -1195,7 +1195,7 @@ class Mapping
 
                 $diffmatch      = "diff";
 
-                $rc = !empty($rc_field) ? $rc_data : "";
+                $rc = !empty($rc_field) || !empty( $rc_data) ? $rc_data : "";
 
                 if (is_array($rc)) {
                     $rc = implode(", ", array_filter($rc));
