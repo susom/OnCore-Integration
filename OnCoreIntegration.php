@@ -916,11 +916,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         //$this->getProtocols()->getSubjects()->setSyncedRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
 
         //THIS MA
-        $fields_event = $this->redcapFieldEventIDMap();
+        $fields_event   = $this->redcapFieldEventIDMap();
 
 
-        $records = $this->getProtocols()->getSyncedRecords($use_filter);
-        $mapped_fields = $this->getMapping()->getProjectFieldMappings();
+        $records        = $this->getProtocols()->getSyncedRecords($use_filter);
+        $mapped_fields  = $this->getMapping()->getProjectFieldMappings();
 
         $sync_diff = array();
         $bin_match = array("excluded" => array(), "included" => array());
@@ -981,20 +981,23 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
                         // we are using pull fields to map redcap data
                         $temp   = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($rc_id, $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
-//$this->emDebug($rc_id, $temp);
+
                         // handle data scattered over multiple events
-                        $redcap = [];
+                        $redcap         = [];
                         foreach ($temp as $onCoreField => $value) {
                             // Use redcap fields name instead of oncore to work with Irvin UI.
                             $redcapField    = $this->getMapping()->getMappedRedcapField($onCoreField, true);
-                            $redcap[$redcapField ?: $onCoreField] = $value;
+
+                            if($redcapField){
+                                $redcap[$redcapField] = $value;
+                            }
                         }
                     }
 
                 default:
                     //partial
-                    $bin_var = $bin_array[$link_status];
-                    $bin = $excluded ? $$bin_var["excluded"] : $$bin_var["included"];
+                    $bin_var    = $bin_array[$link_status];
+                    $bin        = $excluded ? $$bin_var["excluded"] : $$bin_var["included"];
                     if (!array_key_exists($mrn, $bin)) {
                         if ($excluded) {
                             $$bin_var["excluded"][$mrn] = array();
@@ -1010,6 +1013,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
                         $rc_data = $redcap && isset($redcap[$redcap_details["redcap_field"]]) ? $redcap[$redcap_details["redcap_field"]] : null;
                         $oc_data = $oncore && isset($oncore["demographics"][$oncore_field]) ? $oncore["demographics"][$oncore_field] : (isset($oncore[$oncore_field]) ? $oncore[$oncore_field] : null);
+
+                        if(empty($rc_field) && !empty($redcap_details["default_value"])){
+                            $rc_data = $redcap_details["default_value"];
+                        }
                         $temp = array(
                             "entity_id" => $entity_id
                             , "ts_last_scan" => $last_scan
@@ -1041,7 +1048,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 );
             }
         }
-//        $this->emDebug("sync diff redcap", $sync_diff["redcap"]["included"]);
+//        $this->emDebug("sync diff redcap", $bin_redcap);
         return $sync_diff;
 
     }
