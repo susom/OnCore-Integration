@@ -103,6 +103,45 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 </label>
             </form>
 
+            <form id="study_sites" class="container">
+                <h2>Select subset of study sites for this project</h2>
+                <p class="lead">No selections will default to using the entire set.</p>
+                <?= implode("", $site_selection) ?>
+            </form>
+        </div>
+
+        <div class="tab-pane" id="pull_mapping">
+            <form id="oncore_mapping" class="container">
+                <h2>Map OnCore properties to REDCap variables to PULL</h2>
+                <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
+                    project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
+                    Settings to be able to PULL.</p>
+
+                <div id="oncore_prop_selector" class="pull-right">
+                    <button class="btn btn-success btn-lg dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        + Add an OnCore Property to Map
+                    </button>
+                    <?=$pull_oncore_prop_dd?>
+                </div>
+
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th class="td_oc_field">OnCore Property</th>
+                        <th class="td_rc_field">REDCap Field</th>
+                        <th class="td_rc_event centered">REDCap Event</th>
+                        <th class="td_pull centered">Pull Status</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?= $pull_html ?>
+                    </tbody>
+                </table>
+            </form>
+        </div>
+
+        <div class="tab-pane" id="push_mapping">
             <form id="consent_logic" class="container">
                 <h2>REDCap Filtering Logic</h2>
                 <p class="lead">Each REDCap project may have a unique set up. In order to push data from REDCap to OnCore it may be useful to filter records on the REDCap side.  Save filtering logic that can be applied (optional) in the Push to Oncore UI:</p>
@@ -285,45 +324,6 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     /*# sourceURL=ace/css/ace-tm */</style>
             </form>
 
-            <form id="study_sites" class="container">
-                <h2>Select subset of study sites for this project</h2>
-                <p class="lead">No selections will default to using the entire set.</p>
-                <?= implode("", $site_selection) ?>
-            </form>
-        </div>
-
-        <div class="tab-pane" id="pull_mapping">
-            <form id="oncore_mapping" class="container">
-                <h2>Map OnCore properties to REDCap variables to PULL</h2>
-                <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
-                    project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
-                    Settings to be able to PULL.</p>
-
-                <div id="oncore_prop_selector" class="pull-right">
-                    <button class="btn btn-success btn-lg dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        + Add an OnCore Property to Map
-                    </button>
-                    <?=$pull_oncore_prop_dd?>
-                </div>
-
-                <table class="table">
-                    <thead>
-                    <tr>
-                        <th class="td_oc_field">OnCore Property</th>
-                        <th class="td_rc_field">REDCap Field</th>
-                        <th class="td_rc_event centered">REDCap Event</th>
-                        <th class="td_pull centered">Pull Status</th>
-                        <th></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?= $pull_html ?>
-                    </tbody>
-                </table>
-            </form>
-        </div>
-
-        <div class="tab-pane" id="push_mapping">
             <form id="redcap_mapping" class="container">
                 <h2>Map REDCap variables to Oncore properties to PUSH</h2>
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
