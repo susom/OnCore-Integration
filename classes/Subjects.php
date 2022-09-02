@@ -785,7 +785,12 @@ class Subjects extends SubjectDemographics
                 if ($key == OnCoreIntegration::ONCORE_BIRTHDATE_FIELD) {
                     $data[OnCoreIntegration::ONCORE_BIRTHDATE_NOT_REQUIRED_FIELD] = true;
                 } else {
-                    $data[$key] = $field['default_value'];
+                    if (in_array('array', $oncoreFieldsDef[$key]['oncore_field_type'])) {
+                        $data[$key] = array($field['default_value']);
+                    } else {
+                        $data[$key] = $field['default_value'];
+                    }
+
                 }
             } else {
                 $redcapValue = $record[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
