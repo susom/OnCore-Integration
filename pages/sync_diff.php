@@ -281,7 +281,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     var _parent_clone = _parent_tbody.clone();
                     _parent_tbody.fadeOut("fast", function () {
                         //clone the row to exluded table
-                        _parent_form.find("table.excludes thead").after(_parent_clone);
+                        _parent_form.find("table.excludes thead").after(_parent_clone.first());
 
                         //disable clone
                         _parent_clone.find(".exclude_subject").text("Re-include").addClass("include_subject").removeClass("exclude_subject");
@@ -290,7 +290,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
                     var _parent_clone = _parent_tbody.clone();
                     _parent_tbody.fadeOut("fast", function () {
                         //clone the row to exluded table
-                        _parent_form.find("table.includes thead").after(_parent_clone);
+                        _parent_form.find("table.includes thead").after(_parent_clone.first());
 
                         //disable clone
                         _parent_clone.find(".include_subject").text("Exclude").addClass("exclude_subject").removeClass("include_subject");
