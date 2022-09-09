@@ -265,6 +265,7 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
             var _this = $(this);
             _this.addClass("loading").prop("disabled", "disabled");
+            
             $.ajax({
                 url: ajax_endpoint,
                 method: 'POST',
@@ -285,6 +286,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
                         //disable clone
                         _parent_clone.find(".exclude_subject").text("Re-include").addClass("include_subject").removeClass("exclude_subject");
+
+                        $(this).remove();
                     });
                 } else {
                     var _parent_clone = _parent_tbody.clone();
@@ -294,6 +297,8 @@ require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 
                         //disable clone
                         _parent_clone.find(".include_subject").text("Exclude").addClass("exclude_subject").removeClass("include_subject");
+
+                        $(this).remove();
                     });
                 }
 
