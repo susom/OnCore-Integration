@@ -673,11 +673,16 @@ class Subjects extends SubjectDemographics
      * @param $field
      * @return mixed
      */
-    private function getOnCoreStudySite($redcapRecord, $field)
+    private function getOnCoreStudySite($redcapRecord, $field, $oncoreFieldsDef)
     {
+        $key = 'studySites';
         $studySite = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
-        $map = $this->getMapping()->getREDCapMappedValue($studySite, $field);
-        return $map['oc'];
+        if ($this->getMapping()->canUseDefaultValue($key, $oncoreFieldsDef[$key]['allow_default'], $field['default_value']) && empty($studySite)) {
+            return $field['default_value'];
+        } else {
+            $map = $this->getMapping()->getREDCapMappedValue($studySite, $field);
+            return $map['oc'];
+        }
     }
 
     /**
@@ -697,7 +702,7 @@ class Subjects extends SubjectDemographics
 
         $record = $this->getRedcapProjectRecords()[$redcapId];
         $redcapMRN = $record[OnCoreIntegration::getEventNameUniqueId($fields['mrn']['event'])][$fields['mrn']['redcap_field']];
-        $studySite = $this->getOnCoreStudySite($record, $fields['studySites']);
+        $studySite = $this->getOnCoreStudySite($record, $fields['studySites'], $oncoreFieldsDef);
         $onCoreRecord = $this->searchOnCoreSubjectUsingMRN($redcapMRN);
         if (empty($onCoreRecord)) {
             $demographics = $this->prepareREDCapRecordForSync($redcapId, $fields, $oncoreFieldsDef);
