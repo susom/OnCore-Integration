@@ -33,15 +33,16 @@ class Mapping
      */
     public function getOnCoreFieldDefinitions()
     {
-        $field_list             = json_decode(trim($this->module->getSystemSetting("oncore-field-definition")), true);
-        $study_sites            = $this->module->getUsers()->getOnCoreStudySites();
-        $project_study_sites    = $this->getProjectSiteStudies();
+        $field_list = json_decode(trim($this->module->getSystemSetting("oncore-field-definition")), true);
+        $study_sites = $this->module->getUsers()->getOnCoreStudySites();
+        $project_study_sites = $this->getProjectSiteStudies();
 
-        if(!empty($project_study_sites)){
-            $study_sites = array_intersect($study_sites,$project_study_sites);
+        if (!empty($project_study_sites)) {
+            $study_sites = array_intersect($study_sites, $project_study_sites);
         }
 
-        $field_list["studySites"]       = array("oncore_valid_values" => $study_sites , "oncore_field_type" => array("text"), "required" => "true");
+        # set study sites list from whatever user picked in mapping page.
+        $field_list["studySites"]['oncore_valid_values'] = $study_sites;
         return $field_list;
     }
 
