@@ -197,6 +197,9 @@ class Users extends Clients
                             $message = 'System did not find demographic information for contact ID: ' . $staff['contactId'];
                             Entities::createLog($message);
                             \REDCap::logEvent($message);
+                        } elseif (isset($contact['errorType'])) {
+                            Entities::createLog($contact['message']);
+                            \REDCap::logEvent($contact['message']);
                         } else {
                             $staff['contact'] = $contact;
                             $this->protocolStaff[] = $staff;
