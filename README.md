@@ -37,6 +37,9 @@ Below is a list of required configurations which must be entered into the EM Sys
 
 ## Prerequisites and Limitations
 
+This module uses the REDCap Entity API External Module developed by University of Florida so the Entity EM
+must be enabled before this EM is enabled.
+
 When using this module, there are a few items to be aware of:
 
 1. Currently, you can only connect one instance of OnCore to this EM. If your institution uses multiple instances of OnCore,
@@ -491,3 +494,5 @@ Until the status update is manually performed in OnCore, those participants will
     }
 }
 ```
+# External Module Prerequisites
+This module uses the REDCap Entity API External Module developed by University of Florida.
