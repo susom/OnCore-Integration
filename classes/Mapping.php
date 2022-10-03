@@ -171,7 +171,7 @@ class Mapping
         $oncore_fields  = $this->getOncoreFields();
         $req_fields     = array();
         foreach($oncore_fields as $oncore_field => $field){
-            if($field["required"] == "true"){
+            if ($field["required"] == "true" and $oncore_field != OnCoreIntegration::ONCORE_STUDY_SITE) {
                 $req_fields[] = $oncore_field;
             }
         }

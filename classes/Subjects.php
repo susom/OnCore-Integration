@@ -438,10 +438,10 @@ class Subjects extends SubjectDemographics
 
         if ($redcapRecordId && $onCoreProtocolSubjectId) {
             //            $sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE redcap_record_id = $redcapRecordId and oncore_protocol_subject_id = $onCoreProtocolSubjectId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
-            $sql = sprintf("SELECT * from %s WHERE redcap_record_id = %s and oncore_protocol_subject_id = %s and redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($redcapRecordId), db_escape($onCoreProtocolSubjectId), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
+            $sql = sprintf("SELECT * from %s WHERE redcap_record_id = '%s' and oncore_protocol_subject_id = %s and redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($redcapRecordId), db_escape($onCoreProtocolSubjectId), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
         } elseif ($redcapRecordId) {
             //$sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE redcap_record_id = $redcapRecordId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
-            $sql = sprintf("SELECT * from %s WHERE redcap_record_id = %s  and redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($redcapRecordId), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
+            $sql = sprintf("SELECT * from %s WHERE redcap_record_id = '%s'  and redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($redcapRecordId), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
 
         } elseif ($onCoreProtocolSubjectId) {
             //$sql = "SELECT * from " . OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE . " WHERE oncore_protocol_subject_id = $onCoreProtocolSubjectId and redcap_project_id = $redcapProjectId AND oncore_protocol_id = $onCoreProtocolId";
@@ -511,11 +511,18 @@ class Subjects extends SubjectDemographics
         }
         $result = array();
         $q = db_query($sql);
+        $fields = $this->getMapping()->getProjectMapping()['push'];
         if (db_num_rows($q) > 0) {
             while ($row = db_fetch_assoc($q)) {
                 $record = array();
                 // if redcap logic filter is defined make sure redcap_record_id satisfies the logic.
-                if ($row['redcap_record_id'] && $this->getREDCapRecord($row['redcap_record_id'])) {
+                if ($row['redcap_record_id'] && $record = $this->getREDCapRecord($row['redcap_record_id'])) {
+
+                    $redcapMRN = $record[OnCoreIntegration::getEventNameUniqueId($fields['mrn']['event'])][$fields['mrn']['redcap_field']];
+                    // if redcap record has no MRN ignore it
+                    if (!$redcapMRN) {
+                        continue;
+                    }
                     $record['redcap'] = $this->getREDCapRecord($row['redcap_record_id']);
                 } elseif ($row['redcap_record_id']) {
                     // if record exists in linkage entity table but in redcap records array that means record did not satisfy filter logic. add empty array for it.
@@ -609,11 +616,6 @@ class Subjects extends SubjectDemographics
                 }
             }
 
-
-            Entities::createLog("*****************");
-            Entities::createLog(implode(', ', $subjectDemographics));
-            Entities::createLog(http_build_query($subjectDemographics, '', ', '));
-            Entities::createLog("*****************");
             if (!empty($e)) {
 //                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
                 $errors[] = "Following field/s are empty: " . implode(', ', $e);
