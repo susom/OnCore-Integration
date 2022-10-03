@@ -609,6 +609,11 @@ class Subjects extends SubjectDemographics
                 }
             }
 
+
+            Entities::createLog("*****************");
+            Entities::createLog(implode(', ', $subjectDemographics));
+            Entities::createLog('ID: ' . $subjectDemographicsId);
+            Entities::createLog("*****************");
             if (!empty($e)) {
 //                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
                 $errors[] = "Following field/s are empty: " . implode(', ', $e);
