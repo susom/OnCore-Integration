@@ -616,6 +616,10 @@ class Subjects extends SubjectDemographics
                 }
             }
 
+            if (!is_array($subjectDemographics['race'])) {
+                $errors[] = 'Race field is not formatted correctly.';
+            }
+
             if (!empty($e)) {
 //                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
                 $errors[] = "Following field/s are empty: " . implode(', ', $e);
