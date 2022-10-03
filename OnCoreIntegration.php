@@ -57,6 +57,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     const ONCORE_BIRTHDATE_FIELD = 'birthDate';
     const ONCORE_BIRTHDATE_NOT_REQUIRED_FIELD = 'birthDateNotAvailable';
 
+    const ONCORE_STUDY_SITE = 'studySites';
     const YES = 1;
 
     const NO = 0;
