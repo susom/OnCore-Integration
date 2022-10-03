@@ -612,7 +612,7 @@ class Subjects extends SubjectDemographics
 
             Entities::createLog("*****************");
             Entities::createLog(implode(', ', $subjectDemographics));
-            Entities::createLog('ID: ' . $subjectDemographicsId);
+            Entities::createLog(http_build_query($subjectDemographics, '', ', '));
             Entities::createLog("*****************");
             if (!empty($e)) {
 //                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
@@ -627,6 +627,7 @@ class Subjects extends SubjectDemographics
         // when creating new subject. the EM must pass subjectSource OnCore
         if (!$subjectDemographicsId && !empty($subjectDemographics)) {
             $subjectDemographics = $this->addSubjectSource($subjectDemographics);
+            $subjectDemographics['studySites'] = $studySite;
         }
 
         $response = $this->getUser()->post('protocolSubjects', ['protocolId' => $protocolId, 'studySite' => $studySite, 'subjectDemographics' => $subjectDemographics, 'subjectDemographicsId' => $subjectDemographicsId]);
