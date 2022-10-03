@@ -771,6 +771,13 @@ class Subjects extends SubjectDemographics
                         $options[] = $map['oc'];
                     }
                     $onCoreRecord[$key] = $options;
+                } else {
+                    $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
+                    if (!$map) {
+                        //throw new \Exception('cant find map for redcap value ' . $redcapValue);
+                        continue;
+                    }
+                    $onCoreRecord[$key] = array($map['oc']);
                 }
             } elseif ($onCoreRecord[$key] == '' || is_null($onCoreRecord[$key])) {
                 $onCoreRecord[$key] = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
