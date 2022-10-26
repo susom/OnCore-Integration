@@ -45,12 +45,13 @@ When using this module, there are a few items to be aware of:
 1. Currently, you can only connect one instance of OnCore to this EM. If your institution uses multiple instances of OnCore,
 you will need to choose which instance to connect.
 2. Before the REDCap project/OnCore linkage can be made, the study must already be created in OnCore
-3. Before being above to push data to OnCore, the OnCore project status must be in one of the allowed
+3. Before being able to push data to OnCore, the OnCore study status must be in one of the allowed
 statuses from 8 above.
 4. Participants can only be transferred between systems for Per-Participant studies. Studies which are Summary Accural Only,
    are not supported.
-5. When 'pushing' participants from REDCap to OnCore, the subject is associated with study but their status is not **OnStudy**.
-    Currently, the API does not support placing subjects OnStudy in OnCore so this step must be performed manually.
+5. When 'pushing' participants from REDCap to OnCore, the subject becomes associated with the study but their status is not put in the **OnStudy** state.
+    Currently, the API does not support placing subjects "OnStudy" in OnCore so this step must be performed manually.
+6. OnCore users cannot be OnCore admins.
 
 ## Setup
 
@@ -73,10 +74,9 @@ Once the Link Project button is selected, the projects will be linked.
 ![LinkProjectButton](assets/images/proj_linked.png)
 
 ### Project Fields
-Subjects are linked to OnCore based on MRNs. In order to bring data from OnCore into your project, you must have an MRN field created in your project. Any additional data fields are optional.
+REDCap subjects are linked to OnCore based on MRNs. In order to bring data from OnCore into your REDCap project, you must have an MRN field created in REDCap. Any additional data fields are optional.
 
-If your project intends to push Subjects from your REDCap project into OnCore, there are a list
-of fields that are required by OnCore.  If your project does not store **ALL** the required fields, the push will not be successful.
+If your project intends to push Subjects from your REDCap project to OnCore, below is the list of fields that are required by OnCore.  If your project does not store **ALL** the required fields, the data transfer will not be successful.
 The required fields are:
 
     1. MRN
@@ -90,8 +90,8 @@ The required fields are:
     9. Study Site
 
 ### Using a project template for new REDCap projects
-When new REDCap projects are created which intend to use the OnCore linkage, we encourage users to create the project using an OnCore template project.  The template
-project should include all required fields needed to push data to OnCore. The Stanford OnCore Template xml file is provided in the EM if your institution would like to use
+New REDCap projects, which intend to use the OnCore linkage, are created, users are encouraged to create the project using an OnCore template project.  The template
+project should include all required fields needed to push data to OnCore. The Stanford OnCore Template xml file is provided in the EM if other institutions would like to use
 it as a starting point. This template project can be modified based on each institution's particular OnCore setup.
 
 ![TemplateProject](assets/images/use_template.png)
