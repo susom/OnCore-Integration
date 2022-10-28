@@ -591,12 +591,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             //var last_adjudication = <?//=json_encode($this->getSyncDiffSummary()); ?>//;
 
 
-            var oncore_protocols = decode_object("<?=htmlentities(json_encode($available_oncore_protocols, JSON_THROW_ON_ERROR)); ?>");
-            var oncore_integrations = decode_object("<?=htmlentities(json_encode($oncore_integrations, JSON_THROW_ON_ERROR)); ?>");
-            var has_oncore_integration = decode_object("<?=htmlentities(json_encode($has_oncore_integration, JSON_THROW_ON_ERROR)); ?>");
+            var oncore_protocols = decode_object("<?=htmlentities(json_encode($available_oncore_protocols, JSON_THROW_ON_ERROR), ENT_QUOTES); ?>");
+            var oncore_integrations = decode_object("<?=htmlentities(json_encode($oncore_integrations, JSON_THROW_ON_ERROR), ENT_QUOTES); ?>");
+            var has_oncore_integration = decode_object("<?=htmlentities(json_encode($has_oncore_integration, JSON_THROW_ON_ERROR), ENT_QUOTES); ?>");
 
-            var has_field_mappings = decode_object("<?=htmlentities(json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false, JSON_THROW_ON_ERROR)); ?>");
-            var last_adjudication = decode_object("<?=htmlentities(json_encode($this->getSyncDiffSummary(), JSON_THROW_ON_ERROR)); ?>");
+            var has_field_mappings = decode_object("<?=htmlentities(json_encode(!empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false, JSON_THROW_ON_ERROR), ENT_QUOTES); ?>");
+            var last_adjudication = decode_object("<?=htmlentities(json_encode($this->getSyncDiffSummary(), JSON_THROW_ON_ERROR), ENT_QUOTES); ?>");
 
             var make_oncore_module = function () {
                 if ($("#setupChklist-modify_project").length) {
