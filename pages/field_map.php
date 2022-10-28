@@ -365,7 +365,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 }
 
 #field_mapping .default_value{
-    padding:15px 10px;
+    padding: 15px 10px;
 }
 </style>
 <!--<script src="--><? //= $notif_js
@@ -375,9 +375,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     $(document).ready(function () {
         var ajax_endpoint = "<?=$ajax_endpoint?>";
         //var oncore_fields = <?//=json_encode($oncore_fields)?>//;
-        var oncore_fields = decode_object("<?=htmlentities(json_encode($oncore_fields, JSON_THROW_ON_ERROR)); ?>");
+        var oncore_fields = decode_object("<?=htmlentities(json_encode($oncore_fields, JSON_THROW_ON_ERROR), ENT_QUOTES); ?>");
         //var pushpull_pref = <?//=json_encode($pushpull_pref)?>//;
-        var pushpull_pref = decode_object("<?=htmlentities(json_encode($pushpull_pref, JSON_THROW_ON_ERROR)); ?>");
+        var pushpull_pref = decode_object("<?=htmlentities(json_encode($pushpull_pref, JSON_THROW_ON_ERROR), ENT_QUOTES); ?>");
         var redcap_csrf_token = "<?=$module->getCSRFToken()?>";
 
         //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACH OTHER

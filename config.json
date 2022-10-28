@@ -227,7 +227,7 @@
     "crons": [
         {
             "cron_name": "oncore_protocols_scan",
-            "cron_description": "This cron will run daily to scan OnCore API for new Projects.",
+            "cron_description": "This cron will run daily to scan OnCore API to Links REDCap projects and OnCore Protocols.",
             "method": "onCoreProtocolsScanCron",
             "cron_frequency": "86400",
             "cron_max_run_time": "3600"
