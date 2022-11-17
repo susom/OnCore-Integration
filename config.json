@@ -5,6 +5,11 @@
     "documentation": "README.md",
     "authors": [
         {
+            "name": "Ihab Zeedia",
+            "email": "ihabz@stanford.edu",
+            "institution": "Stanford University"
+        },
+        {
             "name": "Andrew Martin",
             "email": "andy123@stanford.edu",
             "institution": "Stanford University"
@@ -17,11 +22,6 @@
         {
             "name": "Lee Ann Yasukawa",
             "email": "yasukawa@stanford.edu",
-            "institution": "Stanford University"
-        },
-        {
-            "name": "Ihab Zeedia",
-            "email": "ihabz@stanford.edu",
             "institution": "Stanford University"
         }
     ],
