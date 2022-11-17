@@ -236,7 +236,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 ],
                 'irb_number' => [
                     'name' => 'IRB Number',
-                    'type' => 'integer',
+                    'type' => 'text',
                     'required' => false,
                 ],
                 'oncore_protocol_id' => [
