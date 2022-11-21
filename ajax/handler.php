@@ -334,9 +334,15 @@ try {
         echo htmlentities($result, ENT_QUOTES);;
     }
 } catch (\LogicException|ClientException|GuzzleException $e) {
-    $response = $e->getResponse();
-    $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-    $responseBodyAsString['message'] = $responseBodyAsString['field'] . ': ' . $responseBodyAsString['message'];
+    if (method_exists($e, 'getResponse')) {
+        $response = $e->getResponse();
+        $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+        $responseBodyAsString['message'] = $responseBodyAsString['field'] . ': ' . $responseBodyAsString['message'];
+    } else {
+        $responseBodyAsString = array();
+        $responseBodyAsString['message'] = $e->getMessage();
+    }
+
     Entities::createException($responseBodyAsString['message']);
     header("Content-type: application/json");
     http_response_code(404);
