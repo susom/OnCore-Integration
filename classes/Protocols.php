@@ -97,9 +97,9 @@ class Protocols
     private function matchREDCapRecordWithOnCoreSubject($redcapRecord, $subject, $fields)
     {
         $data = array(
-            'redcap_project_id' => $this->getEntityRecord()['redcap_project_id'],
-            'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
-            'redcap_record_id' => $redcapRecord['id'],
+            'redcap_project_id' => (string)$this->getEntityRecord()['redcap_project_id'],
+            'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
+            'redcap_record_id' => (string)$redcapRecord['id'],
             'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
             'oncore_protocol_subject_status' => $subject['status'] == 'ON STUDY' ? OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY : OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY,
             'excluded' => OnCoreIntegration::NO,
@@ -131,9 +131,9 @@ class Protocols
 
         if (!$record) {
             $data = array(
-                'redcap_project_id' => $this->getEntityRecord()['redcap_project_id'],
-                'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
-                'redcap_record_id' => $id,
+                'redcap_project_id' => (string)$this->getEntityRecord()['redcap_project_id'],
+                'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
+                'redcap_record_id' => (string)$id,
                 'oncore_protocol_subject_id' => '',
                 'excluded' => OnCoreIntegration::NO,
                 'status' => OnCoreIntegration::REDCAP_ONLY
@@ -155,8 +155,8 @@ class Protocols
         if (!$record) {
             // here OnCore subject does not exists on redcap
             $data = array(
-                'redcap_project_id' => $this->getEntityRecord()['redcap_project_id'],
-                'oncore_protocol_id' => $this->getEntityRecord()['oncore_protocol_id'],
+                'redcap_project_id' => (string)$this->getEntityRecord()['redcap_project_id'],
+                'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
                 'redcap_record_id' => '',
                 'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
                 'oncore_protocol_subject_status' => $subject['status'] == 'ON STUDY' ? OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY : OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY,
