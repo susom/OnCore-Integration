@@ -102,7 +102,7 @@ class Protocols
             'redcap_record_id' => (string)$redcapRecord['id'],
             'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
             'oncore_protocol_subject_status' => $subject['status'] == 'ON STUDY' ? OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY : OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY,
-            'excluded' => OnCoreIntegration::NO,
+            #'excluded' => OnCoreIntegration::NO,
             'status' => $this->getSubjects()->determineSyncedRecordMatch($subject, $redcapRecord['record'], $fields['pull'])
         );
         // select oncore subject without redcap record
@@ -115,11 +115,12 @@ class Protocols
             if ($record) {
                 $this->getSubjects()->updateLinkageRecord($record['id'], $data);
             } else {
-                $entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                //entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                 if (!$entity) {
                     throw new \Exception(implode(',', $entity->errors));
                 }
-                $record = $entity->getData();
+                $record = $entity;
             }
         }
         return $record;
@@ -135,15 +136,16 @@ class Protocols
                 'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
                 'redcap_record_id' => (string)$id,
                 'oncore_protocol_subject_id' => '',
-                'excluded' => OnCoreIntegration::NO,
+                #'excluded' => OnCoreIntegration::NO,
                 'status' => OnCoreIntegration::REDCAP_ONLY
             );
-            $e = (new Entities)->getFactory();
+            //$e = (new Entities)->getFactory();
+            $e = (new Entities);
             $entity = $e->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
             if (!$entity) {
                 throw new \Exception(implode(',', $e->errors));
             }
-            $record = $entity->getData();
+            $record = $entity;
         }
         return $record;
     }
@@ -160,15 +162,16 @@ class Protocols
                 'redcap_record_id' => '',
                 'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
                 'oncore_protocol_subject_status' => $subject['status'] == 'ON STUDY' ? OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY : OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY,
-                'excluded' => OnCoreIntegration::NO,
+                #'excluded' => OnCoreIntegration::NO,
                 'status' => OnCoreIntegration::ONCORE_ONLY
             );
 
-            $entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+            # $entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+            $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
             if (!$entity) {
                 throw new \Exception(implode(',', $entity->errors));
             }
-            $record = $entity->getData();
+            $record = $entity;
         }
         return $record;
     }
@@ -281,15 +284,19 @@ class Protocols
                 }
 
                 $this->setOnCoreProtocol($this->getOnCoreProtocolsViaID($this->getEntityRecord()['oncore_protocol_id']));
-                /**
-                 * if OnCore protocol found then prepare its subjects
-                 */
-                $this->prepareProtocolSubjects();
 
-                /**
-                 * get REDCap records for linked protocol.
-                 */
-                $this->prepareProjectRecords();
+                if (!empty($this->getMapping()->getProjectMapping()['pull']) or !empty($this->getMapping()->getProjectMapping()['push'])) {
+                    /**
+                     * if OnCore protocol found then prepare its subjects
+                     */
+                    $this->prepareProtocolSubjects();
+
+                    /**
+                     * get REDCap records for linked protocol.
+                     */
+                    $this->prepareProjectRecords();
+                }
+
 
             }
         } catch (\Exception $e) {
@@ -407,7 +414,7 @@ class Protocols
                         'last_date_scanned' => time()
                     );
 
-                    $entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_PROTOCOLS, $data);
+                    $entity = (new Entities)->create(OnCoreIntegration::ONCORE_PROTOCOLS, $data);
 
                     if ($entity) {
                         Entities::createLog('OnCore Protocol Entity table record created for IRB: ' . $irb . '.');

@@ -11,6 +11,7 @@ class Entities
      */
     private $factory;
 
+    public $errors = '';
     /**
      * Create log record in Entity OnCore Actions log table
      * @param $message
@@ -52,6 +53,88 @@ class Entities
     {
         (new Entities)->emError('Could not create log');
         self::createLog('EXCEPTION: ' . $message);
+    }
+
+    public function create($table, $data)
+    {
+        $data['created'] = time();
+        $data['updated'] = time();
+        $keys_text = implode(',', array_keys($data));
+        $fmt = trim(str_repeat("'%s',", count($data)), ',');
+        switch ($table) {
+            case OnCoreIntegration::ONCORE_PROTOCOLS:
+                $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS;
+                break;
+            case OnCoreIntegration::ONCORE_SUBJECTS:
+                $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS;
+                break;
+            case OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE:
+                $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE;
+                break;
+            default:
+                throw new \Exception($table . ' is not recognized!');
+        }
+        $temp = array();
+        $temp[] = db_escape($table);
+        foreach ($data as $item) {
+            if (is_array($item)) {
+                $t = json_encode($item, JSON_THROW_ON_ERROR);
+                $temp[] = $t;
+            } else {
+                $temp[] = db_escape($item);
+            }
+        }
+        $sql = vsprintf('INSERT INTO %s (' . $keys_text . ') VALUES (' . $fmt . ')', $temp);
+        $result = db_query(str_replace("\\", '', db_escape($sql)));
+        if (!$result) {
+            \REDCap::logEvent('Could not create log');
+            $e = (new Entities);
+            $e->emError('Could not create log');
+            $e->emLog($data);
+            $this->errors = db_error();
+        } else {
+            $id = db_insert_id();
+            $sql = sprintf("SELECT * FROM %s WHERE id = %s", db_escape($table), db_escape($id));
+            $result = db_query($sql);
+            return db_fetch_assoc($result);
+        }
+    }
+
+    public function update($table, $id, $data)
+    {
+        $data['updated'] = time();
+        $fmt = '';
+        foreach ($data as $key => $value) {
+            $fmt .= "$key = '%s',";
+        }
+        $fmt = rtrim($fmt, ',');
+        switch ($table) {
+            case OnCoreIntegration::ONCORE_PROTOCOLS:
+                $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS;
+                break;
+            case OnCoreIntegration::ONCORE_SUBJECTS:
+                $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS;
+                break;
+            case OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE:
+                $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE;
+                break;
+            default:
+                throw new \Exception($table . ' is not recognized!');
+        }
+        $temp = array();
+        $temp[] = db_escape($table);
+        foreach ($data as $item) {
+            if (is_array($item)) {
+                $t = json_encode($item, JSON_THROW_ON_ERROR);
+                $temp[] = $t;
+            } else {
+                $temp[] = db_escape($item);
+            }
+        }
+        $temp[] = db_escape($id);
+        $sql = vsprintf('UPDATE %s SET ' . $fmt . ' WHERE id = %s', $temp);
+        $result = db_query(str_replace("\\", '', db_escape($sql)));
+        return $result;
     }
 
     /**

@@ -409,8 +409,11 @@ class Subjects extends SubjectDemographics
      */
     public function setRedcapProjectRecords($redcapProjectId, $useFilter = false): void
     {
+        $fields = $this->getMapping()->getAllMappedREDCapFields();
+
         $param = array(
             'project_id' => $redcapProjectId,
+            'fields' => $fields,
             'return_format' => 'array',
             'filterLogic' => $useFilter ? ($this->getMapping()->getOncoreConsentFilterLogic() ?: '') : '',
         );
@@ -465,10 +468,9 @@ class Subjects extends SubjectDemographics
      */
     public function updateLinkageRecord($id, $data)
     {
-        $entity = (new Entities)->getFactory()->getInstance(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $id);
-        if ($entity->setData($data)) {
-            $entity->save();
-        } else {
+        #$entity = (new Entities)->getFactory()->getInstance(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $id);
+        $entity = (new Entities)->update(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $id, $data);
+        if (!$entity) {
             throw new \Exception(implode(',', $entity->errors));
         }
     }
@@ -476,11 +478,12 @@ class Subjects extends SubjectDemographics
     /**
      * update oncore_protocol entity record timestampts
      * @param $entityId
+     * @param $status
      * @return void
      */
     public function updateLinkageEntityStatus($entityId, $status): void
     {
-        $sql = sprintf("UPDATE %s set `status` = '%s' WHERE id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($entityId), db_escape($status));
+        $sql = sprintf("UPDATE %s set `status` = '%s' WHERE id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($status), db_escape($entityId));
         db_query($sql);
     }
 
