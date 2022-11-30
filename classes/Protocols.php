@@ -285,6 +285,12 @@ class Protocols
 
                 $this->setOnCoreProtocol($this->getOnCoreProtocolsViaID($this->getEntityRecord()['oncore_protocol_id']));
 
+
+                /**
+                 * init subject class. wont be used till mappign is defined.
+                 */
+                $this->setSubjects(new Subjects($this->getUser(), $this->getMapping(), $this->canPushToProtocol()));
+
                 if (!empty($this->getMapping()->getProjectMapping()['pull']) or !empty($this->getMapping()->getProjectMapping()['push'])) {
                     /**
                      * if OnCore protocol found then prepare its subjects
@@ -320,7 +326,6 @@ class Protocols
     public function prepareProtocolSubjects()
     {
         try {
-            $this->setSubjects(new Subjects($this->getUser(), $this->getMapping(), $this->canPushToProtocol()));
             $this->getSubjects()->setOnCoreProtocolSubjects($this->getEntityRecord()['oncore_protocol_id']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
