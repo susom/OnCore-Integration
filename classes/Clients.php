@@ -206,7 +206,7 @@ abstract class Clients
      * @param string $clientSecret
      * @return stdClass|string
      */
-    public function generateToken(string $clientId, string $clientSecret)
+    private function generateToken(string $clientId, string $clientSecret)
     {
         // disable try/catch to let exception trickle back to client.
 //        try {

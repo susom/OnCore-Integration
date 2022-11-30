@@ -9,7 +9,7 @@ class Mapping
     /**
      * @var \Stanford\OnCoreIntegration\OnCoreIntegration
      */
-    private $module;
+    public $module;
     private $oncore_fields;
     private $redcap_fields;
     private $project_mapping;
@@ -234,12 +234,31 @@ class Mapping
      */
     public function getOncoreDesc($oncore_field)
     {
-        $field  = $this->getOncoreField($oncore_field);
-        $desc   = array_key_exists("description", $field) ? $field["description"] : "";
+        $field = $this->getOncoreField($oncore_field);
+        $desc = array_key_exists("description", $field) ? $field["description"] : "";
         return $desc;
     }
 
+    public function getAllMappedREDCapFields()
+    {
+        $mapping = $this->getProjectMapping();
+        $result = [];
 
+        // make sure to add primary record id.
+        $result[] = \REDCap::getRecordIdField();
+
+        foreach ($mapping['pull'] as $item) {
+            if (!in_array($item['redcap_field'], $result)) {
+                $result[] = $item['redcap_field'];
+            }
+        }
+        foreach ($mapping['push'] as $item) {
+            if (!in_array($item['redcap_field'], $result)) {
+                $result[] = $item['redcap_field'];
+            }
+        }
+        return $result;
+    }
     /**
      * @return array
      */
