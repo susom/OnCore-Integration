@@ -203,7 +203,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $this->injectIntegrationUI();
             }
         } catch (\Exception $e) {
-            // TODO routine to handle exception for not finding OnCore protocol
+            \REDCap::logEvent($e->getMessage());
+            // TODO Irvin we need to display the error message on REDCap setup page.
         }
     }
 

@@ -305,8 +305,9 @@ class Protocols
 
 
             }
-        } catch (\Exception $e) {
-            Entities::createException($e->getMessage());
+        } catch (\Throwable $e) {
+            // API is not working for a reason or another.
+            throw new \Exception($e->getMessage());
         }
     }
 
