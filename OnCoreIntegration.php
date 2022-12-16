@@ -181,11 +181,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         try {
             if (!$this->users) {
-                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser() ?: null, $this->getCSRFToken()));
+                $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser() ?: null, $this->getCSRFToken()));
             }
         } catch (\Exception $e) {
             // this is a special case for cron no redcap user.
-            $this->setUsers(new Users($this->PREFIX, null, $this->getCSRFToken()));
+            $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, null, $this->getCSRFToken()));
         }
         if (!$this->protocols) {
             $this->setProtocols(new Protocols($this->getUsers(), $this->getMapping(), $this->getProjectId()));
@@ -1184,7 +1184,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
             // manually set users to make guzzle calls.
             if (!$this->users) {
-                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+                $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
             }
 
             while ($project = $projects->fetch_assoc()) {
@@ -1229,7 +1229,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
             // manually set users to make guzzle calls.
             if (!$this->users) {
-                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+                $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
             }
 
             while ($project = $projects->fetch_assoc()) {
@@ -1266,7 +1266,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
             // manually set users to make guzzle calls.
             if (!$this->users) {
-                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+                $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
             }
 
             while ($project = $projects->fetch_assoc()) {
