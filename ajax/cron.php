@@ -11,7 +11,7 @@ try {
     global $Proj;
     $action = htmlspecialchars($_GET['action']);
     if (!$module->users) {
-        $module->setUsers(new Users($module->PREFIX, null, $module->getCSRFToken()));
+        $module->setUsers(new Users($module->getProjectId(), $module->PREFIX, null, $module->getCSRFToken()));
     }
     if ($action == 'protocols') {
         $module->getProtocols()->processCron($module->getProjectId(), $Proj->project['project_irb_number']);
