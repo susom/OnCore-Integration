@@ -94,6 +94,10 @@ abstract class Clients
     /**
      * @var array
      */
+    private $fieldsDefinition = [];
+    /**
+     * @var array
+     */
     private $onCoreStudySites = [];
 
     /**
@@ -136,6 +140,9 @@ abstract class Clients
         $this->setStatusesAllowedToPush(ExternalModules::getSystemSetting($this->getPrefix(), 'protocol-status') ?: []);
 
         $this->setOnCoreStudySites(ExternalModules::getSystemSetting($this->getPrefix(), 'study-site') ?: []);
+
+        //This is backward compatibility for instance without libraries.
+        $this->setFieldsDefinition(json_decode(ExternalModules::getSystemSetting($this->getPrefix(), 'oncore-field-definition'), true) ?: []);
 
         $this->setRedcapCSFRToken($redcapCSFRToken);
 
@@ -500,6 +507,22 @@ abstract class Clients
     public function setDisableVerification(bool $disableVerification): void
     {
         $this->disableVerification = $disableVerification;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFieldsDefinition(): array
+    {
+        return $this->fieldsDefinition;
+    }
+
+    /**
+     * @param array $fieldsDefinition
+     */
+    public function setFieldsDefinition(array $fieldsDefinition): void
+    {
+        $this->fieldsDefinition = $fieldsDefinition;
     }
 
 
