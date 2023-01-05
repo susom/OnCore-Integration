@@ -20,8 +20,9 @@ class Mapping
     public function __construct($module)
     {
         $this->module = $module;
-        $this->oncore_fields = $this->getOnCoreFieldDefinitions();
-        $this->redcap_fields = $this->getProjectFieldDictionary();
+        // no need to init fields at this point because library data is not defined yet!
+        //$this->oncore_fields = $this->getOnCoreFieldDefinitions();
+        //$this->redcap_fields = $this->getProjectFieldDictionary();
         $this->project_mapping = !empty($this->getProjectFieldMappings()) ? $this->getProjectFieldMappings() : array("pull" => array(), "push" => array());
 
 
@@ -33,7 +34,9 @@ class Mapping
      */
     public function getOnCoreFieldDefinitions()
     {
-        $field_list = json_decode(trim($this->module->getSystemSetting("oncore-field-definition")), true);
+        //$field_list = json_decode(trim($this->module->getSystemSetting("oncore-field-definition")), true);
+        // similar to other load system settings data from client object instead.
+        $field_list = $this->module->getUsers()->getFieldsDefinition();
         $study_sites = $this->module->getUsers()->getOnCoreStudySites();
         $project_study_sites = $this->getProjectSiteStudies();
 
@@ -122,7 +125,7 @@ class Mapping
 //            $this->project_mapping = json_decode(ExternalModules::getProjectSetting($this->module->PREFIX, $this->module->getProjectId(), OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
             $this->project_mapping = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
 
-            return $this->project_mapping ?: [];
+            return $this->project_mapping ?: array("pull" => array(), "push" => array());
         }
     }
 
@@ -152,6 +155,10 @@ class Mapping
      */
     public function getOncoreFields()
     {
+        //lazy loading
+        if (!$this->oncore_fields) {
+            $this->oncore_fields = $this->getOnCoreFieldDefinitions();
+        }
         return $this->oncore_fields;
     }
 
@@ -160,6 +167,10 @@ class Mapping
      */
     public function getRedcapFields()
     {
+        //lazy loading
+        if (!$this->redcap_fields) {
+            $this->redcap_fields = $this->getProjectFieldDictionary();
+        }
         return $this->redcap_fields;
     }
 

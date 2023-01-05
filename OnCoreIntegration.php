@@ -181,14 +181,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         try {
             if (!$this->users) {
-                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser() ?: null, $this->getCSRFToken()));
+                $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser() ?: null, $this->getCSRFToken()));
             }
         } catch (\Exception $e) {
             // this is a special case for cron no redcap user.
-            $this->setUsers(new Users($this->PREFIX, null, $this->getCSRFToken()));
+            $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, null, $this->getCSRFToken()));
         }
         if (!$this->protocols) {
             $this->setProtocols(new Protocols($this->getUsers(), $this->getMapping(), $this->getProjectId()));
+            // after protocol is init find its OnCore library and load it.
+            $this->setProtocolLibrary();
         }
     }
 
@@ -253,6 +255,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 'redcap_event_id' => [
                     'name' => 'REDCap Event Id',
                     'type' => 'integer',
+                    'required' => true,
+                ],
+                'oncore_library' => [
+                    'name' => 'OnCore Protocol Library',
+                    'type' => 'integer',
+                    'default' => 0,
                     'required' => true,
                 ],
                 'status' => [
@@ -1184,7 +1192,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
             // manually set users to make guzzle calls.
             if (!$this->users) {
-                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+                $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
             }
 
             while ($project = $projects->fetch_assoc()) {
@@ -1229,7 +1237,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
             // manually set users to make guzzle calls.
             if (!$this->users) {
-                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+                $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
             }
 
             while ($project = $projects->fetch_assoc()) {
@@ -1266,7 +1274,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
             // manually set users to make guzzle calls.
             if (!$this->users) {
-                $this->setUsers(new Users($this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+                $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
             }
 
             while ($project = $projects->fetch_assoc()) {
@@ -1295,5 +1303,50 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         //check if array is associative or sequential
         if (array() === $arr) return false;
         return array_keys($arr) !== range(0, count($arr) - 1);
+    }
+
+    /**
+     * this method will get defined configuration libraries and set protocol corresponding library
+     * @return void
+     * @throws \Exception
+     */
+    private function setProtocolLibrary()
+    {
+        if ($this->getProtocols()->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES) {
+            $libraries = $this->getSubSettings('libraries', $this->getProjectId());
+            if (!isset($this->getProtocols()->getEntityRecord()['oncore_library'])) {
+                throw new \Exception('No Library was found for this protocol');
+            } elseif (empty($libraries)) {
+                throw new \Exception('No Libraries defined for this REDCap Instance. Please Contact REDCap Admin.');
+            } else {
+                foreach ($libraries as $key => $library) {
+                    if ($this->getProtocols()->getEntityRecord()['oncore_library'] == $key) {
+                        $this->getUsers()->setOnCoreStudySites(self::getSubSettingsValuesAsArray($library['library-oncore-study-sites'], 'study-site'));
+                        $this->getUsers()->setStatusesAllowedToPush(self::getSubSettingsValuesAsArray($library['library-oncore-protocol-statuses'], 'protocol-status'));
+                        $this->getUsers()->setRolesAllowedToPush(self::getSubSettingsValuesAsArray($library['library-oncore-staff-roles'], 'staff-role'));
+                        $this->getUsers()->setFieldsDefinition(json_decode($library['library-oncore-field-definition'], true));
+                        break;
+                    }
+                }
+                if (empty($this->getUsers()->getOnCoreStudySites())) {
+                    throw new \Exception('No Study Sites defined for selected library');
+                }
+                if (empty($this->getUsers()->getStatusesAllowedToPush())) {
+                    throw new \Exception('No Protocol statuses defined for selected library');
+                }
+                if (empty($this->getUsers()->getRolesAllowedToPush())) {
+                    throw new \Exception('No Protocol Staff roles defined for selected library');
+                }
+            }
+        }
+    }
+
+    public static function getSubSettingsValuesAsArray($subSettings, $key)
+    {
+        $result = [];
+        foreach ($subSettings as $subSetting) {
+            $result[] = $subSetting[$key];
+        }
+        return $result;
     }
 }

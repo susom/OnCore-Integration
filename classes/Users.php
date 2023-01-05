@@ -1,7 +1,9 @@
 <?php
 
 namespace Stanford\OnCoreIntegration;
+
 use ExternalModules\User;
+use ExternalModules\ExternalModules;
 use GuzzleHttp\Exception\GuzzleException;
 
 require_once 'Clients.php';
@@ -16,6 +18,10 @@ require_once 'Clients.php';
 class Users extends Clients
 {
 
+    /**
+     * @var int
+     */
+    public $redcapProjectId;
     /**
      * @var array
      */
@@ -36,13 +42,16 @@ class Users extends Clients
      */
     private $redcapEntityProtocolRecordId;
 
+    private $onCoreSkippedStaff = [];
+
     /**
      * @param $prefix
      */
-    public function __construct($prefix, $user, $redcapCSFRToken)
+    public function __construct($redcapProjectId, $prefix, $user, $redcapCSFRToken)
     {
         parent::__construct($prefix, $redcapCSFRToken);
 
+        $this->redcapProjectId = $redcapProjectId;
         $this->setRedcapUser($user);
 //
 //        $this->setClientId($clientId);
@@ -187,6 +196,9 @@ class Users extends Clients
                     $this->protocolStaff = [];
                 } else {
                     foreach ($data as $staff) {
+                        if (in_array($staff['contactId'], $this->getOnCoreSkippedStaff())) {
+                            continue;
+                        }
                         $contact = $this->getContactDetails($staff['contactId']);
 //                        if (isset($contact['errorType'])) {
 //                            Entities::createLog($contact['message']);
@@ -198,8 +210,9 @@ class Users extends Clients
                             Entities::createLog($message);
                             \REDCap::logEvent($message);
                         } elseif (isset($contact['errorType'])) {
-                            Entities::createLog($contact['message']);
-                            \REDCap::logEvent($contact['message']);
+//                            Entities::createLog($contact['message']);
+//                            \REDCap::logEvent($contact['message']);
+                            $this->setOnCoreSkippedStaff($staff['contactId']);
                         } else {
                             $staff['contact'] = $contact;
                             $this->protocolStaff[] = $staff;
@@ -238,5 +251,33 @@ class Users extends Clients
             return $data;
         }
     }
+
+    /**
+     * @return array
+     */
+    public function getOnCoreSkippedStaff(): array
+    {
+        if (!$this->onCoreSkippedStaff) {
+            $list = ExternalModules::getProjectSetting($this->getPREFIX(), $this->redcapProjectId, 'oncore-skipped-contacts');
+            if ($list) {
+                $temp = explode(',', $list);
+                if ($temp) {
+                    $this->onCoreSkippedStaff = $temp;
+                }
+            }
+        }
+        return $this->onCoreSkippedStaff;
+    }
+
+    /**
+     * @param string $onCoreSkippedStaff
+     */
+    public function setOnCoreSkippedStaff(string $onCoreSkippedStaff): void
+    {
+        $temp = implode(',', $this->onCoreSkippedStaff) . ',' . $onCoreSkippedStaff;
+        ExternalModules::setProjectSetting($this->getPREFIX(), $this->redcapProjectId, 'oncore-skipped-contacts', $temp);
+        $this->onCoreSkippedStaff[] = $onCoreSkippedStaff;
+    }
+
 
 }
