@@ -29,7 +29,12 @@ class Entities
             'type' => $type
         );
         // use this to reduce Mysql Server Gone error.
-        $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()));
+        if (defined('PROJECT_ID')) {
+            $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated, redcap_project_id) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()), db_escape(PROJECT_ID));
+        } else {
+            $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()));
+        }
+
         //$entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_API_ACTIONS_LOG, $data);
         $entity = db_query($sql);
         if (!$entity) {
@@ -134,6 +139,20 @@ class Entities
         $temp[] = db_escape($id);
         $sql = vsprintf('UPDATE %s SET ' . $fmt . ' WHERE id = %s', $temp);
         $result = db_query(str_replace("\\", '', db_escape($sql)));
+        return $result;
+    }
+
+    public static function getREDCapProjectLogs($pid)
+    {
+        $result = [];
+        $sql = sprintf("SELECT * FROM %s WHERE redcap_project_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($pid));
+        $records = db_query($sql);
+        while ($row = db_fetch_assoc($records)) {
+            unset($row['redcap_project_id']);
+            $row['created'] = date('m-d-Y h:i:s', $row['created']);
+            $row['updated'] = date('m-d-Y h:i:s', $row['updated']);
+            $result[] = $row;
+        }
         return $result;
     }
 
