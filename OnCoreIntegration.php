@@ -1331,9 +1331,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             } else {
                 foreach ($libraries as $key => $library) {
                     if ($this->getProtocols()->getEntityRecord()['oncore_library'] == $key) {
-                        $this->getUsers()->setOnCoreStudySites(self::getSubSettingsValuesAsArray($library['library-oncore-study-sites'], 'study-site'));
-                        $this->getUsers()->setStatusesAllowedToPush(self::getSubSettingsValuesAsArray($library['library-oncore-protocol-statuses'], 'protocol-status'));
-                        $this->getUsers()->setRolesAllowedToPush(self::getSubSettingsValuesAsArray($library['library-oncore-staff-roles'], 'staff-role'));
+                        $this->getUsers()->setOnCoreStudySites(self::getSubSettingsValuesAsArray($library['library-oncore-study-sites'], 'library-study-site'));
+                        $this->getUsers()->setStatusesAllowedToPush(self::getSubSettingsValuesAsArray($library['library-oncore-protocol-statuses'], 'library-protocol-status'));
+                        $this->getUsers()->setRolesAllowedToPush(self::getSubSettingsValuesAsArray($library['library-oncore-staff-roles'], 'library-staff-role'));
                         $this->getUsers()->setFieldsDefinition(json_decode($library['library-oncore-field-definition'], true));
                         break;
                     }

@@ -189,7 +189,7 @@
           "repeatable": true,
           "sub_settings": [
             {
-              "key": "staff-role",
+              "key": "library-staff-role",
               "name": "<b>Staff Role <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
               "type": "text",
               "required": true
@@ -209,7 +209,7 @@
           "repeatable": true,
           "sub_settings": [
             {
-              "key": "protocol-status",
+              "key": "library-protocol-status",
               "name": "<b>Protocol Status <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
               "type": "text",
               "required": true
@@ -229,7 +229,7 @@
           "repeatable": true,
           "sub_settings": [
             {
-              "key": "study-site",
+              "key": "library-study-site",
               "name": "<b>OnCore Study site <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
               "type": "text",
               "required": true
