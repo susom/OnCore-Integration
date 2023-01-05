@@ -328,6 +328,9 @@ try {
                 }
 
                 break;
+            case "projectLogs":
+                $result = Entities::getREDCapProjectLogs($module->getProjectId());
+                break;
         }
 //        echo htmlentities(json_encode($result, JSON_THROW_ON_ERROR), ENT_QUOTES);
         $result = json_encode($result, JSON_THROW_ON_ERROR);

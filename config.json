@@ -75,6 +75,12 @@
         "icon": "fas fa-not-equal",
         "url": "pages/sync_diff.php",
         "show-header-and-footer": false
+      },
+      {
+        "name": "OnCore Logs",
+        "icon": "fas fa-database",
+        "url": "pages/projects_log_viewer.php",
+        "show-header-and-footer": true
       }
     ]
   },
