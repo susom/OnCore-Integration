@@ -26,12 +26,12 @@ try {
                 break;
 
             case "saveSiteStudies":
-                $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : null;
+                $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : [];
                 $module->getMapping()->setProjectSiteStudies($result);
                 break;
 
             case "saveFilterLogic":
-                $result = !empty($_POST["filter_logic_str"]) ? filter_var($_POST["filter_logic_str"], FILTER_SANITIZE_STRING) : null;
+                $result = !empty($_POST["filter_logic_str"]) ? filter_var($_POST["filter_logic_str"], FILTER_SANITIZE_STRING) : '';
                 $module->getMapping()->setOncoreConsentFilterLogic($result);
                 break;
 
