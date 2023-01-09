@@ -310,10 +310,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     'type' => 'integer',
                     'required' => true,
                     'default' => 0,
-                    'choices' => [
-                        0 => 'OnCore API Call ',
-                        1 => 'REDCap API Call',
-                    ],
                 ],
             ],
             'special_keys' => [
@@ -1357,6 +1353,38 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         foreach ($subSettings as $subSetting) {
             $result[] = $subSetting[$key];
         }
+        return $result;
+    }
+
+    public function getProtocolsSummary()
+    {
+        $sql = sprintf("SELECT status, COUNT(id) as c from %s GROUP BY status;", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS));
+        $q = db_query($sql);
+        $result = [];
+        $total = 0;
+        while ($record = db_fetch_assoc($q)) {
+            $result[$record['status']] = $record['c'];
+            $total += $record['c'];
+        }
+        $result['total'] = $total;
+        return $result;
+    }
+
+    public function getLogsSummary()
+    {
+        $sql = sprintf("SELECT type, COUNT(id) as c from %s GROUP BY type;", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG));
+        $q = db_query($sql);
+        $result = [];
+        $total = 0;
+        while ($record = db_fetch_assoc($q)) {
+            // ignore general logs
+            if (!$record['type']) {
+                continue;
+            }
+            $result[$record['type']] = $record['c'];
+            $total += $record['c'];
+        }
+        $result['total'] = $total;
         return $result;
     }
 }

@@ -722,7 +722,7 @@ class Subjects extends SubjectDemographics
         if (empty($onCoreRecord)) {
             $demographics = $this->prepareREDCapRecordForSync($redcapId, $fields, $oncoreFieldsDef);
             $message = "No subject found for MRN $redcapMRN. Using REDCap data to create new Subject.";
-            Entities::createLog($message);
+            Entities::createLog($message, Entities::PUSH_TO_ONCORE_FROM_ONCORE);
             $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
             $result['message'] = $message;
             return $result;
@@ -730,7 +730,7 @@ class Subjects extends SubjectDemographics
             // if subject is in different protocol then just add subject to protocol
             if ($onCoreRecord['subjectSource'] == OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONCORE) {
                 $message = "OnCore Subject " . $onCoreRecord['subjectDemographicsId'] . " found for MRN $redcapMRN. REDCap data will be ignored and OnCore subject will be used.";
-                Entities::createLog($message);
+                Entities::createLog($message, Entities::PUSH_TO_ONCORE_FROM_ON_STAGE);
                 $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, $onCoreRecord['subjectDemographicsId'], null);
                 $result['message'] = $message;
                 return $result;
@@ -741,7 +741,7 @@ class Subjects extends SubjectDemographics
                 // fill Onstage missing data from redcap record.
                 $demographics = $this->fillMissingData($record, $onCoreRecord, $fields);
                 $message = "No OnCore Subject found for MRN $redcapMRN but a Record found on OnStage table. REDCap data will be used ONLY for missing data from OnStage.";
-                Entities::createLog($message);
+                Entities::createLog($message, Entities::PUSH_TO_ONCORE_FROM_REDCAP);
                 $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
                 $result['message'] = $message;
                 return $result;
@@ -976,7 +976,7 @@ class Subjects extends SubjectDemographics
                     }
                 } else {
                     $id = end($response['ids']);
-                    Entities::createLog('OnCore Subject ' . $record['oncore'] . ' got pull into REDCap record ' . $id);
+                    Entities::createLog('OnCore Subject ' . $record['oncore'] . ' was synced into REDCap record ' . $id, Entities::PULL_FROM_ONCORE);
                     $this->updateLinkageEntityStatus($linkage['id'], OnCoreIntegration::FULL_MATCH);
                 }
             }

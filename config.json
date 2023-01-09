@@ -61,6 +61,12 @@
         "name": "REDCap OnCore Linked Records",
         "icon": "fas fa-database",
         "url": "pages/linkage_viewer.php"
+      },
+      {
+        "name": "OnCore Summary Page",
+        "icon": "fas fa-chart-bar",
+        "url": "pages/summary_page.php",
+        "show-header-and-footer": true
       }
     ],
     "project": [
