@@ -157,10 +157,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function redcap_module_project_enable($version, $project_id)
     {
-        global $Proj;
-        if ($Proj->project['project_irb_number']) {
-            $this->getProtocols()->processCron($this->getProjectId(), $Proj->project['project_irb_number']);
-        }
+        // disabled because user has to pick protocol from project setup page.
+//        global $Proj;
+//        if ($Proj->project['project_irb_number']) {
+//            $this->getProtocols()->processCron($this->getProjectId(), $Proj->project['project_irb_number'], $this->getDefinedLibraries());
+//        }
     }
 
     public function redcap_module_system_enable($version)
@@ -1319,7 +1320,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     private function setProtocolLibrary()
     {
         if ($this->getProtocols()->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES) {
-            $libraries = $this->getSubSettings('libraries', $this->getProjectId());
+            $libraries = $this->getDefinedLibraries();
             if (!isset($this->getProtocols()->getEntityRecord()['oncore_library'])) {
                 throw new \Exception('No Library was found for this protocol');
             } elseif (empty($libraries)) {
@@ -1386,5 +1387,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         }
         $result['total'] = $total;
         return $result;
+    }
+
+    /**
+     * @return array
+     */
+    public function getDefinedLibraries()
+    {
+        return $this->getSubSettings('libraries', $this->getProjectId());
     }
 }

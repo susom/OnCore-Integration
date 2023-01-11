@@ -402,7 +402,7 @@ class Protocols
      * @return void
      * @throws GuzzleException
      */
-    public function processCron($id, $irb)
+    public function processCron($id, $irb, $libraries = [])
     {
         $protocols = $this->searchOnCoreProtocolsViaIRB($irb);
 
@@ -417,7 +417,8 @@ class Protocols
                         // cron will save the first event. and when connect is approved the redcap user has to confirm the event id.
                         'redcap_event_id' => 0,
                         'status' => '0',
-                        'last_date_scanned' => time()
+                        'last_date_scanned' => time(),
+                        'oncore_library' => $this->getProtocolDefinedLibraryId($protocol['protocolId'], $libraries)
                     );
 
                     $entity = (new Entities)->create(OnCoreIntegration::ONCORE_PROTOCOLS, $data);
@@ -441,6 +442,23 @@ class Protocols
             Entities::createLog('IRB ' . $irb . ' has no OnCore Protocols.');
         }
 
+    }
+
+    public function getProtocolDefinedLibraryId($protocol, $libraries)
+    {
+        $library = $this->getProtocolDefinedLibrary($protocol, $libraries);
+        return array_key_first($library);
+    }
+
+    public function getProtocolDefinedLibrary($protocolId, $libraries)
+    {
+        foreach ($libraries as $key => $library) {
+            $protocol = $this->getOnCoreProtocolsViaID($protocolId);
+            if ($library['library-name'] == $protocol['library']) {
+                return array($key => $library);
+            }
+        }
+        throw new \Exception("No Defined Library found");
     }
 
     /**
