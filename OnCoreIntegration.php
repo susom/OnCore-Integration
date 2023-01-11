@@ -157,10 +157,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function redcap_module_project_enable($version, $project_id)
     {
-        global $Proj;
-        if ($Proj->project['project_irb_number']) {
-            $this->getProtocols()->processCron($this->getProjectId(), $Proj->project['project_irb_number']);
-        }
+        // disabled because user has to pick protocol from project setup page.
+//        global $Proj;
+//        if ($Proj->project['project_irb_number']) {
+//            $this->getProtocols()->processCron($this->getProjectId(), $Proj->project['project_irb_number'], $this->getDefinedLibraries());
+//        }
     }
 
     public function redcap_module_system_enable($version)
@@ -310,10 +311,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     'type' => 'integer',
                     'required' => true,
                     'default' => 0,
-                    'choices' => [
-                        0 => 'OnCore API Call ',
-                        1 => 'REDCap API Call',
-                    ],
                 ],
             ],
             'special_keys' => [
@@ -1323,7 +1320,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     private function setProtocolLibrary()
     {
         if ($this->getProtocols()->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES) {
-            $libraries = $this->getSubSettings('libraries', $this->getProjectId());
+            $libraries = $this->getDefinedLibraries();
             if (!isset($this->getProtocols()->getEntityRecord()['oncore_library'])) {
                 throw new \Exception('No Library was found for this protocol');
             } elseif (empty($libraries)) {
@@ -1358,5 +1355,45 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             $result[] = $subSetting[$key];
         }
         return $result;
+    }
+
+    public function getProtocolsSummary()
+    {
+        $sql = sprintf("SELECT status, COUNT(id) as c from %s GROUP BY status;", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS));
+        $q = db_query($sql);
+        $result = [];
+        $total = 0;
+        while ($record = db_fetch_assoc($q)) {
+            $result[$record['status']] = $record['c'];
+            $total += $record['c'];
+        }
+        $result['total'] = $total;
+        return $result;
+    }
+
+    public function getLogsSummary()
+    {
+        $sql = sprintf("SELECT type, COUNT(id) as c from %s GROUP BY type;", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG));
+        $q = db_query($sql);
+        $result = [];
+        $total = 0;
+        while ($record = db_fetch_assoc($q)) {
+            // ignore general logs
+            if (!$record['type']) {
+                continue;
+            }
+            $result[$record['type']] = $record['c'];
+            $total += $record['c'];
+        }
+        $result['total'] = $total;
+        return $result;
+    }
+
+    /**
+     * @return array
+     */
+    public function getDefinedLibraries()
+    {
+        return $this->getSubSettings('libraries', $this->getProjectId());
     }
 }

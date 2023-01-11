@@ -324,12 +324,17 @@ try {
             case "triggerIRBSweep":
                 if (isset($_POST['irb']) && $_POST['irb'] != '') {
                     $irb = htmlspecialchars($_POST['irb']);
-                    $module->getProtocols()->processCron($module->getProjectId(), $irb);
+                    $module->getProtocols()->processCron($module->getProjectId(), $irb, $module->getDefinedLibraries());
                 }
 
                 break;
             case "projectLogs":
                 $result = Entities::getREDCapProjectLogs($module->getProjectId());
+                break;
+            case "projectProtocols":
+                global $Proj;
+                $irb = $Proj->project['project_irb_number'];
+                $result = $module->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
                 break;
         }
 //        echo htmlentities(json_encode($result, JSON_THROW_ON_ERROR), ENT_QUOTES);
