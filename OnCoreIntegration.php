@@ -1295,7 +1295,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id . '&action=subjects';
                 $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
 //                $this->emDebug("running cron for $url on project " . $project['app_title']);
-                Entities::createLog("running cron for $url on project " . $project['app_title']);
+                Entities::createLog("Cron URL $url for project " . $project['app_title']);
             }
 
         } catch (\Exception $e) {
@@ -1411,5 +1411,22 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             }
         }
         return $message;
+    }
+
+    public function redcapCleanupEntityRecords()
+    {
+        $sql = sprintf("select  project_id from redcap_entity_oncore_protocols LEFT OUTER JOIN redcap_projects ON project_id = redcap_entity_oncore_protocols.redcap_project_id where redcap_projects.date_deleted is not null");
+        $q = db_query($sql);
+        // manually set users to make guzzle calls.
+        if (!$this->users) {
+            $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+        }
+
+        while ($project = db_fetch_assoc($q)) {
+            $id = $project['project_id'];
+            $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id . '&action=clean_up';
+            $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
+            Entities::createLog("running cron for $url on project " . $project['project_id']);
+        }
     }
 }

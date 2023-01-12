@@ -25,6 +25,11 @@ try {
         $module->getProtocols()->syncREDCapRecords();
         header('Content-Type: application/json');
         $result = json_encode(array('status' => 'success', 'message' => 'REDCap Records Cron completed for pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
+    } elseif ($action == 'clean_up') {
+        $module->getProtocols()->getSubjects()->deleteLinkageRecords($module->getProtocols()->getEntityRecord()['redcap_project_id'], $module->getProtocols()->getEntityRecord()['oncore_protocol_id']);
+        $module->getProtocols()->deleteProtocolRecord($module->getProtocols()->getEntityRecord()['redcap_project_id']);
+        header('Content-Type: application/json');
+        $result = json_encode(array('status' => 'success', 'message' => 'Cleanup cron completed for pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
     } else {
         throw new \Exception('Unknown Action');
     }

@@ -299,6 +299,13 @@
       "method": "onCoreREDCapRecordsScanCron",
       "cron_frequency": "86400",
       "cron_max_run_time": "3600"
+    },
+    {
+      "cron_name": "oncore_redcap_cleanup_deleted_projects",
+      "cron_description": "Daily Cron to delete related records from OnCore entity tables for deleted REDCap project.",
+      "method": "redcapCleanupEntityRecords",
+      "cron_frequency": "86400",
+      "cron_max_run_time": "3600"
     }
   ],
   "compatibility": {
