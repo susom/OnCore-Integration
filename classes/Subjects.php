@@ -270,14 +270,15 @@ class Subjects extends SubjectDemographics
      */
     public function getREDCapRecordIdViaMRN($mrn, $redcapEventId, $redcapMRNField)
     {
+        $result = [];
         if ($this->getRedcapProjectRecords()) {
             foreach ($this->getRedcapProjectRecords() as $id => $record) {
                 if ($record[$redcapEventId][$redcapMRNField] == $mrn) {
-                    return array('id' => $id, 'record' => $record);
+                    $result[] = array('id' => $id, 'record' => $record);
                 }
             }
         }
-        return false;
+        return $result;
     }
 
     /**

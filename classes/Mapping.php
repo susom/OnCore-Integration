@@ -299,7 +299,7 @@ class Mapping
     /**
      * @return string
      */
-    public function getMappedDevaultValue($field_key, $push = false)
+    public function getMappedDefaultValue($field_key, $push = false)
     {
         $field = $this->getMappedField($field_key, $push);
         $value = array_key_exists("default_value", $field) ? $field["default_value"] : "";
@@ -423,7 +423,7 @@ class Mapping
 
         if (!empty($oc_field_map_push)) {
             $field = $this->getOncoreField($field_key);
-            if ($this->canUseDefaultValue($field_key, $field['allow_default'], $this->getMappedDevaultValue($field_key, true))) {
+            if ($this->canUseDefaultValue($field_key, $field['allow_default'], $this->getMappedDefaultValue($field_key, true))) {
                 //if(!empty($oc_field_map_push["default_value"])){
                 $push_status = true;
             } else {
@@ -952,6 +952,8 @@ class Mapping
         $html .= "</thead>";
 
         foreach ($records as $mrn => $rows) {
+            $t = explode('_', $mrn);
+            $mrn = $t[0];
             if ($noredcap) {
                 $rc_id = "";
             }
@@ -1084,6 +1086,9 @@ class Mapping
         $html .= "</thead>";
 
         foreach ($records as $mrn => $rows) {
+            // edge case for duplicate mrns
+            $t = explode('_', $mrn);
+            $mrn = $t[0];
             if ($noredcap) {
                 $rc_id = "";
             }
@@ -1207,10 +1212,14 @@ class Mapping
         $html .= "</thead>";
 
         foreach ($records as $mrn => $rows) {
+
             // MRN is empty when record exists in redcap but does not satisfy filter logic.
             if ($mrn == '') {
                 continue;
             }
+            // edge case for duplicate mrns
+            $t = explode('_', $mrn);
+            $mrn = $t[0];
             if ($noredcap) {
                 $rc_id = "";
             }

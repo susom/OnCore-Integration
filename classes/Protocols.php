@@ -219,14 +219,38 @@ class Protocols
                 $onCoreMrn = $subject['demographics']['mrn'];
 //            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $this->getEntityRecord()['redcap_event_id'], $fields['mrn']);
                 $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event']), $fields['pull']['mrn']['redcap_field']);
-                if ($redcapRecord) {
-                    $this->matchREDCapRecordWithOnCoreSubject($redcapRecord, $subject, $fields);
+                if (!empty($redcapRecord)) {
+                    if (count($redcapRecord) == 1) {
+                        // if no duplicated MRN just use first one.
+                        $id = $redcapRecord[0]['id'];
+                        $this->matchREDCapRecordWithOnCoreSubject($redcapRecord[0], $subject, $fields);
+
+                        // id to be removed
+                        $id = $redcapRecord[0]['id'];
+                    } else {
+                        // this protocol allows duplicate enrollment we need to find matching subject using protocolSubjectId.
+                        if (!isset($fields['pull']['protocolSubjectId'])) {
+                            throw new \Exception("MRN $onCoreMrn enrolled multiple times. In order to correctly match records you <strong>Must</strong> map `protocolSubjectid` in the <string>Pull</string> fields mapping page.");
+                        } else {
+                            // we need to match record using protocol Subject Id.
+                            foreach ($redcapRecord as $item) {
+                                $redcapProtocolSubjectId = $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']];
+                                if ($redcapProtocolSubjectId == $subject['protocolSubjectId']) {
+                                    $this->matchREDCapRecordWithOnCoreSubject($item, $subject, $fields);
+                                    $id = $item['id'];
+                                    break;
+                                }
+                            }
+                        }
+
+                    }
                     // now remove redcap record from array
-                    unset($redcapRecords[$redcapRecord['id']]);
+                    unset($redcapRecords[$id]);
                 } else {
                     $record = $this->processOnCoreOnlyRecord($subject);
                 }
                 unset($redcapRecord);
+                unset($id);
             }
 
 
