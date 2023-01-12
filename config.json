@@ -245,6 +245,27 @@
       ]
     },
     {
+      "key": "custom-error-messages",
+      "name": "<b>Attach custom error message to an existing OnCore error message.</b>",
+      "required": true,
+      "type": "sub_settings",
+      "repeatable": true,
+      "sub_settings": [
+        {
+          "key": "oncore-error-message",
+          "name": "<b>OnCore error message. this field MUST match returned error from OnCore.</b>",
+          "required": true,
+          "type": "textarea"
+        },
+        {
+          "key": "extra-error-message",
+          "name": "<b>New error message that will be attached to OnCore message.</b>",
+          "required": true,
+          "type": "rich-text"
+        }
+      ]
+    },
+    {
       "key": "disable-ssl-verify",
       "name": "For testing ONLY Disable SSL verification when making requests.",
       "required": false,
