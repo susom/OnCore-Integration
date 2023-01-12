@@ -703,5 +703,18 @@ class Protocols
         $this->mapping = $mapping;
     }
 
+public function deleteProtocolRecord($redcapProjectId)
+{
+    if (!$redcapProjectId) {
+        throw new \Exception('REDCap Project Id is missing');
+    }
 
+
+    $sql = sprintf("DELETE FROM %s WHERE redcap_project_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS), db_escape($redcapProjectId));
+    $result = db_query($sql);
+    if (!$result) {
+        throw new \Exception(db_error());
+    }
+    return $result;
+}
 }
