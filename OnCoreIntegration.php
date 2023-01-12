@@ -1013,6 +1013,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
                 default:
                     //partial
+                    $mrn = $mrn . '_' . $entity_id ?: rand(1000, 9999);
                     $bin_var = $bin_array[$link_status];
                     $bin = $excluded ? $$bin_var["excluded"] : $$bin_var["included"];
                     if (!array_key_exists($mrn, $bin)) {
@@ -1395,5 +1396,20 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function getDefinedLibraries()
     {
         return $this->getSubSettings('libraries', $this->getProjectId());
+    }
+
+    public function checkCustomErrorMessages($message)
+    {
+        $customErrorMessages = $this->getSubSettings('custom-error-messages', $this->getProjectId());
+        foreach ($customErrorMessages as $customErrorMessage) {
+            $aa = $customErrorMessage['oncore-error-message'];
+            $bb = $message;
+            $cc = $customErrorMessage['oncore-error-message'] == $message;
+            $dd = strpos($customErrorMessage['oncore-error-message'], $message) !== false;
+            if ($customErrorMessages['oncore-error-message'] == $message or strpos($customErrorMessage['oncore-error-message'], $message) !== false) {
+                return $message . '<br>' . $customErrorMessage['extra-error-message'];
+            }
+        }
+        return $message;
     }
 }

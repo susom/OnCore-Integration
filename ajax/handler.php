@@ -345,12 +345,12 @@ try {
     if (method_exists($e, 'getResponse')) {
         $response = $e->getResponse();
         $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-        $responseBodyAsString['message'] = $responseBodyAsString['field'] . ': ' . $responseBodyAsString['message'];
+        $responseBodyAsString['message'] = $responseBodyAsString['field'] ? $responseBodyAsString['field'] . ': ' : '' . $responseBodyAsString['message'];
     } else {
         $responseBodyAsString = array();
         $responseBodyAsString['message'] = $e->getMessage();
     }
-
+    $responseBodyAsString['message'] = $module->checkCustomErrorMessages($responseBodyAsString['message']);
     Entities::createException($responseBodyAsString['message']);
     header("Content-type: application/json");
     http_response_code(404);
@@ -365,7 +365,8 @@ try {
     Entities::createException($e->getMessage());
     header("Content-type: application/json");
     http_response_code(404);
-    $result = json_encode(array('status' => 'error', 'message' => $e->getMessage(), 'id' => $id), JSON_THROW_ON_ERROR);
+    $message = $module->checkCustomErrorMessages($e->getMessage());
+    $result = json_encode(array('status' => 'error', 'message' => $message, 'id' => $id), JSON_THROW_ON_ERROR);
 //    echo(json_encode($result, JSON_THROW_ON_ERROR));
     echo htmlentities($result, ENT_QUOTES);;
 }
