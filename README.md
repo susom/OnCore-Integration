@@ -1,6 +1,6 @@
 # OnCoreIntegration
 
-**Note: Minimum Compatibile OnCore API verion is 2021R3**
+** **Note: Minimum Compatibile OnCore API verion is 2021R3** **
 
 Many institutions use the OnCore system by Advarra to manage their clinical trials and also use REDCap to capture and store
 participant data. Linking these two systems, by automating the transfer of participants between the two systems,
