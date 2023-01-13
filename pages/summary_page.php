@@ -50,6 +50,8 @@ try {
                     <strong><?php echo $logs[Entities::PUSH_TO_ONCORE_FROM_ON_STAGE] ?: 0 ?></strong></p>
                 <p>Number of Records Pushed Directly from REDCap:
                     <strong><?php echo $logs[Entities::PUSH_TO_ONCORE_FROM_REDCAP] ?: 0 ?></strong></p>
+                <p><a href="<?php echo $module->getUrl('pages/linkage_viewer.php') ?>">View Linked Records </a></p>
+
             </div>
         </div>
         <div class="card">
@@ -63,6 +65,8 @@ try {
             </div>
             <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
                 <div class="card-body">
+                                <p><a href="<?php echo $module->getUrl('pages/linkage_viewer.php') ?>">View Linked Records </a></p>
+
                 </div>
             </div>
         </div>
