@@ -322,9 +322,10 @@ try {
 
 
             case "triggerIRBSweep":
-                if (isset($_POST['irb']) && $_POST['irb'] != '') {
+                if (isset($_POST['irb']) && $_POST['irb'] != '' && isset($_POST['oncore_protocol_id']) && $_POST['oncore_protocol_id'] != '') {
                     $irb = htmlspecialchars($_POST['irb']);
-                    $module->getProtocols()->processCron($module->getProjectId(), $irb, $module->getDefinedLibraries());
+                    $oncoreProtocolId = htmlspecialchars($_POST['oncore_protocol_id']);
+                    $module->getProtocols()->processCron($module->getProjectId(), $irb, $oncoreProtocolId, $module->getDefinedLibraries());
                 }
 
                 break;
