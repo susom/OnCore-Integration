@@ -426,7 +426,7 @@ class Protocols
      * @return void
      * @throws GuzzleException
      */
-    public function processCron($id, $irb, $libraries = [])
+    public function processCron($id, $irb, $oncoreProtocolId, $libraries = [])
     {
         $protocols = $this->searchOnCoreProtocolsViaIRB($irb);
 
@@ -434,27 +434,29 @@ class Protocols
             $entity_oncore_protocol = self::getOnCoreProtocolEntityRecord($id, $irb);
             if (empty($entity_oncore_protocol)) {
                 foreach ($protocols as $protocol) {
-                    $data = array(
-                        'redcap_project_id' => $id,
-                        'irb_number' => $irb,
-                        'oncore_protocol_id' => $protocol['protocolId'],
-                        // cron will save the first event. and when connect is approved the redcap user has to confirm the event id.
-                        'redcap_event_id' => 0,
-                        'status' => '0',
-                        'last_date_scanned' => time(),
-                        'oncore_library' => $this->getProtocolDefinedLibraryId($protocol['protocolId'], $libraries)
-                    );
+                    if ($oncoreProtocolId == $protocol['protocolId']) {
+                        $data = array(
+                            'redcap_project_id' => $id,
+                            'irb_number' => $irb,
+                            'oncore_protocol_id' => $protocol['protocolId'],
+                            // cron will save the first event. and when connect is approved the redcap user has to confirm the event id.
+                            'redcap_event_id' => 0,
+                            'status' => '0',
+                            'last_date_scanned' => time(),
+                            'oncore_library' => $this->getProtocolDefinedLibraryId($protocol['protocolId'], $libraries)
+                        );
 
-                    $entity = (new Entities)->create(OnCoreIntegration::ONCORE_PROTOCOLS, $data);
+                        $entity = (new Entities)->create(OnCoreIntegration::ONCORE_PROTOCOLS, $data);
 
-                    if ($entity) {
-                        Entities::createLog('OnCore Protocol Entity table record created for IRB: ' . $irb . '.');
-                        $this->setEntityRecord($data);
-                        // do not pull any protocol data till user approve the redcap oncore linkage.
-                        //$this->prepareProtocolSubjects();
-                        //$this->syncRecords();
-                    } else {
-                        throw new \Exception(implode(',', $entity->errors));
+                        if ($entity) {
+                            Entities::createLog('OnCore Protocol Entity table record created for IRB: ' . $irb . '.');
+                            $this->setEntityRecord($data);
+                            // do not pull any protocol data till user approve the redcap oncore linkage.
+                            //$this->prepareProtocolSubjects();
+                            //$this->syncRecords();
+                        } else {
+                            throw new \Exception(implode(',', $entity->errors));
+                        }
                     }
                 }
             } else {
@@ -703,18 +705,18 @@ class Protocols
         $this->mapping = $mapping;
     }
 
-public function deleteProtocolRecord($redcapProjectId)
-{
-    if (!$redcapProjectId) {
-        throw new \Exception('REDCap Project Id is missing');
-    }
+    public function deleteProtocolRecord($redcapProjectId)
+    {
+        if (!$redcapProjectId) {
+            throw new \Exception('REDCap Project Id is missing');
+        }
 
 
-    $sql = sprintf("DELETE FROM %s WHERE redcap_project_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS), db_escape($redcapProjectId));
-    $result = db_query($sql);
-    if (!$result) {
-        throw new \Exception(db_error());
+        $sql = sprintf("DELETE FROM %s WHERE redcap_project_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS), db_escape($redcapProjectId));
+        $result = db_query($sql);
+        if (!$result) {
+            throw new \Exception(db_error());
+        }
+        return $result;
     }
-    return $result;
-}
 }

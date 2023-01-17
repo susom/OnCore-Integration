@@ -14,9 +14,15 @@ try {
         $module->setUsers(new Users($module->getProjectId(), $module->PREFIX, null, $module->getCSRFToken()));
     }
     if ($action == 'protocols') {
-        $module->getProtocols()->processCron($module->getProjectId(), $Proj->project['project_irb_number'], $module->getDefinedLibraries());
-        header('Content-Type: application/json');
-        $result = json_encode(array('status' => 'success', 'message' => 'Protocols Cron completed for pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
+        $protocols = $module->getProtocols()->searchOnCoreProtocolsViaIRB($Proj->project['project_irb_number']);
+        if (count($protocols) == 1) {
+            $module->getProtocols()->processCron($module->getProjectId(), $Proj->project['project_irb_number'], $protocols[0]['protocolId'], $module->getDefinedLibraries());
+            header('Content-Type: application/json');
+            $result = json_encode(array('status' => 'success', 'message' => 'Protocols Cron completed for pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
+        } else {
+            $result = json_encode(array('status' => 'success', 'message' => $Proj->project['project_irb_number'] . ' has multiple OnCore Protocols. No Action is done. '), JSON_THROW_ON_ERROR);
+        }
+
     } elseif ($action == 'subjects') {
         $module->getProtocols()->syncRecords();
         header('Content-Type: application/json');
