@@ -519,6 +519,17 @@ class Protocols
         }
     }
 
+    public function getOnCoreProtocolsViaIRB($irb)
+    {
+        $protocols = $this->searchOnCoreProtocolsViaIRB($irb);
+        if (!empty($protocols)) {
+            foreach ($protocols as $index => $protocol) {
+                $protocols[$index]['protocol'] = $this->getOnCoreProtocolsViaID($protocol['protocolId']);
+            }
+        }
+        return $protocols;
+    }
+
     /**
      * search OnCore API for a protocol via IRB
      * @param $irbNum
