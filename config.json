@@ -9,6 +9,7 @@
       "email": "ihabz@stanford.edu",
       "institution": "Stanford University"
     },
+
     {
       "name": "Andrew Martin",
       "email": "andy123@stanford.edu",
@@ -94,6 +95,21 @@
     "pages/getEmrDemographics",
     "ajax/cron"
   ],
+
+    "enable-ajax-logging": true,
+
+    "auth-ajax-actions": [
+        "integrateOnCore"
+        ,"approveIntegrateOncore"
+        ,"triggerIRBSweep"
+    ],
+
+    "no-auth-ajax-actions": [
+        "integrateOnCore"
+        ,"approveIntegrateOncore"
+        ,"triggerIRBSweep"
+    ],
+
   "project-settings": [
     {
       "key": "redcap-oncore-fields-mapping",

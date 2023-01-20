@@ -451,9 +451,12 @@ class Protocols
                         if ($entity) {
                             Entities::createLog('OnCore Protocol Entity table record created for IRB: ' . $irb . '.');
                             $this->setEntityRecord($data);
+
                             // do not pull any protocol data till user approve the redcap oncore linkage.
                             //$this->prepareProtocolSubjects();
                             //$this->syncRecords();
+
+                            return $entity;
                         } else {
                             throw new \Exception(implode(',', $entity->errors));
                         }
