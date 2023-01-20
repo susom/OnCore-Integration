@@ -426,17 +426,17 @@ class Protocols
      * @return void
      * @throws GuzzleException
      */
-    public function processCron($id, $irb, $oncoreProtocolId, $libraries = [])
+    public function processCron($redcapProjectId, $irb, $oncoreProtocolId, $libraries = [])
     {
         $protocols = $this->searchOnCoreProtocolsViaIRB($irb);
 
         if (!empty($protocols)) {
-            $entity_oncore_protocol = self::getOnCoreProtocolEntityRecord($id, $irb);
+            $entity_oncore_protocol = self::getOnCoreProtocolEntityRecord($redcapProjectId, $irb);
             if (empty($entity_oncore_protocol)) {
                 foreach ($protocols as $protocol) {
                     if ($oncoreProtocolId == $protocol['protocolId']) {
                         $data = array(
-                            'redcap_project_id' => $id,
+                            'redcap_project_id' => $redcapProjectId,
                             'irb_number' => $irb,
                             'oncore_protocol_id' => $protocol['protocolId'],
                             // cron will save the first event. and when connect is approved the redcap user has to confirm the event id.
@@ -463,9 +463,19 @@ class Protocols
                     }
                 }
             } else {
-                // update last_date_scanned with current time().
-                $this->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
-                Entities::createLog('OnCore Protocol record updated for IRB: ' . $irb . '.');
+                // if entity record exists but user wants to link to a different protocol.
+                if ($oncoreProtocolId != $entity_oncore_protocol['oncore_protocol_id']) {
+                    $this->updateProtocolEntityRecordProtocolId($entity_oncore_protocol['id'], $oncoreProtocolId);
+                    Entities::createLog('OnCore Protocol Id changed from ' . $entity_oncore_protocol['oncore_protocol_id'] . ' to ' . $oncoreProtocolId);
+                    // get new entity record.
+                    return self::getOnCoreProtocolEntityRecord($redcapProjectId, $irb);
+                } else {
+                    // update last_date_scanned with current time().
+                    $this->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
+                    Entities::createLog('OnCore Protocol record updated for IRB: ' . $irb . '.');
+                    return $entity_oncore_protocol;
+                }
+
             }
         } else {
             Entities::createLog('IRB ' . $irb . ' has no OnCore Protocols.');
@@ -621,6 +631,18 @@ class Protocols
         db_query($sql);
     }
 
+    /**
+     * update oncore_protocol entity record protocol id
+     * @param $entityId
+     * @param $protocolId
+     * @return void
+     * @throws \Exception
+     */
+    public function updateProtocolEntityRecordProtocolId($entityId, $protocolId): void
+    {
+        $sql = sprintf("UPDATE %s set oncore_protocol_id = '%s', updated = '%s' ,last_date_scanned = '%s' WHERE id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS), db_escape($protocolId), db_escape(time()), db_escape(time()), db_escape($entityId));
+        db_query($sql);
+    }
 
     /**
      * update oncore_protocol entity record status
