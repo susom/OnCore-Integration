@@ -20,7 +20,7 @@
             const integrated_protocolIds    = Object.keys(oncore_integrations);
             const has_oncore_integration    = integrated_protocolIds.length ? true : false;  //has entitry record, but not necessarily linked
 
-            console.log("init", has_oncore_link, has_oncore_integration, oncore_integrations, oncore_protocols);
+            // console.log("init", has_oncore_link, has_oncore_integration, oncore_integrations, oncore_protocols);
 
             var make_oncore_module = function () {
                 if ($("#setupChklist-modify_project").length) {
@@ -199,15 +199,10 @@
                                     var new_text            = "Link OnCore Protocol IRB #"+irb+" : <b>"+$(this).data("protocol_title")+"</b> "+oc_library+" ["+$(this).data("protocol_status")+"]";
                                     $(".enable_oncore").html(new_text);
 
-                                    if(oncore_integrations.hasOwnProperty(protocolId)){
-                                        var entity_record_id = oncore_integrations[protocolId].id;
-                                        make_check_approve_integration(entity_record_id, 1);
-                                    }else{
-                                        integrate_protocol(protocolId, irb, function(rt){
-                                            var result  = decode_object(rt);
-                                            make_check_approve_integration(result.id, 1);
-                                        });
-                                    }
+                                    integrate_protocol(protocolId, irb, function(rt){
+                                        var result  = decode_object(rt);
+                                        make_check_approve_integration(result.id, 1);
+                                    });
                                 });
 
                                 button.find(".dropdown-menu").append(list_item);
