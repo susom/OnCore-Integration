@@ -491,13 +491,14 @@ class Protocols
 
     public function getProtocolDefinedLibrary($protocolId, $libraries)
     {
+        $protocol = $this->getOnCoreProtocolsViaID($protocolId);
         foreach ($libraries as $key => $library) {
-            $protocol = $this->getOnCoreProtocolsViaID($protocolId);
+
             if ($library['library-name'] == $protocol['library']) {
                 return array($key => $library);
             }
         }
-        throw new \Exception("No Defined Library found");
+        throw new \Exception("Protocol Library `" . $protocol['library'] . "` is not defined. Please Contact REDCap Admin. ");
     }
 
     /**
