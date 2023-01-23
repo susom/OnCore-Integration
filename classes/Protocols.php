@@ -455,7 +455,9 @@ class Protocols
             $response = $this->getUser()->get('protocols/' . $protocolID);
 
             if ($response->getStatusCode() < 300) {
-                $data = json_decode($response->getBody(), true);
+                $temp = $response->getBody()->getContents();
+                $temp = str_replace('\"', '', $temp);
+                $data = json_decode($temp, true);
                 if (!empty($data)) {
                     $this->setOnCoreProtocol($data);
                     return $data;
