@@ -405,6 +405,18 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
                     window.adjModal = adjModal;
                     adjModal.show();
 
+                    //THIS IS TO CONTINUE THE PROGRESS BAR UI INCASE THEY CLOSE THE MODAL AND REOPEN IT
+                    //USES SESSION STORAGE TO TRACK NUMBER OF PROECESS IN AJAX QUEUe
+                    if(sessionStorage.getItem("process_queue") ){
+                        if(sessionStorage.getItem("process_queue") && ajaxQueue.queuedRequests.length){
+                            var ls_inprogress_processing    = sessionStorage.getItem("process_queue")
+                            var pullModal                   = window.adjModal;
+                            pullModal.completedItems        = ls_inprogress_processing - ajaxQueue.queuedRequests.length;
+                            pullModal.totalItems            = ls_inprogress_processing;
+                            pullModal.showProgressUI();
+                        }
+                    }
+
                     $(".getadjudication").prop("disabled", false);
                     par.addClass("picked");
 
@@ -421,10 +433,12 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
 
                     $("#" + bin).clone().appendTo($("#pushModal .pushDATA"));
 
+
                     var footer_action   = $(result["footer_action"]);
                     var show_all        = $(result["show_all"]);
                     $("#pushModal .footer_action").append(footer_action);
                     $("#pushModal .show_all").append(show_all);
+
                     // $("#pushModal .show_all").prepend(footer_action.clone());
                 }).fail(function (e) {
                     e.responseJSON = decode_object(e.responseText)
@@ -449,7 +463,7 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
             //oncore only
             $(document).on('click', '.submit_pullFromOnCore', function (e) {
                 e.preventDefault();
-                var form = $('.pushDATA').find('#pullFromOncore')
+                var form = $('.pushDATA').find('#pullFromOncore');
                 pull(form)
             });
 
@@ -504,6 +518,9 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
                     pullModal.totalItems        = approved_ids.length;
                     pullModal.showProgressUI();
 
+                    //stuff in session storage temporarily incase close modal and ned to reopen
+                    sessionStorage.setItem("process_queue", approved_ids.length);
+
                     var arr_length  = approved_ids.length - 1;
                     for (var i in approved_ids) {
                         var _mrn    = approved_ids[i]["mrn"];
@@ -513,7 +530,6 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
 
                         //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
                         var rndInt = randomIntFromInterval(500, 1500);
-
                         (function (temp, rndInt, inc, tot) {
                             ajaxQueue.addRequest(function () {
                                 // -- your ajax request goes here --
@@ -577,6 +593,9 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
                     pushModal.completedItems    = 0;
                     pushModal.totalItems        = approved_ids.length;
                     pushModal.showProgressUI();
+
+                    //stuff in session storage temporarily incase close modal and ned to reopen
+                    sessionStorage.setItem("process_queue", approved_ids.length);
 
                     var arr_length  = approved_ids.length - 1;
                     for (var i in approved_ids) {
