@@ -601,11 +601,22 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $last_adjudication          = $this->getSyncDiffSummary();
 
         //if no integrations, and only one protocol, pre-pull the protocol into the entity table
+        $matching_library = false;
         if(count($protocols) == 1 && empty($integrations)) {
             $protocol           = current($protocols);
             $protocolId         = $protocol["protocolId"];
-            $new_entity_record  = $this->getProtocols()->processCron($this->getProjectId(), $project_irb, $protocolId, $this->getDefinedLibraries());
-            $integrations[$protocolId]  = $new_entity_record;
+            $library            = $protocol["protocol"]["library"];
+
+            $lib_names = array();
+            foreach($this->getDefinedLibraries() as $lib){
+                array_push($lib_names, $lib["library-name"]);
+            }
+            $this->emDebug($protocol);
+            if(in_array($library, $lib_names)){
+                $matching_library   = true;
+                $new_entity_record  = $this->getProtocols()->processCron($this->getProjectId(), $project_irb, $protocolId, $this->getDefinedLibraries());
+                $integrations[$protocolId]  = $new_entity_record;
+            }
         }
 
         //DATA TO INIT JSMO module
@@ -615,7 +626,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             "oncore_integrations"       => $integrations,
             "has_oncore_integration"    => $this->hasOnCoreIntegration() ,
             "has_field_mappings"        => !empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false ,
-            "last_adjudication"         => $last_adjudication
+            "last_adjudication"         => $last_adjudication,
+            "matching_library"          => $matching_library
         );
 
         //Initialize JSMO

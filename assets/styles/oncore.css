@@ -170,3 +170,8 @@ table.excludes .import *{
     display:table-cell;
     padding-left:5px;
 }
+
+.no_matching_library{
+    color:red;
+    white-space:nowrap;
+}

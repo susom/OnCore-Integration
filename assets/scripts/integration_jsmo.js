@@ -14,6 +14,7 @@
             const oncore_protocols          = module.config["oncore_protocols"];
             const has_field_mappings        = module.config["has_field_mappings"];
             const last_adjudication         = module.config["last_adjudication"];
+            const matching_library          = module.config["matching_library"];
 
             //THIS IS MATCHING ROWS STUFFED IN ENTITY TABLE
             const multiple_protocols        = oncore_protocols.length > 1 ? true : false;
@@ -209,36 +210,40 @@
                             }
                             var line_text           = "Multiple matching OnCore Protocols for IRB #" + irb + "."  ;
                         }else{
-                            if(has_oncore_integration) {
+                            if(has_oncore_integration || !matching_library) {
                                 if(integrated_protocolIds.length == 1){
                                     var protocolId          = integrated_protocolIds.pop();
                                     var integrated_protocol = oncore_integrations[protocolId];
 
                                     var entity_record_id    = integrated_protocol.id;
                                     var integration_status  = integrated_protocol.status;
-                                }else{
-                                    //TODO WILL THERE EVER BE MULTIPLE INTEGRATIONS?
-                                    //TODO ASK IHAB IT DOESNT SEEM TO CREATE OR EVEN UPDATE MULTIPLE
                                 }
 
                                 for (var i in oncore_protocols) {
                                     var pr = oncore_protocols[i];
 
-                                    if (pr["protocolId"] == protocolId) {
-                                        console.log(protocolId, entity_record_id, integration_status, pr["protocol"]);
-                                        var integration = oncore_integrations[protocolId];
-                                        var protocol = pr["protocol"];
+                                    if (pr["protocolId"] == protocolId || !matching_library) {
+                                        // console.log(protocolId, entity_record_id, integration_status, pr["protocol"]);
+                                        var integration     = oncore_integrations[protocolId];
+                                        var protocol        = pr["protocol"];
 
                                         var protocol_status = protocol["protocolStatus"];
-                                        var protocol_title = protocol["shortTitle"];
-                                        var irb = integration["irb_number"];
+                                        var protocol_title  = protocol["shortTitle"];
+                                        var library         = protocol["library"];
+                                        var irb             = pr["irbNo"];
 
-                                        var btn_text = has_oncore_link ? "Unlink Project&nbsp;" : "Link Project&nbsp;";
-                                        var integrated_class = has_oncore_link ? "integrated" : "not_integrated";
+                                        var btn_text            = has_oncore_link ? "Unlink Project&nbsp;" : "Link Project&nbsp;";
+                                        var integrated_class    = has_oncore_link ? "integrated" : "not_integrated";
 
-                                        var button = $("<button>").data("irb", irb).data("protocolId", protocolId).data("entity_record_id",entity_record_id).addClass("integrate_oncore").addClass("btn btn-defaultrc btn-xs fs11").html(btn_text);
-                                        var line_text = "OnCore Protocol IRB #" + irb + " : <b>" + protocol_title + "</b> [<i>" + protocol_status.toLowerCase() + "</i>]";
-                                        line_text = has_oncore_link ? "Linked " + line_text : "Link " + line_text;
+                                        var button              = $("<button>").data("irb", irb).data("protocolId", protocolId).data("entity_record_id",entity_record_id).addClass("integrate_oncore").addClass("btn btn-defaultrc btn-xs fs11").html(btn_text);
+                                        var asstrick            = "";
+                                        if(!matching_library){
+                                            button.data("no_matching_library", library);
+                                            asstrick = "<i class='no_matching_library'>*</i>";
+                                        }
+                                        var line_text           = "OnCore Protocol : <b>" + protocol_title + " ("+library+asstrick+")</b> [<i>" + protocol_status.toLowerCase() + "</i>]";
+
+                                        line_text = has_oncore_link ? line_text : line_text;
                                         break;
                                     }
                                 }
@@ -262,6 +267,17 @@
                     var _par                = $(this).closest(".injected_line");
                     var need_to_integrate   = _par.hasClass("not_integrated") ? 1 : 0;
                     var entity_record_id    = $(this).data("entity_record_id");
+                    var no_matching_library = $(this).data("no_matching_library");
+
+                    if(!entity_record_id && no_matching_library){
+                        var be_status   = "";
+                        var be_lead     = "No matching library found for <b class='no_matching_library'>" + no_matching_library + "</b>.";
+
+                        var headline    = be_status;
+                        var lead        = be_lead + " <br/>Please contact REDCap admin.";
+                        var notif       = new notifModal(lead, headline);
+                        notif.show();
+                    }
 
                     if(!$(".confirm_link").length && entity_record_id ){
                         make_check_approve_integration(entity_record_id, need_to_integrate);

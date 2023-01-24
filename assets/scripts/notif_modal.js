@@ -22,8 +22,8 @@ class notifModal{
         var bigicon = $('<i class="fas fa-skull-crossbones"></i>');
 
         modal.find(".notif_hdr").html(bigicon);
-        modal.find(".notif_bdy .headline").text(this._headline);
-        modal.find(".notif_bdy .lead").text(this._lead);
+        modal.find(".notif_bdy .headline").html(this._headline);
+        modal.find(".notif_bdy .lead").html(this._lead);
 
         modal.find(".notif_ftr button").on("click", function(){
             _this.hide();
