@@ -9,7 +9,6 @@
       "email": "ihabz@stanford.edu",
       "institution": "Stanford University"
     },
-
     {
       "name": "Andrew Martin",
       "email": "andy123@stanford.edu",
@@ -95,21 +94,17 @@
     "pages/getEmrDemographics",
     "ajax/cron"
   ],
-
-    "enable-ajax-logging": true,
-
-    "auth-ajax-actions": [
-        "integrateOnCore"
-        ,"approveIntegrateOncore"
-        ,"triggerIRBSweep"
-    ],
-
-    "no-auth-ajax-actions": [
-        "integrateOnCore"
-        ,"approveIntegrateOncore"
-        ,"triggerIRBSweep"
-    ],
-
+  "enable-ajax-logging": true,
+  "auth-ajax-actions": [
+    "integrateOnCore",
+    "approveIntegrateOncore",
+    "triggerIRBSweep"
+  ],
+  "no-auth-ajax-actions": [
+    "integrateOnCore",
+    "approveIntegrateOncore",
+    "triggerIRBSweep"
+  ],
   "project-settings": [
     {
       "key": "redcap-oncore-fields-mapping",
@@ -270,14 +265,19 @@
         {
           "key": "oncore-error-message",
           "name": "<b>OnCore error message. this field MUST match returned error from OnCore.</b>",
-          "required": true,
+          "required": false,
           "type": "textarea"
         },
         {
           "key": "extra-error-message",
           "name": "<b>New error message that will be attached to OnCore message.</b>",
           "required": true,
-          "type": "rich-text"
+          "type": "rich-text",
+          "branchingLogic": {
+            "field": "oncore-error-message",
+            "op": "<>",
+            "value": ""
+          }
         }
       ]
     },
