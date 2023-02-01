@@ -28,6 +28,17 @@ $pull_html              = $field_map_ui["pull"];
 $push_html              = $field_map_ui["push"]["required"];
 $push_html_optional     = $field_map_ui["push"]["optional"];
 
+$linked_protocol        = array();
+$protocol_full          = $module->getIntegratedProtocol();
+if($protocol_full){
+    $protocol               = $protocol_full["protocol"];
+    $linked_protocol[]      = "<div class='linked_protocol'>";
+    $linked_protocol[]      = "<b>Linked Protocol : </b> <span>{$protocol["title"]} #{$protocol["protocolId"]}</span><br>";
+    $linked_protocol[]      = "<b>Library : </b> <span>{$protocol["library"]}</span><br>";
+    $linked_protocol[]      = "<b>Status : </b> <span>{$protocol["protocolStatus"]}</span><br/>";
+    $linked_protocol[]      = "</div>";
+}
+$linked_protocol        = implode("\r\n", $linked_protocol);
 
 //ONCORE STUDY SITE SUBSET SELECTION
 $study_sites            = $module->getUsers()->getOnCoreStudySites();
@@ -90,6 +101,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         <div class="tab-pane active" id="oncore_config">
             <form id="oncore_config" class="container">
                 <h2>Oncore Project Linked</h2>
+
+                <?=$linked_protocol ?>
+
                 <p class="lead">Some configurations need to be set before using this module:</p>
 
                 <label class="map_dir">

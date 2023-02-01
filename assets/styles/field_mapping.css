@@ -277,3 +277,10 @@ table.value_map th {
     background:#E9F4F4;
     color:#1B2E2E;
 }
+
+.linked_protocol {
+    background: lightgoldenrodyellow;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 0 0 15px;
+}

@@ -611,7 +611,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             foreach($this->getDefinedLibraries() as $lib){
                 array_push($lib_names, $lib["library-name"]);
             }
-            $this->emDebug($protocol);
+//            $this->emDebug($protocol);
             if(in_array($library, $lib_names)){
                 $matching_library   = true;
                 $new_entity_record  = $this->getProtocols()->processCron($this->getProjectId(), $project_irb, $protocolId, $this->getDefinedLibraries());
@@ -729,6 +729,31 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $this->has_oncore_integrations;
     }
 
+    /**
+     * @return protocol array
+     */
+    public function getIntegratedProtocol(){
+        $protocol = null;
+        if($this->hasOnCoreIntegration()){
+            $integrations = $this->getOnCoreIntegrations();
+            foreach($integrations as $protocol_id => $integration){
+                if($integration["status"] == 2){
+                    $project_irb    = $integration["irb_number"];
+                    $protocol_id    = $integration["oncore_protocol_id"];
+                    $protocols      = $this->getProtocols()->getOnCoreProtocolsViaIRB($project_irb);
+                    foreach($protocols as $p) {
+                        if ($p["protocolId"] == $protocol_id) {
+                            $protocol = $p;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        return $protocol;
+    }
 
     /**
      * @return date time Y-m-d H:i
