@@ -7,16 +7,29 @@ try {
 
 //URLS FOR SUPPORT ASSETS
     $oncore_css = $module->getUrl("assets/styles/oncore.css");
-    $batch_css = $module->getUrl("assets/styles/batch_modal.css");
-    $notif_css = $module->getUrl("assets/styles/notif_modal.css");
+    $batch_css  = $module->getUrl("assets/styles/batch_modal.css");
+    $notif_css  = $module->getUrl("assets/styles/notif_modal.css");
     $adjude_css = $module->getUrl("assets/styles/adjudication.css");
 
-    $notif_js = $module->getUrl("assets/scripts/notif_modal.js");
-    $oncore_js = $module->getUrl("assets/scripts/oncore.js");
+    $notif_js   = $module->getUrl("assets/scripts/notif_modal.js");
+    $oncore_js  = $module->getUrl("assets/scripts/oncore.js");
     $adjudication_js = $module->getUrl("assets/scripts/adjudication_modal.js");
 
-    $icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
-$ajax_endpoint          = $module->getUrl("ajax/handler.php");
+    $icon_ajax      = $module->getUrl("assets/images/icon_ajax.gif");
+    $ajax_endpoint  = $module->getUrl("ajax/handler.php");
+
+    $linked_protocol        = array();
+    $protocol_full          = $module->getIntegratedProtocol();
+    if($protocol_full){
+        $protocol               = $protocol_full["protocol"];
+        $linked_protocol[]      = "<div class='linked_protocol'>";
+        $linked_protocol[]      = "<b>Linked Protocol : </b> <span>{$protocol["title"]} #{$protocol["protocolId"]}</span><br>";
+        $linked_protocol[]      = "<b>Library : </b> <span>{$protocol["library"]}</span><br>";
+        $linked_protocol[]      = "<b>Status : </b> <span>{$protocol["protocolStatus"]}</span><br/>";
+        $linked_protocol[]      = "</div>";
+    }
+    $linked_protocol        = implode("\r\n", $linked_protocol);
+
 
     require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 ?>
@@ -62,6 +75,8 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
         <p class="lead">Data Stored in OnCore must be synced and adjudicated periodically. The data will be pulled into
             an entity table and then matched against this projects REDCap data on the mapped fields.</p>
 
+        <?=$linked_protocol?>
+        
         <div id="overview" class="container">
             <div id="filters">
                 <div class="d-inline-block text-center stat-group oncore_summ">

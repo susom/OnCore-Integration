@@ -124,3 +124,10 @@ ul.adjudication {
     font-size:77%;
     padding:4px 8px;
 }
+
+.linked_protocol {
+    background: lightgoldenrodyellow;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 0 0 15px;
+}
