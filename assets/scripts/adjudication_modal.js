@@ -201,7 +201,7 @@ var modal_tpl = `<div id="pushModal">
                         <div class="modal_progress">
                             <div class="batch_counter"><em></em> <b>0</b>/<i></i></div>
                             <div id="pbar_box"><span id="pbar"></span></div>
-                            <div id="ajaxq_buttons"><button class="pause btn btn-small btn-warning">Pause</button> <button class="cancel btn btn-small btn-danger">Cancel Sync</button></div>
+                            <div id="ajaxq_buttons"><em class="pull-left">*Due to asynchronous nature of this operation, pausing/canceling may not be exact.</em> <button class="pause btn btn-small btn-warning">Pause</button> <button class="cancel btn btn-small btn-danger">Cancel Sync</button></div>
                             <label>Errors:</label>
                             <textarea id="modal_msg" disabled="disabled"></textarea>
                         </div>

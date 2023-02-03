@@ -175,7 +175,10 @@
     color:red;
     font-style:italic;
 }
-
+#ajaxq_buttons em{
+    font-size:77%;
+    display:inline-block;
+}
 
 
 ::-webkit-scrollbar {
