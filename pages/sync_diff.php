@@ -76,7 +76,7 @@ try {
             an entity table and then matched against this projects REDCap data on the mapped fields.</p>
 
         <?=$linked_protocol?>
-        
+
         <div id="overview" class="container">
             <div id="filters">
                 <div class="d-inline-block text-center stat-group oncore_summ">
@@ -209,6 +209,7 @@ try {
             //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACH OTHER
             var ajaxQueue = {
                 queuedRequests: [],
+                pauseFlag : false,
                 addRequest: function (req) {
                     this.queuedRequests.push(req);
                     // if it's the first request, start execution
@@ -220,8 +221,8 @@ try {
                     this.queuedRequests = [];
                 },
                 executeNextRequest: function (subtract) {
-                    var queuedRequests = this.queuedRequests;
-                    // console.log("request started");
+                    var queuedRequests  = this.queuedRequests;
+                    var pauseFlag       = this.pauseFlag;
 
                     if(subtract){
                         console.log("something messed up subtract and continue");
@@ -234,11 +235,17 @@ try {
                             // remove completed request from queue
                             queuedRequests.shift();
                             // if there are more requests, execute the next in line
-                            if (queuedRequests.length) {
+                            if (queuedRequests.length  && !pauseFlag) {
                                 ajaxQueue.executeNextRequest();
                             }
                         });
                     }
+                },
+                pauseQueue: function(){
+                    this.pauseFlag = !this.pauseFlag;
+                },
+                isPaused : function(){
+                    return this.pauseFlag;
                 }
             };
 
@@ -429,6 +436,10 @@ try {
                             pullModal.completedItems        = ls_inprogress_processing - ajaxQueue.queuedRequests.length;
                             pullModal.totalItems            = ls_inprogress_processing;
                             pullModal.showProgressUI();
+
+                            if(ajaxQueue.isPaused()){
+                                pullModal.showContinue();
+                            }
                         }
                     }
 
@@ -506,6 +517,19 @@ try {
                     $("#push_data").data("use_filter", "");
                     $("#push_data").trigger("click");
                 }
+            });
+
+            $(document).on('click', "#ajaxq_buttons .pause", function(e){
+                ajaxQueue.pauseQueue();
+                if($(this).hasClass("paused")){
+                    ajaxQueue.executeNextRequest();
+                    $(this).removeClass("paused").html("Pause Sync");
+                }else{
+                    $(this).addClass("paused").html("Continue Sync");
+                }
+            });
+            $(document).on('click', "#ajaxq_buttons .cancel", function(e){
+                ajaxQueue.clearQueue();
             });
 
             //ACCEPT ADJUDICATIONS

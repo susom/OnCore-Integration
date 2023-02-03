@@ -42,7 +42,7 @@ class adjudicationModal{
 
 
         this.hide();
-        
+
         let modalID = _this.id;
         var opaque  = $("<div>").attr("id",modalID);
 
@@ -76,10 +76,18 @@ class adjudicationModal{
         this.modal.find(".batch_counter i").text(this.totalItems); //total
     }
 
+    showContinue(){
+        this.modal.find("#ajaxq_buttons .pause").addClass("paused").html("Continue Sync");
+    }
+
     showProgressUI(){
         this.prepCount();
         this.growProgressBar();
         $(".modal_progress").slideDown("medium");
+    }
+
+    hideProgressUI(){
+        $(".modal_progress").slideUp("fast");
     }
 
     growProgressBar(){
@@ -115,6 +123,8 @@ class adjudicationModal{
     enableSubmit(){
         this.modal.find(".footer_action button[disabled='disabled']").attr("disabled",false);
     }
+
+
 
     setRowStatus(id, status, note){
         var status_txt = "failed";
@@ -191,7 +201,7 @@ var modal_tpl = `<div id="pushModal">
                         <div class="modal_progress">
                             <div class="batch_counter"><em></em> <b>0</b>/<i></i></div>
                             <div id="pbar_box"><span id="pbar"></span></div>
-
+                            <div id="ajaxq_buttons"><button class="pause btn btn-small btn-warning">Pause</button> <button class="cancel btn btn-small btn-danger">Cancel Sync</button></div>
                             <label>Errors:</label>
                             <textarea id="modal_msg" disabled="disabled"></textarea>
                         </div>
