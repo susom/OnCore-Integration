@@ -529,6 +529,21 @@ try {
                 }
             });
             $(document).on('click', "#ajaxq_buttons .cancel", function(e){
+                if( $(".check_all").is(":checked")){
+                    $(".check_all").trigger("change");
+                }else{
+                    $(".accept_diff").each(function(){
+                        if($(this).is(":checked")){
+                            $(this).attr("checked",null);
+                        }
+                    });
+                }
+
+                $(".batch_counter").find("b").html("0");
+                $(".batch_counter").find("i").html("0");
+
+                $("#ajaxq_buttons").empty().append($("<i>")).text("Sync Canceled");
+
                 ajaxQueue.clearQueue();
             });
 

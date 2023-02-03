@@ -171,6 +171,10 @@
     text-align:right;
 }
 
+#ajaxq_buttons i {
+    color:red;
+    font-style:italic;
+}
 
 
 
