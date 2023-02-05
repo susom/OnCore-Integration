@@ -114,10 +114,9 @@
                             var notif       = new notifModal(lead, headline);
                             notif.show();
                         });
-
-
                     }
                 });
+                check_ui.trigger("click");
             };
 
             var integrate_protocol = function(protocolId, irb, _cb){
@@ -126,7 +125,6 @@
                     "oncore_protocol_id": protocolId
                 };
 
-                console.log("click link or dropdown to pull protocol into entity table", data);
                 //FIRST AJAX to link to ONCORE PROJECT WHEN CONFIRM CHECKBOX IS CHECKED
                 module.callAjax("integrateOnCore", data, function (responseText) {
                     if (!responseText.success) {
@@ -155,6 +153,7 @@
                     }
                 }, function (e) {
                     // console.log("failed!", e);
+                    $(".oncore_link_working").removeClass("oncore_link_working");
                     var headline    = "Unspecified Error";
                     var lead        = "Please try again";
                     var notif       = new notifModal(lead, headline);
@@ -178,7 +177,7 @@
                             var btn_text            = "Link Project&nbsp;";
                             var integrated_class    = "not_integrated";
                             var dropdown            = `<div class="dropdown">
-                                                          <a class="btn-defaultrc btn-xs fs11 dropdown-toggle integrate_oncore" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">`+btn_text+`</a>
+                                                          <a class="btn-defaultrc btn-xs fs11 dropdown-toggle integrate_oncore" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-cog fa-spin"></i>`+btn_text+`</a>
                                                           <div class="dropdown-menu" aria-labelledby="dropdownMenuLink"></div>
                                                         </div>`;
                             var button              = $(dropdown);
@@ -195,6 +194,7 @@
 
                                 var list_item = $("<a>").attr("href", "#").data("irb", irb).data("protocolId",protocolId).data("protocol_title",protocol_title).data("oncore_library",oncore_library).data("protocol_status",protocol_status).addClass("dropdown-item").text(protocol_title + " ("+oncore_library+") ["+protocol_status+"]");
                                 list_item.on("click", function(){
+                                    $(".integrate_oncore").addClass("oncore_link_working");
                                     var protocolId          = $(this).data("protocolId");
                                     let oc_library          = $(this).data(oncore_library) ? "("+$(this).data(oncore_library)+")" : "";
                                     var new_text            = "Link OnCore Protocol IRB #"+irb+" : <b>"+$(this).data("protocol_title")+"</b> "+oc_library+" ["+$(this).data("protocol_status")+"]";
@@ -235,7 +235,8 @@
                                         var btn_text            = has_oncore_link ? "Unlink Project&nbsp;" : "Link Project&nbsp;";
                                         var integrated_class    = has_oncore_link ? "integrated" : "not_integrated";
 
-                                        var button              = $("<button>").data("irb", irb).data("protocolId", protocolId).data("entity_record_id",entity_record_id).addClass("integrate_oncore").addClass("btn btn-defaultrc btn-xs fs11").html(btn_text);
+                                        var button              = $("<a>").data("irb", irb).data("protocolId", protocolId).data("entity_record_id",entity_record_id).addClass("integrate_oncore").addClass("btn btn-defaultrc btn-xs fs11").html(btn_text);
+                                        button.prepend($("<i class=\"fa fa-cog fa-spin\"/>"));
                                         var asstrick            = "";
                                         if(!matching_library){
                                             button.data("no_matching_library", library);
@@ -269,7 +270,13 @@
                     var entity_record_id    = $(this).data("entity_record_id");
                     var no_matching_library = $(this).data("no_matching_library");
 
+                    if(multiple_protocols && need_to_integrate){
+                        return;
+                    }
+
+                    $(this).addClass("oncore_link_working");
                     if(!entity_record_id && no_matching_library){
+                        $(this).removeClass("oncore_link_working");
                         var be_status   = "";
                         var be_lead     = "No matching library found for <b class='no_matching_library'>" + no_matching_library + "</b>.";
 
@@ -280,20 +287,10 @@
                     }
 
                     if(!$(".confirm_link").length && entity_record_id ){
-                        make_check_approve_integration(entity_record_id, need_to_integrate);
-
                         // console.log("if multiple (with no existing integrations), just dropdown, if single, then jump straight to showing checkbox", entity_record_id, need_to_integrate);
-                        if(multiple_protocols && need_to_integrate && !has_oncore_integration){
-                            console.log("multiple protocols return here");
-                            return;
-                        }
+                        make_check_approve_integration(entity_record_id, need_to_integrate);
                     }
 
-                    //UNLINK AJAX
-                    if(!need_to_integrate && entity_record_id && $(".confirm_link").length && $(".confirm_check").length){
-                        $(".confirm_link").css("position", "absolute").css("visibility","hidden");
-                        $(".confirm_check").trigger("click");
-                    }
                     return;
                 });
             });

@@ -136,6 +136,18 @@ table.excludes .import *{
     margin: initial;
 }
 
+.integrate_oncore{
+    white-space: nowrap;
+}
+.integrate_oncore i.fa{
+    font-size: 12px;
+    color: #333;
+    display:none;
+    margin-right:3px;
+}
+.integrate_oncore.oncore_link_working i.fa{
+    display:inline-block;
+}
 
 .confirm_link{
     display:block;
@@ -143,6 +155,10 @@ table.excludes .import *{
     font-weight:bold;
     margin-top:3px;
     color:#5DA1B6;
+
+    visibility: hidden;
+    position: absolute;
+    z-index:-99;
 }
 .confirm_link input {
     vertical-align: middle;
@@ -175,3 +191,5 @@ table.excludes .import *{
     color:red;
     white-space:nowrap;
 }
+
+
