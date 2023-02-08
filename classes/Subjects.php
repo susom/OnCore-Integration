@@ -488,6 +488,19 @@ class Subjects extends SubjectDemographics
         db_query($sql);
     }
 
+
+    /**
+     * update oncore_protocol entity record timestampts
+     * @param $entityId
+     * @param $status
+     * @return void
+     */
+    public function updateLinkageREDCapRecordId($entityId, $recordId): void
+    {
+        $sql = sprintf("UPDATE %s set `redcap_record_id` = '%s' WHERE id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($recordId), db_escape($entityId));
+        db_query($sql);
+    }
+
     /**
      * @return array
      */
@@ -979,6 +992,7 @@ class Subjects extends SubjectDemographics
                     $id = end($response['ids']);
                     Entities::createLog('OnCore Subject ' . $record['oncore'] . ' was synced into REDCap record ' . $id, Entities::PULL_FROM_ONCORE);
                     $this->updateLinkageEntityStatus($linkage['id'], OnCoreIntegration::FULL_MATCH);
+                    $this->updateLinkageREDCapRecordId($linkage['id'], $id);
                 }
             }
             unset($data);

@@ -7,7 +7,7 @@ use GuzzleHttp\Exception\GuzzleException;
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
 try {
-    $module->onCoreProtocolsScanCron();
+    $module->onCoreAutoPullCron();
 } catch (GuzzleException $e) {
     $response = $e->getResponse();
     $responseBodyAsString = json_decode($response->getBody()->getContents(), true);

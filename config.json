@@ -135,6 +135,12 @@
       "name": "Comma Separated list for OnCore Protocol Staff that API cant return details for.",
       "required": false,
       "type": "textarea"
+    },
+    {
+      "key": "enable-auto-pull",
+      "name": "If checked a daily cronjob will will pull new OnCore Subjects and create REDCap records for these subjects.",
+      "required": false,
+      "type": "checkbox"
     }
   ],
   "system-settings": [
@@ -310,16 +316,16 @@
       "cron_max_run_time": "3600"
     },
     {
-      "cron_name": "oncore_redcap_records_scan",
-      "cron_description": "This cron will run daily to only sync REDCap records with linkage entity table.",
-      "method": "onCoreREDCapRecordsScanCron",
+      "cron_name": "oncore_redcap_cleanup_deleted_projects",
+      "cron_description": "Daily Cron to delete related records from OnCore entity tables for deleted REDCap project.",
+      "method": "redcapCleanupEntityRecords",
       "cron_frequency": "86400",
       "cron_max_run_time": "3600"
     },
     {
-      "cron_name": "oncore_redcap_cleanup_deleted_projects",
-      "cron_description": "Daily Cron to delete related records from OnCore entity tables for deleted REDCap project.",
-      "method": "redcapCleanupEntityRecords",
+      "cron_name": "oncore_redcap_auto_pull",
+      "cron_description": "Daily Cron to pull new OnCore subjects and create REDCap records for these subjects.",
+      "method": "onCoreAutoPullCron",
       "cron_frequency": "86400",
       "cron_max_run_time": "3600"
     }

@@ -756,4 +756,30 @@ class Protocols
         }
         return $result;
     }
+
+    public function autoPullFromOnCore()
+    {
+        $pullFields = $this->getMapping()->getProjectFieldMappings()['pull'];
+        $subjects = $this->getSubjects()->getOnCoreProtocolSubjects($this->getEntityRecord()['oncore_protocol_id']);
+        foreach ($subjects as $subject) {
+            $linkage = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], '', $subject['protocolSubjectId']);
+            // if linkage record exists ignore it
+            if ($linkage) {
+                continue;
+            } else {
+                $data = array(
+                    'redcap_project_id' => (string)$this->getEntityRecord()['redcap_project_id'],
+                    'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
+                    'redcap_record_id' => '',
+                    'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
+                    'oncore_protocol_subject_status' => $subject['status'] == 'ON STUDY' ? OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY : OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY,
+                    #'excluded' => OnCoreIntegration::NO,
+                    'status' => OnCoreIntegration::ONCORE_ONLY
+                );
+                $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                $this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], array('oncore' => $entity['oncore_protocol_subject_id']), $pullFields);
+
+            }
+        }
+    }
 }
