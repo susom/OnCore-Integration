@@ -1101,6 +1101,27 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         }
     }
 
+    /**
+     * this cron will pull OnCore subjects for REDCap project with enabled auto-pull
+     * @return void
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function onCoreAutoPullCron()
+    {
+        $projects = self::query("select project_id from redcap_external_module_settings where `key` = 'enable-auto-pull' AND `value` = 'true'", []);
+
+        // manually set users to make guzzle calls.
+        if (!$this->users) {
+            $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+        }
+
+        while ($project = $projects->fetch_assoc()) {
+            $id = $project['project_id'];
+            $url = $this->getUrl("ajax/cron.php", true, true) . '&pid=' . $id . '&action=auto_pull';
+            $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
+            $this->emDebug("running cron for $url on project " . $project['app_title']);
+        }
+    }
 
     public function onCoreProtocolsSubjectsScanCron()
     {
