@@ -21,6 +21,7 @@ $project_oncore_subset  = $mapping->getProjectOncoreSubset();
 $pushpull_pref          = $mapping->getProjectPushPullPref();
 $overall_pull_status    = $mapping->getOverallPullStatus() ? "ok" : "";
 $overall_push_status    = $mapping->getOverallPushStatus() ? "ok" : "";
+$auto_pull              = $module->getProjectSetting("enable-auto-pull");
 
 $field_map_ui           = $mapping->makeFieldMappingUI();
 $oncore_fields          = $field_map_ui["oncore_fields"];
@@ -130,6 +131,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
                     project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
                     Settings to be able to PULL.</p>
+
+                <label class="map_dir">
+                    <input type="checkbox" class="auto_pull" value="1" <?=($auto_pull) ? "checked" : "" ?>> Schedule an auto-pull of records once mapping is complete?
+                </label>
 
                 <div id="oncore_prop_selector" class="pull-right">
                     <button class="btn btn-success btn-lg dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -388,9 +393,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 <script>
     $(document).ready(function () {
         var ajax_endpoint = "<?=$ajax_endpoint?>";
-        //var oncore_fields = <?//=json_encode($oncore_fields)?>//;
         var oncore_fields = decode_object("<?=htmlentities(json_encode($oncore_fields, JSON_THROW_ON_ERROR), ENT_QUOTES); ?>");
-        //var pushpull_pref = <?//=json_encode($pushpull_pref)?>//;
         var pushpull_pref = decode_object("<?=htmlentities(json_encode($pushpull_pref, JSON_THROW_ON_ERROR), ENT_QUOTES); ?>");
         var redcap_csrf_token = "<?=$module->getCSRFToken()?>";
 
@@ -891,6 +894,24 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             });
         });
 
+        //Schedule Auto_pull on Pull Side
+        $("input.auto_pull").on("click", function(){
+            var data = {
+                "action": "schedulePull",
+                "flag": $(this).is(":checked"),
+                "redcap_csrf_token": redcap_csrf_token
+            };
+
+            $.ajax({
+                url: ajax_endpoint,
+                method: 'POST',
+                data: data,
+            }).done(function (result) {
+                // console.log("success", result);
+            }).fail(function (e) {
+                console.log("fail", e);
+            });
+        });
 
         //SAVE FILTER LOGIC
         $("#saveFilterLogic").click(function (e) {

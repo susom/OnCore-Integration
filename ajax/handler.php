@@ -320,6 +320,12 @@ try {
                 }
                 break;
 
+            case "schedulePull":
+                if (isset($_POST['flag'])) {
+                    $auto_pull_flag = json_decode($_POST['flag']) ? 1 : 0;
+                    $result         = $module->setProjectSetting("enable-auto-pull", $auto_pull_flag);
+                }
+                break;
 
             case "triggerIRBSweep":
                 if (isset($_POST['irb']) && $_POST['irb'] != '' && isset($_POST['oncore_protocol_id']) && $_POST['oncore_protocol_id'] != '') {
