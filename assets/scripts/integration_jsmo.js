@@ -7,7 +7,7 @@
     // Extend the official JSMO with new methods
     Object.assign(module, {
         InitFunction: function () {
-            // console.log("JSMO Init Function");
+            console.log("JSMO Init Function");
             const field_map_url             = module.config["field_map_url"];
             const has_oncore_link           = module.config["has_oncore_integration"];
             const oncore_integrations       = module.config["oncore_integrations"];
@@ -21,7 +21,7 @@
             const integrated_protocolIds    = Object.keys(oncore_integrations);
             const has_oncore_integration    = integrated_protocolIds.length ? true : false;  //has entitry record, but not necessarily linked
 
-            // console.log("init", has_oncore_link, has_oncore_integration, oncore_integrations, oncore_protocols);
+            console.log("init", has_oncore_link, has_oncore_integration, oncore_integrations, oncore_protocols);
 
             var make_oncore_module = function () {
                 if ($("#setupChklist-modify_project").length) {
