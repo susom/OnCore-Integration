@@ -162,7 +162,7 @@
             };
 
             //  this over document.ready because we need this last!
-            window.addEventListener("load", function (event) {
+            $(document).ready(function (e) {
                 console.log("onload event listener");
                 //ADD ADJUDICATION STAT METRICS IF IS LINKED TO AN ONCORE PROJECT
                 if (has_oncore_link) {
