@@ -21,7 +21,7 @@
             const integrated_protocolIds    = Object.keys(oncore_integrations);
             const has_oncore_integration    = integrated_protocolIds.length ? true : false;  //has entitry record, but not necessarily linked
 
-            console.log("init", has_oncore_link, has_oncore_integration, oncore_integrations, oncore_protocols);
+            //console.log("init", has_oncore_link, has_oncore_integration, oncore_integrations, oncore_protocols);
 
             var make_oncore_module = function () {
                 if ($("#setupChklist-modify_project").length) {
@@ -154,15 +154,16 @@
                 }, function (e) {
                     // console.log("failed!", e);
                     $(".oncore_link_working").removeClass("oncore_link_working");
-                    var headline    = "Unspecified Error";
-                    var lead        = "Please try again";
-                    var notif       = new notifModal(lead, headline);
+                    var headline = "Unspecified Error";
+                    var lead = "Please try again";
+                    var notif = new notifModal(lead, headline);
                     notif.show();
                 });
             };
 
             //  this over document.ready because we need this last!
-            $(window).on('load', function () {
+            window.addEventListener("load", function (event) {
+                console.log("onload event listener");
                 //ADD ADJUDICATION STAT METRICS IF IS LINKED TO AN ONCORE PROJECT
                 if (has_oncore_link) {
                     //BORROW UI FROM OTHER ELEMENT TO ADD A NEW MODULE TO PROJECT SETUP
