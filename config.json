@@ -295,7 +295,7 @@
     },
     {
       "key": "remove-super-users-roles-restriction",
-      "name": "For debugging disable OnCore Users roles restriction for REDCap superusers only.",
+      "name": "<span class='text-lg badge badge-lg badge-danger'>FOR DEBUGGING ONLY</span>For debugging disable OnCore Users roles restriction for REDCap superusers only.",
       "required": false,
       "type": "checkbox"
     },
