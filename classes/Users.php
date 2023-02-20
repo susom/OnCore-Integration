@@ -70,7 +70,13 @@ class Users extends Clients
      */
     public function isOnCoreContactAllowedToPush()
     {
-        #return true;
+        // debug option for redcap super users.
+        if (isset($_GET['debug'])) {
+            if ($this->getRedcapUser()->isSuperUser()) {
+                return true;
+            }
+        }
+
         if (empty($this->getRolesAllowedToPush()) || empty($this->getOnCoreContact())) {
             return false;
         }
