@@ -294,6 +294,12 @@
       "type": "checkbox"
     },
     {
+      "key": "remove-super-users-roles-restriction",
+      "name": "For debugging disable OnCore Users roles restriction for REDCap superusers only.",
+      "required": false,
+      "type": "checkbox"
+    },
+    {
       "key": "enable-system-debug-logging",
       "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
       "required": false,
