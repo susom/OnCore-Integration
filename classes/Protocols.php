@@ -96,6 +96,10 @@ class Protocols
 
     private function matchREDCapRecordWithOnCoreSubject($redcapRecord, $subject, $fields)
     {
+
+        // select oncore subject without redcap record
+        $record = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], '', $subject['protocolSubjectId']);
+
         $data = array(
             'redcap_project_id' => (string)$this->getEntityRecord()['redcap_project_id'],
             'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
@@ -105,9 +109,8 @@ class Protocols
             #'excluded' => OnCoreIntegration::NO,
             'status' => $this->getSubjects()->determineSyncedRecordMatch($subject, $redcapRecord['record'], $fields['pull'])
         );
-        // select oncore subject without redcap record
-        $record = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], '', $subject['protocolSubjectId']);
-        if ($record) {
+        // if redcap_record_id is empty then update linkage record. otherwise its a duplicate record and we need to create new linkage record.
+        if ($record && $record['redcap_record_id'] == $redcapRecord['id']) {
             $this->getSubjects()->updateLinkageRecord($record['id'], $data);
         } else {
             //select redcap record without oncore subject
@@ -115,6 +118,9 @@ class Protocols
             if ($record) {
                 $this->getSubjects()->updateLinkageRecord($record['id'], $data);
             } else {
+                // manually override status and
+                $data['status'] = OnCoreIntegration::REDCAP_ONLY;
+                $data['oncore_protocol_subject_id'] = null;
                 //entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                 $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                 if (!$entity) {
@@ -235,7 +241,7 @@ class Protocols
                             // we need to match record using protocol Subject Id.
                             foreach ($redcapRecord as $item) {
                                 $redcapProtocolSubjectId = $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']];
-                                if ($redcapProtocolSubjectId == $subject['protocolSubjectId']) {
+                                if (!$redcapProtocolSubjectId || $redcapProtocolSubjectId == $subject['protocolSubjectId']) {
                                     $this->matchREDCapRecordWithOnCoreSubject($item, $subject, $fields);
                                     $id = $item['id'];
                                     break;
