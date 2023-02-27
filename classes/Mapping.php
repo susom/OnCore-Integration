@@ -172,6 +172,8 @@ class Mapping
         //lazy loading
         if (!$this->redcap_fields) {
             $this->redcap_fields = $this->getProjectFieldDictionary();
+            //remove [record_id] from selection
+            unset($this->redcap_fields["record_id"]);
         }
         return $this->redcap_fields;
     }
