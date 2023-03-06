@@ -241,7 +241,30 @@ class Protocols
                             // we need to match record using protocol Subject Id.
                             foreach ($redcapRecord as $item) {
                                 $redcapProtocolSubjectId = $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']];
-                                if (!$redcapProtocolSubjectId || $redcapProtocolSubjectId == $subject['protocolSubjectId']) {
+                                if (!$redcapProtocolSubjectId) {
+                                    // for new records update redcap and add new subject protocol id. then sync it with the subject.
+                                    $data = [];
+                                    $data[\REDCap::getRecordIdField()] = $item['id'];
+                                    $data[$fields['pull']['protocolSubjectId']['redcap_field']] = $subject['protocolSubjectId'];
+                                    $data['redcap_event_name'] = OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event']);
+                                    $response = \REDCap::saveData($this->getEntityRecord()['redcap_project_id'], 'json', json_encode(array($data)));
+                                    if (!empty($response['errors'])) {
+                                        {
+                                            if (is_array($response['errors'])) {
+                                                throw new \Exception(implode(",", $response['errors']));
+                                            } else {
+                                                throw new \Exception($response['errors']);
+                                            }
+
+                                        }
+                                    }
+                                    $redcapProtocolSubjectId = $subject['protocolSubjectId'];
+                                    // set the value to make sure match is full
+                                    $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']] = $subject['protocolSubjectId'];
+                                    // get redcap data after saving protocolSUbjectid
+                                    $this->prepareProjectRecords();
+                                }
+                                if ($redcapProtocolSubjectId == $subject['protocolSubjectId']) {
                                     $this->matchREDCapRecordWithOnCoreSubject($item, $subject, $fields);
                                     $id = $item['id'];
                                     break;
