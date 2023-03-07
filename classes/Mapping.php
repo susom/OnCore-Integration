@@ -697,7 +697,7 @@ class Mapping
             if ($required === "true") {
                 $use_default = filter_var($has_default, FILTER_VALIDATE_BOOLEAN) ? "<label><input class='use_default' data-oncore_field='$field' type='checkbox' name='use_default' $default_checked value='1'/> Use Default</label>" : "";
                 $push_html .= "<tr class='$field'>\r\n";
-                $push_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></i><?=$custom_protocolsubjectid_disclaim?></td>";
+                $push_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></i>$custom_protocolsubjectid_disclaim</td>";
                 $push_html .= "<td class='rc_selects'>$push_rc_map_select $use_default</td>";
                 $push_html .= "<td class='rc_event centered'>$event_name</td>";
                 $push_html .= "<td class='centered status push $push_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
@@ -707,7 +707,7 @@ class Mapping
                 }
             } else {
                 $push_html_opt .= "<tr class='$field'>\r\n";
-                $push_html_opt .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'><?=$custom_protocolsubjectid_disclaim?></td>";
+                $push_html_opt .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'>$custom_protocolsubjectid_disclaim</td>";
                 $push_html_opt .= "<td class='rc_selects'>$push_rc_map_select</td>";
                 $push_html_opt .= "<td class='rc_event centered'>$event_name</td>";
                 $push_html_opt .= "<td class='centered status push $push_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
