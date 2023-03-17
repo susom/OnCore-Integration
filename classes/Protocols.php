@@ -408,7 +408,7 @@ class Protocols
             }
             $contactRole = $this->getUser()->isOnCoreContactAllowedToPush();
             if (!$contactRole) {
-                Entities::createLog($this->getUser()->getRedcapUser()->getUsername() . " has OnCore role " . $this->getUser()->getOnCoreContact()['role'] . " which is not allowed to push records to OnCore");
+                Entities::createLog($this->getUser()->getRedcapUser()->getUsername() . " has OnCore role (" . $this->getUser()->getOnCoreContact()['role'] . ") which is not allowed to push records to OnCore");
             }
             return $status && $linked && $contactRole;
         }
