@@ -641,8 +641,9 @@ class Mapping
                 $trash = $field !== "mrn" ? "<i class='fas fa-trash delete_pull_prop' data-oncore_prop='$field' data-req='$required'></i>" : "";
 
                 $temp = array();
+                $custom_protocolsubjectid_disclaim = $field == "protocolSubjectId" ? "<em style='display: block; font-size: 77%;color: #666;margin: 5px 0 0;'>*Uncommon, for REDCap internal use</em>" : "";
                 $temp[] = "<tr class='$field'>";
-                $temp[] = "<td class='oc_field'>$field <i class='fas fa-angle-double-right map_arrow'></i></td>";
+                $temp[] = "<td class='oc_field'>$field <i class='fas fa-angle-double-right map_arrow'></i>$custom_protocolsubjectid_disclaim</td>";
                 $temp[] = "<td class='rc_selects'>$pull_rc_map_select</td>";
                 $temp[] = "<td class='rc_event centered'>$event_name</td>";
                 $temp[] = "<td class='centered status pull $pull_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
@@ -697,7 +698,7 @@ class Mapping
             if ($required === "true") {
                 $use_default = filter_var($has_default, FILTER_VALIDATE_BOOLEAN) ? "<label><input class='use_default' data-oncore_field='$field' type='checkbox' name='use_default' $default_checked value='1'/> Use Default</label>" : "";
                 $push_html .= "<tr class='$field'>\r\n";
-                $push_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></i><?=$custom_protocolsubjectid_disclaim?></td>";
+                $push_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></i>$custom_protocolsubjectid_disclaim</td>";
                 $push_html .= "<td class='rc_selects'>$push_rc_map_select $use_default</td>";
                 $push_html .= "<td class='rc_event centered'>$event_name</td>";
                 $push_html .= "<td class='centered status push $push_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
@@ -707,7 +708,7 @@ class Mapping
                 }
             } else {
                 $push_html_opt .= "<tr class='$field'>\r\n";
-                $push_html_opt .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'><?=$custom_protocolsubjectid_disclaim?></td>";
+                $push_html_opt .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></i>$custom_protocolsubjectid_disclaim</td>";
                 $push_html_opt .= "<td class='rc_selects'>$push_rc_map_select</td>";
                 $push_html_opt .= "<td class='rc_event centered'>$event_name</td>";
                 $push_html_opt .= "<td class='centered status push $push_status'><i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></td>";
