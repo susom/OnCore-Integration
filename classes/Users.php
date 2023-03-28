@@ -125,6 +125,8 @@ class Users extends Clients
             if (!empty($staff['contact']['additionalIdentifiers'])) {
                 foreach ($staff['contact']['additionalIdentifiers'] as $identifier) {
                     if ($redcapUsername == $identifier['id']) {
+                        Entities::createLog('REDCap Username: ' . $redcapUsername);
+                        Entities::createLog(implode(',', $staff));
                         return $staff;
                     }
                 }
