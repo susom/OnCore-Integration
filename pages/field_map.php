@@ -611,7 +611,11 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
                 disableSelects();
 
-                console.log("field maps", field_maps);
+                // console.log("field maps", _update_oppo, {
+                //     "action": "saveMapping",
+                //     "field_mappings": field_maps,
+                //     "update_oppo": _update_oppo,
+                // });
                 ajaxQueue.addRequest(function () {
                     // -- your ajax request goes here --
                     return $.ajax({
@@ -634,9 +638,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         enableSelects();
 
                         if (redcap_field !== "-99") {
-                            makeValueMappingRow(result, oncore_field, is_rc_mapping);
+                            makeValueMappingRow(result["html"], oncore_field, is_rc_mapping);
                             if (_update_oppo) {
-                                makeValueMappingRow(result, oncore_field, !is_rc_mapping);
+                                makeValueMappingRow(result["html_oppo"], oncore_field, !is_rc_mapping);
                             }
                         } else {
                             var parent_id = is_rc_mapping ? "#redcap_mapping" : "#oncore_mapping"
@@ -989,7 +993,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     updateOverAllStatus(result);
                     enableSelects();
 
-                    makeValueMappingRow(result, oncore_field, 1);
+                    makeValueMappingRow(result["html"], oncore_field, 1);
 
                     //remove spinners
                     $("#field_mapping .loading").removeClass("loading");
@@ -1060,7 +1064,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
                     enableSelects();
 
-                    makeValueMappingRow(result, oncore_field, 1);
+                    makeValueMappingRow(result["html"], oncore_field, 1);
 
                     updatePushPullStatus(oncore_field, redcap_field, result);
                     updateOverAllStatus(result);
@@ -1198,8 +1202,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         _el2.find(".property_select").removeClass("ok").addClass(push_status);
     }
 
-    function makeValueMappingRow(result, oncore_field, rc_mapping) {
-        var html        = result["html"];
+    function makeValueMappingRow(result_html, oncore_field, rc_mapping) {
+        var html        = result_html;
         var parent_id   = rc_mapping ? "#redcap_mapping" : "#oncore_mapping";
         if ($(parent_id + " tr." + oncore_field).length) {
             //CLEAR EXISTING ROW BEFORE BUILDING NEW UI

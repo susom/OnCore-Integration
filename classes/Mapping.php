@@ -735,7 +735,7 @@ class Mapping
      * Get dropdown UI for OnCore fields that need value mapping (race, ethnicity, etc..)
      * @return array
      */
-    public function makeValueMappingUI($oncore_field, $redcap_field)
+    public function makeValueMappingUI($oncore_field, $redcap_field, $get_oppo=true)
     {
         $mapped_field = $this->getMappedField($oncore_field);
         $value_mapping = $this->getMappedRedcapValueSet($oncore_field);
@@ -788,14 +788,20 @@ class Mapping
             }
             $value_map_html .= "</table>\r\n</td><td colspan='3'></td></tr>\r\n";
         }
-        return array("html" => $value_map_html);
+
+        $oppo_html = null;
+        if($get_oppo){
+            $oppo_res   = $this->makeValueMappingUI_RC($oncore_field, $redcap_field, false);
+            $oppo_html  = $oppo_res["html"];
+        }
+        return array("html" => $value_map_html, "html_oppo" => $oppo_html);
     }
 
     /**
      * Get dropdown UI for REDCap fields that need value mapping (race, ethnicity, etc..)
      * @return array
      */
-    public function makeValueMappingUI_RC($oncore_field, $redcap_field)
+    public function makeValueMappingUI_RC($oncore_field, $redcap_field, $get_oppo=true)
     {
         $mapped_field = $this->getMappedField($oncore_field, 1);
         $value_mapping = $this->getMappedRedcapValueSet($oncore_field, 1);
@@ -849,7 +855,13 @@ class Mapping
             $value_map_html .= "</tr>\r\n";
             $value_map_html .= "</table>\r\n</td><td colspan='2'></td></tr>\r\n";
         }
-        return array("html" => $value_map_html);
+
+        $oppo_html = null;
+        if($get_oppo){
+            $oppo_res   = $this->makeValueMappingUI($oncore_field, $redcap_field, false);
+            $oppo_html  = $oppo_res["html"];
+        }
+        return array("html" => $value_map_html, "html_oppo" => $oppo_html);
     }
 
 

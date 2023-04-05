@@ -161,6 +161,7 @@ try {
 
                 if($use_default) {
                     $res = $module->getMapping()->makeValueMappingUI_UseDefault($oncore_field, $default_value);
+                    $res["html_oppo"] = null;
                 }elseif(!empty($rc_obj) || !empty($oc_obj)){
                     if ($rc_mapping) {
                         $res = $module->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
@@ -168,10 +169,10 @@ try {
                         $res = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
                     }
                 }else{
-                    $res = array("html" => null);
+                    $res = array("html" => null, "html_oppo" => null);
                 }
 
-                $result = array_merge( array("html" => $res["html"]), $pp_result) ;
+                $result = array_merge( array("html" => $res["html"], "html_oppo" => $res["html_oppo"]), $pp_result) ;
                 break;
 
             case "deleteMapping":
