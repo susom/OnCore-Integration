@@ -31,10 +31,11 @@ $push_html_optional     = $field_map_ui["push"]["optional"];
 
 $linked_protocol        = array();
 $protocol_full          = $module->getIntegratedProtocol();
+
 if($protocol_full){
     $protocol               = $protocol_full["protocol"];
     $linked_protocol[]      = "<div class='linked_protocol'>";
-    $linked_protocol[]      = "<b>Linked Protocol : </b> <span>{$protocol["title"]} #{$protocol["protocolId"]}</span><br>";
+    $linked_protocol[]      = "<b>Linked Protocol : </b> <span>IRB #{$protocol_full["irbNo"]} {$protocol["title"]} #{$protocol["protocolId"]}</span><br>";
     $linked_protocol[]      = "<b>Library : </b> <span>{$protocol["library"]}</span><br>";
     $linked_protocol[]      = "<b>Status : </b> <span>{$protocol["protocolStatus"]}</span><br/>";
     $linked_protocol[]      = "</div>";

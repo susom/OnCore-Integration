@@ -243,7 +243,7 @@
                                             button.data("no_matching_library", library);
                                             asstrick = "<i class='no_matching_library'>*</i>";
                                         }
-                                        var line_text           = "OnCore Protocol : <b>" + protocol_title + " ("+library+asstrick+")</b> [<i>" + protocol_status.toLowerCase() + "</i>]";
+                                        var line_text           = "OnCore Protocol IRB #"+irb+" : <b>" + protocol_title + " ("+library+asstrick+")</b> [<i>" + protocol_status.toLowerCase() + "</i>]";
 
                                         line_text = has_oncore_link ? line_text : line_text;
                                         break;
