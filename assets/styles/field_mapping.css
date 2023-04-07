@@ -224,11 +224,11 @@ table.value_map th {
     padding-right:40px;
 }
 
-#field_mapping .loading::after {
-    top: 12px;
-    right: 25px;
+#field_mapping .form-select {
+    display: inline-block;
+    width: auto;
+    max-width: 80%;
 }
-
 
 #study_sites{
     margin-bottom:50px;

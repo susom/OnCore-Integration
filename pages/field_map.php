@@ -382,6 +382,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     width: 30px;
     height: 30px;
     background-size: contain;
+    z-index:100;
 }
 
 #field_mapping .default_value{
@@ -443,8 +444,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
         //TAB BEHAVIOR
         $("#field_mapping ul.nav-tabs a").on("click", function(){
-            $("li.active").removeClass("active");
+            $(".nav-tabs .active, .tab-pane.active").removeClass("active");
             $(this).parent("li").addClass("active");
+            $($(this).attr("href")).addClass("active");
         });
         $(".pCheck").click(function(e){
             var tab_state = [];
