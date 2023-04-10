@@ -96,6 +96,10 @@ class Protocols
 
     private function matchREDCapRecordWithOnCoreSubject($redcapRecord, $subject, $fields)
     {
+
+        // select oncore subject without redcap record
+        $record = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], '', $subject['protocolSubjectId']);
+
         $data = array(
             'redcap_project_id' => (string)$this->getEntityRecord()['redcap_project_id'],
             'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
@@ -105,9 +109,8 @@ class Protocols
             #'excluded' => OnCoreIntegration::NO,
             'status' => $this->getSubjects()->determineSyncedRecordMatch($subject, $redcapRecord['record'], $fields['pull'])
         );
-        // select oncore subject without redcap record
-        $record = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], '', $subject['protocolSubjectId']);
-        if ($record) {
+        // if redcap_record_id is empty then update linkage record. otherwise its a duplicate record and we need to create new linkage record.
+        if ($record && $record['redcap_record_id'] == $redcapRecord['id']) {
             $this->getSubjects()->updateLinkageRecord($record['id'], $data);
         } else {
             //select redcap record without oncore subject
@@ -115,6 +118,9 @@ class Protocols
             if ($record) {
                 $this->getSubjects()->updateLinkageRecord($record['id'], $data);
             } else {
+                // manually override status and
+                $data['status'] = OnCoreIntegration::REDCAP_ONLY;
+                $data['oncore_protocol_subject_id'] = null;
                 //entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                 $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                 if (!$entity) {
@@ -219,14 +225,61 @@ class Protocols
                 $onCoreMrn = $subject['demographics']['mrn'];
 //            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $this->getEntityRecord()['redcap_event_id'], $fields['mrn']);
                 $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event']), $fields['pull']['mrn']['redcap_field']);
-                if ($redcapRecord) {
-                    $this->matchREDCapRecordWithOnCoreSubject($redcapRecord, $subject, $fields);
+                if (!empty($redcapRecord)) {
+                    if (count($redcapRecord) == 1) {
+                        // if no duplicated MRN just use first one.
+                        $id = $redcapRecord[0]['id'];
+                        $this->matchREDCapRecordWithOnCoreSubject($redcapRecord[0], $subject, $fields);
+
+                        // id to be removed
+                        $id = $redcapRecord[0]['id'];
+                    } else {
+                        // this protocol allows duplicate enrollment we need to find matching subject using protocolSubjectId.
+                        if (!isset($fields['pull']['protocolSubjectId'])) {
+                            throw new \Exception("MRN $onCoreMrn enrolled multiple times. In order to correctly match records you <strong>Must</strong> map `protocolSubjectid` in the <string>Pull</string> fields mapping page.");
+                        } else {
+                            // we need to match record using protocol Subject Id.
+                            foreach ($redcapRecord as $item) {
+                                $redcapProtocolSubjectId = $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']];
+                                if (!$redcapProtocolSubjectId) {
+                                    // for new records update redcap and add new subject protocol id. then sync it with the subject.
+                                    $data = [];
+                                    $data[\REDCap::getRecordIdField()] = $item['id'];
+                                    $data[$fields['pull']['protocolSubjectId']['redcap_field']] = $subject['protocolSubjectId'];
+                                    $data['redcap_event_name'] = OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event']);
+                                    $response = \REDCap::saveData($this->getEntityRecord()['redcap_project_id'], 'json', json_encode(array($data)));
+                                    if (!empty($response['errors'])) {
+                                        {
+                                            if (is_array($response['errors'])) {
+                                                throw new \Exception(implode(",", $response['errors']));
+                                            } else {
+                                                throw new \Exception($response['errors']);
+                                            }
+
+                                        }
+                                    }
+                                    $redcapProtocolSubjectId = $subject['protocolSubjectId'];
+                                    // set the value to make sure match is full
+                                    $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']] = $subject['protocolSubjectId'];
+                                    // get redcap data after saving protocolSUbjectid
+                                    $this->prepareProjectRecords();
+                                }
+                                if ($redcapProtocolSubjectId == $subject['protocolSubjectId']) {
+                                    $this->matchREDCapRecordWithOnCoreSubject($item, $subject, $fields);
+                                    $id = $item['id'];
+                                    break;
+                                }
+                            }
+                        }
+
+                    }
                     // now remove redcap record from array
-                    unset($redcapRecords[$redcapRecord['id']]);
+                    unset($redcapRecords[$id]);
                 } else {
                     $record = $this->processOnCoreOnlyRecord($subject);
                 }
                 unset($redcapRecord);
+                unset($id);
             }
 
 
@@ -355,7 +408,7 @@ class Protocols
             }
             $contactRole = $this->getUser()->isOnCoreContactAllowedToPush();
             if (!$contactRole) {
-                Entities::createLog($this->getUser()->getRedcapUser()->getUsername() . " has OnCore role " . $this->getUser()->getOnCoreContact()['role'] . " which is not allowed to push records to OnCore");
+                Entities::createLog($this->getUser()->getRedcapUser()->getUsername() . " has OnCore role (" . $this->getUser()->getOnCoreContact()['role'] . ") which is not allowed to push records to OnCore");
             }
             return $status && $linked && $contactRole;
         }
@@ -402,45 +455,79 @@ class Protocols
      * @return void
      * @throws GuzzleException
      */
-    public function processCron($id, $irb)
+    public function processCron($redcapProjectId, $irb, $oncoreProtocolId, $libraries = [])
     {
         $protocols = $this->searchOnCoreProtocolsViaIRB($irb);
 
         if (!empty($protocols)) {
-            $entity_oncore_protocol = self::getOnCoreProtocolEntityRecord($id, $irb);
+            $entity_oncore_protocol = self::getOnCoreProtocolEntityRecord($redcapProjectId, $irb);
             if (empty($entity_oncore_protocol)) {
                 foreach ($protocols as $protocol) {
-                    $data = array(
-                        'redcap_project_id' => $id,
-                        'irb_number' => $irb,
-                        'oncore_protocol_id' => $protocol['protocolId'],
-                        // cron will save the first event. and when connect is approved the redcap user has to confirm the event id.
-                        'redcap_event_id' => 0,
-                        'status' => '0',
-                        'last_date_scanned' => time()
-                    );
+                    if ($oncoreProtocolId == $protocol['protocolId']) {
+                        $data = array(
+                            'redcap_project_id' => $redcapProjectId,
+                            'irb_number' => $irb,
+                            'oncore_protocol_id' => $protocol['protocolId'],
+                            // cron will save the first event. and when connect is approved the redcap user has to confirm the event id.
+                            'redcap_event_id' => 0,
+                            'status' => '0',
+                            'last_date_scanned' => time(),
+                            'oncore_library' => $this->getProtocolDefinedLibraryId($protocol['protocolId'], $libraries)
+                        );
 
-                    $entity = (new Entities)->create(OnCoreIntegration::ONCORE_PROTOCOLS, $data);
+                        $entity = (new Entities)->create(OnCoreIntegration::ONCORE_PROTOCOLS, $data);
 
-                    if ($entity) {
-                        Entities::createLog('OnCore Protocol Entity table record created for IRB: ' . $irb . '.');
-                        $this->setEntityRecord($data);
-                        // do not pull any protocol data till user approve the redcap oncore linkage.
-                        //$this->prepareProtocolSubjects();
-                        //$this->syncRecords();
-                    } else {
-                        throw new \Exception(implode(',', $entity->errors));
+                        if ($entity) {
+                            Entities::createLog('OnCore Protocol Entity table record created for IRB: ' . $irb . '.');
+                            $this->setEntityRecord($data);
+
+                            // do not pull any protocol data till user approve the redcap oncore linkage.
+                            //$this->prepareProtocolSubjects();
+                            //$this->syncRecords();
+
+                            return $entity;
+                        } else {
+                            throw new \Exception(implode(',', $entity->errors));
+                        }
                     }
                 }
             } else {
-                // update last_date_scanned with current time().
-                $this->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
-                Entities::createLog('OnCore Protocol record updated for IRB: ' . $irb . '.');
+                // if entity record exists but user wants to link to a different protocol.
+                if ($oncoreProtocolId != $entity_oncore_protocol['oncore_protocol_id']) {
+                    $this->updateProtocolEntityRecordProtocolId($entity_oncore_protocol['id'], $oncoreProtocolId);
+                    Entities::createLog('OnCore Protocol Id changed from ' . $entity_oncore_protocol['oncore_protocol_id'] . ' to ' . $oncoreProtocolId);
+                    // get new entity record.
+                    return self::getOnCoreProtocolEntityRecord($redcapProjectId, $irb);
+                } else {
+                    // update last_date_scanned with current time().
+                    $this->updateProtocolEntityRecordTimestamp($entity_oncore_protocol['id']);
+                    Entities::createLog('OnCore Protocol record updated for IRB: ' . $irb . '.');
+                    return $entity_oncore_protocol;
+                }
+
             }
         } else {
             Entities::createLog('IRB ' . $irb . ' has no OnCore Protocols.');
         }
 
+    }
+
+    public function getProtocolDefinedLibraryId($protocol, $libraries)
+    {
+        $library = $this->getProtocolDefinedLibrary($protocol, $libraries);
+        return array_key_first($library);
+    }
+
+    public function getProtocolDefinedLibrary($protocolId, $libraries)
+    {
+        $protocol = $this->getOnCoreProtocolsViaID($protocolId);
+        foreach ($libraries as $key => $library) {
+
+            if ($library['library-name'] == $protocol['library']) {
+                return array($key => $library);
+            }
+        }
+        throw new \Exception("Protocol Library `" . $protocol['library'] . "` is not defined. Please Contact REDCap Admin. ");
     }
 
     /**
@@ -475,6 +562,17 @@ class Protocols
             Entities::createException($e->getMessage());
             echo $e->getMessage();
         }
+    }
+
+    public function getOnCoreProtocolsViaIRB($irb)
+    {
+        $protocols = $this->searchOnCoreProtocolsViaIRB($irb);
+        if (!empty($protocols)) {
+            foreach ($protocols as $index => $protocol) {
+                $protocols[$index]['protocol'] = $this->getOnCoreProtocolsViaID($protocol['protocolId']);
+            }
+        }
+        return $protocols;
     }
 
     /**
@@ -565,6 +663,18 @@ class Protocols
         db_query($sql);
     }
 
+    /**
+     * update oncore_protocol entity record protocol id
+     * @param $entityId
+     * @param $protocolId
+     * @return void
+     * @throws \Exception
+     */
+    public function updateProtocolEntityRecordProtocolId($entityId, $protocolId): void
+    {
+        $sql = sprintf("UPDATE %s set oncore_protocol_id = '%s', updated = '%s' ,last_date_scanned = '%s' WHERE id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS), db_escape($protocolId), db_escape(time()), db_escape(time()), db_escape($entityId));
+        db_query($sql);
+    }
 
     /**
      * update oncore_protocol entity record status
@@ -663,5 +773,44 @@ class Protocols
         $this->mapping = $mapping;
     }
 
+    public function deleteProtocolRecord($redcapProjectId)
+    {
+        if (!$redcapProjectId) {
+            throw new \Exception('REDCap Project Id is missing');
+        }
 
+
+        $sql = sprintf("DELETE FROM %s WHERE redcap_project_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS), db_escape($redcapProjectId));
+        $result = db_query($sql);
+        if (!$result) {
+            throw new \Exception(db_error());
+        }
+        return $result;
+    }
+
+    public function autoPullFromOnCore()
+    {
+        $pullFields = $this->getMapping()->getProjectFieldMappings()['pull'];
+        $subjects = $this->getSubjects()->getOnCoreProtocolSubjects($this->getEntityRecord()['oncore_protocol_id']);
+        foreach ($subjects as $subject) {
+            $linkage = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], '', $subject['protocolSubjectId']);
+            // if linkage record exists ignore it
+            if ($linkage) {
+                continue;
+            } else {
+                $data = array(
+                    'redcap_project_id' => (string)$this->getEntityRecord()['redcap_project_id'],
+                    'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
+                    'redcap_record_id' => '',
+                    'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
+                    'oncore_protocol_subject_status' => $subject['status'] == 'ON STUDY' ? OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY : OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY,
+                    #'excluded' => OnCoreIntegration::NO,
+                    'status' => OnCoreIntegration::ONCORE_ONLY
+                );
+                $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
+                $this->getSubjects()->pullOnCoreRecordsIntoREDCap($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], array('oncore' => $entity['oncore_protocol_subject_id']), $pullFields);
+
+            }
+        }
+    }
 }

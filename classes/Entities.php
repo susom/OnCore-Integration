@@ -6,12 +6,19 @@ class Entities
 {
     use emLoggerTrait;
 
+    const GENERAL = 0;
+    const PUSH_TO_ONCORE_FROM_ONCORE = 1;
+    const PUSH_TO_ONCORE_FROM_ON_STAGE = 2;
+    const PUSH_TO_ONCORE_FROM_REDCAP = 3;
+    const PULL_FROM_ONCORE = 4;
+
     /**
      * @var \REDCapEntity\EntityFactory
      */
     private $factory;
 
     public $errors = '';
+
     /**
      * Create log record in Entity OnCore Actions log table
      * @param $message
@@ -20,7 +27,7 @@ class Entities
      * @param $type
      * @return void
      */
-    public static function createLog($message, $url = '', $response = '', $type = 0)
+    public static function createLog($message, $type = 0, $url = '', $response = '')
     {
         $data = array(
             'message' => $message,
@@ -29,7 +36,12 @@ class Entities
             'type' => $type
         );
         // use this to reduce Mysql Server Gone error.
-        $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()));
+        if (defined('PROJECT_ID')) {
+            $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated, redcap_project_id) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()), db_escape(PROJECT_ID));
+        } else {
+            $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()));
+        }
+
         //$entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_API_ACTIONS_LOG, $data);
         $entity = db_query($sql);
         if (!$entity) {
@@ -42,6 +54,23 @@ class Entities
 //            (new Entities)->emLog($data);
 //        }
 
+    }
+
+
+    public static function getTypeText($type)
+    {
+        switch ($type) {
+            case self::GENERAL:
+                return 'General';
+            case self::PUSH_TO_ONCORE_FROM_ONCORE:
+                return 'Push to OnCore from Existing OnCore Subject';
+            case self::PUSH_TO_ONCORE_FROM_ON_STAGE:
+                return 'Push to OnCore from Existing OnStage Subject';
+            case self::PUSH_TO_ONCORE_FROM_REDCAP:
+                return 'Push to OnCore from REDCap Record';
+            case self::PULL_FROM_ONCORE:
+                return 'Pull From OnCore';
+        }
     }
 
     /**
@@ -134,6 +163,20 @@ class Entities
         $temp[] = db_escape($id);
         $sql = vsprintf('UPDATE %s SET ' . $fmt . ' WHERE id = %s', $temp);
         $result = db_query(str_replace("\\", '', db_escape($sql)));
+        return $result;
+    }
+
+    public static function getREDCapProjectLogs($pid)
+    {
+        $result = [];
+        $sql = sprintf("SELECT * FROM %s WHERE redcap_project_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($pid));
+        $records = db_query($sql);
+        while ($row = db_fetch_assoc($records)) {
+            unset($row['redcap_project_id']);
+            $row['created'] = date('m-d-Y h:i:s', $row['created']);
+            $row['updated'] = date('m-d-Y h:i:s', $row['updated']);
+            $result[] = $row;
+        }
         return $result;
     }
 

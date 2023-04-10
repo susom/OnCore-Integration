@@ -14,17 +14,32 @@ try {
         $module->setUsers(new Users($module->getProjectId(), $module->PREFIX, null, $module->getCSRFToken()));
     }
     if ($action == 'protocols') {
-        $module->getProtocols()->processCron($module->getProjectId(), $Proj->project['project_irb_number']);
-        header('Content-Type: application/json');
-        $result = json_encode(array('status' => 'success', 'message' => 'Protocols Cron completed for pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
+        $protocols = $module->getProtocols()->searchOnCoreProtocolsViaIRB($Proj->project['project_irb_number']);
+        if (count($protocols) == 1) {
+            $module->getProtocols()->processCron($module->getProjectId(), $Proj->project['project_irb_number'], $protocols[0]['protocolId'], $module->getDefinedLibraries());
+            header('Content-Type: application/json');
+            $result = json_encode(array('status' => 'success', 'message' => 'Protocols Cron completed for pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
+        } else {
+            $result = json_encode(array('status' => 'success', 'message' => $Proj->project['project_irb_number'] . ' has multiple OnCore Protocols. No Action is done. '), JSON_THROW_ON_ERROR);
+        }
+
     } elseif ($action == 'subjects') {
         $module->getProtocols()->syncRecords();
         header('Content-Type: application/json');
         $result = json_encode(array('status' => 'success', 'message' => 'Subjects Cron completed for pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
+    } elseif ($action == 'auto_pull') {
+        $module->getProtocols()->autoPullFromOnCore();
+        header('Content-Type: application/json');
+        $result = json_encode(array('status' => 'success', 'message' => 'OnCore Subjects auto pulled into pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
     } elseif ($action == 'redcap_only') {
         $module->getProtocols()->syncREDCapRecords();
         header('Content-Type: application/json');
         $result = json_encode(array('status' => 'success', 'message' => 'REDCap Records Cron completed for pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
+    } elseif ($action == 'clean_up') {
+        $module->getProtocols()->getSubjects()->deleteLinkageRecords($module->getProtocols()->getEntityRecord()['redcap_project_id'], $module->getProtocols()->getEntityRecord()['oncore_protocol_id']);
+        $module->getProtocols()->deleteProtocolRecord($module->getProtocols()->getEntityRecord()['redcap_project_id']);
+        header('Content-Type: application/json');
+        $result = json_encode(array('status' => 'success', 'message' => 'Cleanup cron completed for pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
     } else {
         throw new \Exception('Unknown Action');
     }

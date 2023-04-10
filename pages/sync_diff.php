@@ -7,16 +7,30 @@ try {
 
 //URLS FOR SUPPORT ASSETS
     $oncore_css = $module->getUrl("assets/styles/oncore.css");
-    $batch_css = $module->getUrl("assets/styles/batch_modal.css");
-    $notif_css = $module->getUrl("assets/styles/notif_modal.css");
+    $batch_css  = $module->getUrl("assets/styles/batch_modal.css");
+    $notif_css  = $module->getUrl("assets/styles/notif_modal.css");
     $adjude_css = $module->getUrl("assets/styles/adjudication.css");
 
-    $notif_js = $module->getUrl("assets/scripts/notif_modal.js");
-    $oncore_js = $module->getUrl("assets/scripts/oncore.js");
+    $notif_js   = $module->getUrl("assets/scripts/notif_modal.js");
+    $oncore_js  = $module->getUrl("assets/scripts/oncore.js");
     $adjudication_js = $module->getUrl("assets/scripts/adjudication_modal.js");
 
-    $icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
-$ajax_endpoint          = $module->getUrl("ajax/handler.php");
+    $icon_ajax      = $module->getUrl("assets/images/icon_ajax.gif");
+    $ajax_endpoint  = $module->getUrl("ajax/handler.php");
+
+    $linked_protocol        = array();
+    $protocol_full          = $module->getIntegratedProtocol();
+
+    if($protocol_full){
+        $protocol               = $protocol_full["protocol"];
+        $linked_protocol[]      = "<div class='linked_protocol'>";
+        $linked_protocol[]      = "<b>Linked Protocol : </b> <span>IRB #{$protocol_full["irbNo"]} {$protocol["title"]} #{$protocol["protocolId"]}</span><br>";
+        $linked_protocol[]      = "<b>Library : </b> <span>{$protocol["library"]}</span><br>";
+        $linked_protocol[]      = "<b>Status : </b> <span>{$protocol["protocolStatus"]}</span><br/>";
+        $linked_protocol[]      = "</div>";
+    }
+    $linked_protocol        = implode("\r\n", $linked_protocol);
+
 
     require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 ?>
@@ -61,6 +75,8 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
         <h3>REDCap/OnCore Interaction</h3>
         <p class="lead">Data Stored in OnCore must be synced and adjudicated periodically. The data will be pulled into
             an entity table and then matched against this projects REDCap data on the mapped fields.</p>
+
+        <?=$linked_protocol?>
 
         <div id="overview" class="container">
             <div id="filters">
@@ -194,6 +210,7 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
             //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACH OTHER
             var ajaxQueue = {
                 queuedRequests: [],
+                pauseFlag : false,
                 addRequest: function (req) {
                     this.queuedRequests.push(req);
                     // if it's the first request, start execution
@@ -205,8 +222,8 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
                     this.queuedRequests = [];
                 },
                 executeNextRequest: function (subtract) {
-                    var queuedRequests = this.queuedRequests;
-                    // console.log("request started");
+                    var queuedRequests  = this.queuedRequests;
+                    var pauseFlag       = this.pauseFlag;
 
                     if(subtract){
                         console.log("something messed up subtract and continue");
@@ -219,11 +236,17 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
                             // remove completed request from queue
                             queuedRequests.shift();
                             // if there are more requests, execute the next in line
-                            if (queuedRequests.length) {
+                            if (queuedRequests.length  && !pauseFlag) {
                                 ajaxQueue.executeNextRequest();
                             }
                         });
                     }
+                },
+                pauseQueue: function(){
+                    this.pauseFlag = !this.pauseFlag;
+                },
+                isPaused : function(){
+                    return this.pauseFlag;
                 }
             };
 
@@ -405,6 +428,22 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
                     window.adjModal = adjModal;
                     adjModal.show();
 
+                    //THIS IS TO CONTINUE THE PROGRESS BAR UI INCASE THEY CLOSE THE MODAL AND REOPEN IT
+                    //USES SESSION STORAGE TO TRACK NUMBER OF PROECESS IN AJAX QUEUe
+                    if(sessionStorage.getItem("process_queue") ){
+                        if(sessionStorage.getItem("process_queue") && ajaxQueue.queuedRequests.length){
+                            var ls_inprogress_processing    = sessionStorage.getItem("process_queue")
+                            var pullModal                   = window.adjModal;
+                            pullModal.completedItems        = ls_inprogress_processing - ajaxQueue.queuedRequests.length;
+                            pullModal.totalItems            = ls_inprogress_processing;
+                            pullModal.showProgressUI();
+
+                            if(ajaxQueue.isPaused()){
+                                pullModal.showContinue();
+                            }
+                        }
+                    }
+
                     $(".getadjudication").prop("disabled", false);
                     par.addClass("picked");
 
@@ -421,10 +460,12 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
 
                     $("#" + bin).clone().appendTo($("#pushModal .pushDATA"));
 
+
                     var footer_action   = $(result["footer_action"]);
                     var show_all        = $(result["show_all"]);
                     $("#pushModal .footer_action").append(footer_action);
                     $("#pushModal .show_all").append(show_all);
+
                     // $("#pushModal .show_all").prepend(footer_action.clone());
                 }).fail(function (e) {
                     e.responseJSON = decode_object(e.responseText)
@@ -449,7 +490,7 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
             //oncore only
             $(document).on('click', '.submit_pullFromOnCore', function (e) {
                 e.preventDefault();
-                var form = $('.pushDATA').find('#pullFromOncore')
+                var form = $('.pushDATA').find('#pullFromOncore');
                 pull(form)
             });
 
@@ -479,6 +520,34 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
                 }
             });
 
+            $(document).on('click', "#ajaxq_buttons .pause", function(e){
+                ajaxQueue.pauseQueue();
+                if($(this).hasClass("paused")){
+                    ajaxQueue.executeNextRequest();
+                    $(this).removeClass("paused").html("Pause Sync");
+                }else{
+                    $(this).addClass("paused").html("Continue Sync");
+                }
+            });
+            $(document).on('click', "#ajaxq_buttons .cancel", function(e){
+                if( $(".check_all").is(":checked")){
+                    $(".check_all").trigger("change");
+                }else{
+                    $(".accept_diff").each(function(){
+                        if($(this).is(":checked")){
+                            $(this).attr("checked",null);
+                        }
+                    });
+                }
+
+                $(".batch_counter").find("b").html("0");
+                $(".batch_counter").find("i").html("0");
+
+                $("#ajaxq_buttons").empty().append($("<i>")).text("Sync Canceled");
+
+                ajaxQueue.clearQueue();
+            });
+
             //ACCEPT ADJUDICATIONS
             function pull(form) {
                 var approved_ids = [];
@@ -504,6 +573,9 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
                     pullModal.totalItems        = approved_ids.length;
                     pullModal.showProgressUI();
 
+                    //stuff in session storage temporarily incase close modal and ned to reopen
+                    sessionStorage.setItem("process_queue", approved_ids.length);
+
                     var arr_length  = approved_ids.length - 1;
                     for (var i in approved_ids) {
                         var _mrn    = approved_ids[i]["mrn"];
@@ -513,7 +585,6 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
 
                         //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
                         var rndInt = randomIntFromInterval(500, 1500);
-
                         (function (temp, rndInt, inc, tot) {
                             ajaxQueue.addRequest(function () {
                                 // -- your ajax request goes here --
@@ -577,6 +648,9 @@ $ajax_endpoint          = $module->getUrl("ajax/handler.php");
                     pushModal.completedItems    = 0;
                     pushModal.totalItems        = approved_ids.length;
                     pushModal.showProgressUI();
+
+                    //stuff in session storage temporarily incase close modal and ned to reopen
+                    sessionStorage.setItem("process_queue", approved_ids.length);
 
                     var arr_length  = approved_ids.length - 1;
                     for (var i in approved_ids) {

@@ -161,6 +161,7 @@ try {
 
                 if($use_default) {
                     $res = $module->getMapping()->makeValueMappingUI_UseDefault($oncore_field, $default_value);
+                    $res["html_oppo"] = null;
                 }elseif(!empty($rc_obj) || !empty($oc_obj)){
                     if ($rc_mapping) {
                         $res = $module->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
@@ -168,10 +169,10 @@ try {
                         $res = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
                     }
                 }else{
-                    $res = array("html" => null);
+                    $res = array("html" => null, "html_oppo" => null);
                 }
 
-                $result = array_merge( array("html" => $res["html"]), $pp_result) ;
+                $result = array_merge( array("html" => $res["html"], "html_oppo" => $res["html_oppo"]), $pp_result) ;
                 break;
 
             case "deleteMapping":
@@ -320,13 +321,28 @@ try {
                 }
                 break;
 
+            case "schedulePull":
+                if (isset($_POST['flag'])) {
+                    $auto_pull_flag = json_decode($_POST['flag']) ? 1 : 0;
+                    $result         = $module->setProjectSetting("enable-auto-pull", $auto_pull_flag);
+                }
+                break;
 
             case "triggerIRBSweep":
-                if (isset($_POST['irb']) && $_POST['irb'] != '') {
+                if (isset($_POST['irb']) && $_POST['irb'] != '' && isset($_POST['oncore_protocol_id']) && $_POST['oncore_protocol_id'] != '') {
                     $irb = htmlspecialchars($_POST['irb']);
-                    $module->getProtocols()->processCron($module->getProjectId(), $irb);
+                    $oncoreProtocolId = htmlspecialchars($_POST['oncore_protocol_id']);
+                    $module->getProtocols()->processCron($module->getProjectId(), $irb, $oncoreProtocolId, $module->getDefinedLibraries());
                 }
 
+                break;
+            case "projectLogs":
+                $result = Entities::getREDCapProjectLogs($module->getProjectId());
+                break;
+            case "projectProtocols":
+                global $Proj;
+                $irb = $Proj->project['project_irb_number'];
+                $result = $module->getProtocols()->searchOnCoreProtocolsViaIRB($irb);
                 break;
         }
 //        echo htmlentities(json_encode($result, JSON_THROW_ON_ERROR), ENT_QUOTES);
@@ -337,12 +353,12 @@ try {
     if (method_exists($e, 'getResponse')) {
         $response = $e->getResponse();
         $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-        $responseBodyAsString['message'] = $responseBodyAsString['field'] . ': ' . $responseBodyAsString['message'];
+        $responseBodyAsString['message'] = $responseBodyAsString['field'] ? $responseBodyAsString['field'] . ': ' : '' . $responseBodyAsString['message'];
     } else {
         $responseBodyAsString = array();
         $responseBodyAsString['message'] = $e->getMessage();
     }
-
+    $responseBodyAsString['message'] = $module->checkCustomErrorMessages($responseBodyAsString['message']);
     Entities::createException($responseBodyAsString['message']);
     header("Content-type: application/json");
     http_response_code(404);
@@ -357,7 +373,8 @@ try {
     Entities::createException($e->getMessage());
     header("Content-type: application/json");
     http_response_code(404);
-    $result = json_encode(array('status' => 'error', 'message' => $e->getMessage(), 'id' => $id), JSON_THROW_ON_ERROR);
+    $message = $module->checkCustomErrorMessages($e->getMessage());
+    $result = json_encode(array('status' => 'error', 'message' => $message, 'id' => $id), JSON_THROW_ON_ERROR);
 //    echo(json_encode($result, JSON_THROW_ON_ERROR));
     echo htmlentities($result, ENT_QUOTES);;
 }

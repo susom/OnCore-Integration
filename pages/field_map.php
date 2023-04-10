@@ -21,6 +21,7 @@ $project_oncore_subset  = $mapping->getProjectOncoreSubset();
 $pushpull_pref          = $mapping->getProjectPushPullPref();
 $overall_pull_status    = $mapping->getOverallPullStatus() ? "ok" : "";
 $overall_push_status    = $mapping->getOverallPushStatus() ? "ok" : "";
+$auto_pull              = $module->getProjectSetting("enable-auto-pull");
 
 $field_map_ui           = $mapping->makeFieldMappingUI();
 $oncore_fields          = $field_map_ui["oncore_fields"];
@@ -28,6 +29,18 @@ $pull_html              = $field_map_ui["pull"];
 $push_html              = $field_map_ui["push"]["required"];
 $push_html_optional     = $field_map_ui["push"]["optional"];
 
+$linked_protocol        = array();
+$protocol_full          = $module->getIntegratedProtocol();
+
+if($protocol_full){
+    $protocol               = $protocol_full["protocol"];
+    $linked_protocol[]      = "<div class='linked_protocol'>";
+    $linked_protocol[]      = "<b>Linked Protocol : </b> <span>IRB #{$protocol_full["irbNo"]} {$protocol["title"]} #{$protocol["protocolId"]}</span><br>";
+    $linked_protocol[]      = "<b>Library : </b> <span>{$protocol["library"]}</span><br>";
+    $linked_protocol[]      = "<b>Status : </b> <span>{$protocol["protocolStatus"]}</span><br/>";
+    $linked_protocol[]      = "</div>";
+}
+$linked_protocol        = implode("\r\n", $linked_protocol);
 
 //ONCORE STUDY SITE SUBSET SELECTION
 $study_sites            = $module->getUsers()->getOnCoreStudySites();
@@ -90,6 +103,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         <div class="tab-pane active" id="oncore_config">
             <form id="oncore_config" class="container">
                 <h2>Oncore Project Linked</h2>
+
+                <?=$linked_protocol ?>
+
                 <p class="lead">Some configurations need to be set before using this module:</p>
 
                 <label class="map_dir">
@@ -116,6 +132,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
                     project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
                     Settings to be able to PULL.</p>
+
+                <label class="map_dir">
+                    <input type="checkbox" class="auto_pull" value="1" <?=($auto_pull) ? "checked" : "" ?>> Schedule an auto-pull of records once mapping is complete?
+                </label>
 
                 <div id="oncore_prop_selector" class="pull-right">
                     <button class="btn btn-success btn-lg dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -362,6 +382,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     width: 30px;
     height: 30px;
     background-size: contain;
+    z-index:100;
 }
 
 #field_mapping .default_value{
@@ -374,9 +395,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 <script>
     $(document).ready(function () {
         var ajax_endpoint = "<?=$ajax_endpoint?>";
-        //var oncore_fields = <?//=json_encode($oncore_fields)?>//;
         var oncore_fields = decode_object("<?=htmlentities(json_encode($oncore_fields, JSON_THROW_ON_ERROR), ENT_QUOTES); ?>");
-        //var pushpull_pref = <?//=json_encode($pushpull_pref)?>//;
         var pushpull_pref = decode_object("<?=htmlentities(json_encode($pushpull_pref, JSON_THROW_ON_ERROR), ENT_QUOTES); ?>");
         var redcap_csrf_token = "<?=$module->getCSRFToken()?>";
 
@@ -425,8 +444,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
         //TAB BEHAVIOR
         $("#field_mapping ul.nav-tabs a").on("click", function(){
-            $("li.active").removeClass("active");
+            $(".nav-tabs .active, .tab-pane.active").removeClass("active");
             $(this).parent("li").addClass("active");
+            $($(this).attr("href")).addClass("active");
         });
         $(".pCheck").click(function(e){
             var tab_state = [];
@@ -593,7 +613,11 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
                 disableSelects();
 
-                console.log("field maps", field_maps);
+                // console.log("field maps", _update_oppo, {
+                //     "action": "saveMapping",
+                //     "field_mappings": field_maps,
+                //     "update_oppo": _update_oppo,
+                // });
                 ajaxQueue.addRequest(function () {
                     // -- your ajax request goes here --
                     return $.ajax({
@@ -616,9 +640,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         enableSelects();
 
                         if (redcap_field !== "-99") {
-                            makeValueMappingRow(result, oncore_field, is_rc_mapping);
+                            makeValueMappingRow(result["html"], oncore_field, is_rc_mapping);
                             if (_update_oppo) {
-                                makeValueMappingRow(result, oncore_field, !is_rc_mapping);
+                                makeValueMappingRow(result["html_oppo"], oncore_field, !is_rc_mapping);
                             }
                         } else {
                             var parent_id = is_rc_mapping ? "#redcap_mapping" : "#oncore_mapping"
@@ -877,6 +901,24 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             });
         });
 
+        //Schedule Auto_pull on Pull Side
+        $("input.auto_pull").on("click", function(){
+            var data = {
+                "action": "schedulePull",
+                "flag": $(this).is(":checked"),
+                "redcap_csrf_token": redcap_csrf_token
+            };
+
+            $.ajax({
+                url: ajax_endpoint,
+                method: 'POST',
+                data: data,
+            }).done(function (result) {
+                // console.log("success", result);
+            }).fail(function (e) {
+                console.log("fail", e);
+            });
+        });
 
         //SAVE FILTER LOGIC
         $("#saveFilterLogic").click(function (e) {
@@ -953,7 +995,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     updateOverAllStatus(result);
                     enableSelects();
 
-                    makeValueMappingRow(result, oncore_field, 1);
+                    makeValueMappingRow(result["html"], oncore_field, 1);
 
                     //remove spinners
                     $("#field_mapping .loading").removeClass("loading");
@@ -1024,7 +1066,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
                     enableSelects();
 
-                    makeValueMappingRow(result, oncore_field, 1);
+                    makeValueMappingRow(result["html"], oncore_field, 1);
 
                     updatePushPullStatus(oncore_field, redcap_field, result);
                     updateOverAllStatus(result);
@@ -1162,8 +1204,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         _el2.find(".property_select").removeClass("ok").addClass(push_status);
     }
 
-    function makeValueMappingRow(result, oncore_field, rc_mapping) {
-        var html        = result["html"];
+    function makeValueMappingRow(result_html, oncore_field, rc_mapping) {
+        var html        = result_html;
         var parent_id   = rc_mapping ? "#redcap_mapping" : "#oncore_mapping";
         if ($(parent_id + " tr." + oncore_field).length) {
             //CLEAR EXISTING ROW BEFORE BUILDING NEW UI

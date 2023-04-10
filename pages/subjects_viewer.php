@@ -8,7 +8,7 @@ use REDCapEntity\EntityList;
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
 try {
-    if (!defined('SUPER_USER') || SUPER_USER != '1') {
+    if (!$module->isSuperUser()) {
         Entities::createException(USERID . ' is trying to access OnCore logs');
         throw new \Exception('Access Denied');
     }

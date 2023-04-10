@@ -1,262 +1,345 @@
 {
-    "name": "OnCoreIntegration",
-    "namespace": "Stanford\\OnCoreIntegration",
-    "description": "An external module that manages syncing patient data between REDCap projects and their respective OnCore counterparts",
-    "documentation": "README.md",
-    "authors": [
-        {
-            "name": "Ihab Zeedia",
-            "email": "ihabz@stanford.edu",
-            "institution": "Stanford University"
-        },
-        {
-            "name": "Andrew Martin",
-            "email": "andy123@stanford.edu",
-            "institution": "Stanford University"
-        },
-        {
-            "name": "Irvin Szeto",
-            "email": "irvins@stanford.edu",
-            "institution": "Stanford University"
-        },
-        {
-            "name": "Lee Ann Yasukawa",
-            "email": "yasukawa@stanford.edu",
-            "institution": "Stanford University"
-        }
-    ],
-    "framework-version": 9,
-    "permissions": [
-        "redcap_save_record",
-        "redcap_every_page_top",
-        "redcap_module_link_check_display",
-        "redcap_module_system_enable",
-        "redcap_module_project_enable"
-    ],
-    "enable-every-page-hooks-on-system-pages": false,
-    "links": {
-        "control-center": [
-            {
-                "name": "OnCore Demographic Options",
-                "icon": "fas fa-sliders-h",
-                "url": "pages/demo_options.php",
-                "show-header-and-footer": true
-            },
-            {
-                "name": "OnCore Logs Entity table",
-                "icon": "fas fa-database",
-                "url": "pages/logs_viewer.php"
-            },
-            {
-                "name": "OnCore Protocols table",
-                "icon": "fas fa-database",
-                "url": "pages/protocols_viewer.php"
-            },
-            {
-                "name": "OnCore Subjects table",
-                "icon": "fas fa-database",
-                "url": "pages/subjects_viewer.php"
-            },
-            {
-                "name": "REDCap OnCore Linked Records",
-                "icon": "fas fa-database",
-                "url": "pages/linkage_viewer.php"
-            }
-        ],
-        "project": [
-            {
-                "name": "OnCore Field Mapping",
-                "icon": "fas fa-check-circle",
-                "url": "pages/field_map.php",
-                "show-header-and-footer": true
-            },
-            {
-                "name": "Manual Sync With Oncore",
-                "icon": "fas fa-not-equal",
-                "url": "pages/sync_diff.php",
-                "show-header-and-footer": false
-            }
-        ]
+  "name": "OnCoreIntegration",
+  "namespace": "Stanford\\OnCoreIntegration",
+  "description": "An external module that manages syncing patient data between REDCap projects and their respective OnCore counterparts",
+  "documentation": "README.md",
+  "authors": [
+    {
+      "name": "Ihab Zeedia",
+      "email": "ihabz@stanford.edu",
+      "institution": "Stanford University"
     },
-    "no-auth-pages": [
-        "pages/getEmrDemographics",
-        "ajax/cron"
+    {
+      "name": "Andrew Martin",
+      "email": "andy123@stanford.edu",
+      "institution": "Stanford University"
+    },
+    {
+      "name": "Irvin Szeto",
+      "email": "irvins@stanford.edu",
+      "institution": "Stanford University"
+    },
+    {
+      "name": "Lee Ann Yasukawa",
+      "email": "yasukawa@stanford.edu",
+      "institution": "Stanford University"
+    }
+  ],
+  "framework-version": 9,
+  "permissions": [
+    "redcap_save_record",
+    "redcap_every_page_top",
+    "redcap_module_link_check_display",
+    "redcap_module_system_enable",
+    "redcap_module_project_enable"
+  ],
+  "enable-every-page-hooks-on-system-pages": false,
+  "links": {
+    "control-center": [
+      {
+        "name": "OnCore Demographic Options",
+        "icon": "fas fa-sliders-h",
+        "url": "pages/demo_options.php",
+        "show-header-and-footer": true
+      },
+      {
+        "name": "OnCore Logs Entity table",
+        "icon": "fas fa-database",
+        "url": "pages/logs_viewer.php"
+      },
+      {
+        "name": "OnCore Protocols table",
+        "icon": "fas fa-database",
+        "url": "pages/protocols_viewer.php"
+      },
+      {
+        "name": "OnCore Subjects table",
+        "icon": "fas fa-database",
+        "url": "pages/subjects_viewer.php"
+      },
+      {
+        "name": "REDCap OnCore Linked Records",
+        "icon": "fas fa-database",
+        "url": "pages/linkage_viewer.php"
+      },
+      {
+        "name": "OnCore Summary Page",
+        "icon": "fas fa-chart-bar",
+        "url": "pages/summary_page.php",
+        "show-header-and-footer": true
+      }
     ],
-    "project-settings": [
+    "project": [
+      {
+        "name": "OnCore Field Mapping",
+        "icon": "fas fa-check-circle",
+        "url": "pages/field_map.php",
+        "show-header-and-footer": true
+      },
+      {
+        "name": "Manual Sync With Oncore",
+        "icon": "fas fa-not-equal",
+        "url": "pages/sync_diff.php",
+        "show-header-and-footer": false
+      },
+      {
+        "name": "OnCore Logs",
+        "icon": "fas fa-database",
+        "url": "pages/projects_log_viewer.php",
+        "show-header-and-footer": true
+      }
+    ]
+  },
+  "no-auth-pages": [
+    "pages/getEmrDemographics",
+    "ajax/cron"
+  ],
+  "enable-ajax-logging": true,
+  "auth-ajax-actions": [
+    "integrateOnCore",
+    "approveIntegrateOncore",
+    "triggerIRBSweep"
+  ],
+  "no-auth-ajax-actions": [
+    "integrateOnCore",
+    "approveIntegrateOncore",
+    "triggerIRBSweep"
+  ],
+  "project-settings": [
+    {
+      "key": "redcap-oncore-fields-mapping",
+      "name": "Json Object represent the fields mapping between REDCap and OnCore <h6><span class='text-lg badge badge-lg badge-danger'>DO NOT MODIFY</span></h6>",
+      "required": false,
+      "type": "textarea"
+    },
+    {
+      "key": "redcap-oncore-project-site-studies",
+      "name": "Json Object represent the subset of Study Sites for OnCore Subjects in this project <h6><span class='text-lg badge badge-lg badge-danger'>DO NOT MODIFY</span></h6>",
+      "required": false,
+      "type": "textarea"
+    },
+    {
+      "key": "redcap-oncore-consent-filter-logic",
+      "name": "Json encoded string representing the filter logic for 'consented' participants <h6><span class='text-lg badge badge-lg badge-danger'>DO NOT MODIFY</span></h6>",
+      "required": false,
+      "type": "textarea"
+    },
+    {
+      "key": "enable-project-debug-logging",
+      "name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
+      "required": false,
+      "type": "checkbox"
+    },
+    {
+      "key": "oncore-skipped-contacts",
+      "name": "Comma Separated list for OnCore Protocol Staff that API cant return details for.",
+      "required": false,
+      "type": "textarea"
+    },
+    {
+      "key": "enable-auto-pull",
+      "name": "If checked a daily cronjob will will pull new OnCore Subjects and create REDCap records for these subjects.",
+      "required": false,
+      "type": "checkbox"
+    }
+  ],
+  "system-settings": [
+    {
+      "key": "oncore-api-url",
+      "name": "<b>OnCore API URL</b>",
+      "type": "text"
+    },
+    {
+      "key": "oncore-api-auth-urn",
+      "name": "<b>OnCore API Auth URN</b>",
+      "type": "text"
+    },
+    {
+      "key": "oncore-api-urn",
+      "name": "<b>OnCore API URN</b>",
+      "type": "text"
+    },
+    {
+      "key": "global-client-id",
+      "name": "<b>Global OnCore Client ID</b>",
+      "type": "text"
+    },
+    {
+      "key": "global-client-secret",
+      "name": "<b>Global OnCore Client Secret</b>",
+      "type": "text"
+    },
+    {
+      "key": "global-access-token",
+      "name": "<b>Global OnCore Access Token</b>",
+      "type": "text"
+    },
+    {
+      "key": "global-token-timestamp",
+      "name": "<b>Expiration Unix timestamp for current access token</b>",
+      "type": "text"
+    },
+    {
+      "key": "mrn-verification-url",
+      "name": "<b>MRN Verification URL</b><i>(optional)</i>If MRN Verification and demographics retrieval is used from an EMR system, fill in the URL to the API endpoint.",
+      "required": false,
+      "type": "text"
+    },
+    {
+      "key": "libraries",
+      "name": "<b>OnCore Libraries</b>",
+      "required": true,
+      "type": "sub_settings",
+      "repeatable": true,
+      "sub_settings": [
         {
-            "key": "redcap-oncore-fields-mapping",
-            "name": "Json Object represent the fields mapping between REDCap and OnCore <h6><span class='text-lg badge badge-lg badge-danger'>DO NOT MODIFY</span></h6>",
-            "required": false,
-            "type": "textarea"
+          "key": "library-name",
+          "name": "<b>OnCore Library Name</b>",
+          "required": true,
+          "type": "text"
         },
         {
-            "key": "redcap-oncore-project-site-studies",
-            "name": "Json Object represent the subset of Study Sites for OnCore Subjects in this project <h6><span class='text-lg badge badge-lg badge-danger'>DO NOT MODIFY</span></h6>",
-            "required": false,
-            "type": "textarea"
+          "key": "library-oncore-field-definition",
+          "name": "<b>JSON Object that defines OnCore Fields info. For Examples check EM README.md</b>",
+          "required": true,
+          "type": "textarea"
         },
         {
-          "key": "redcap-oncore-consent-filter-logic",
-          "name": "Json encoded string representing the filter logic for 'consented' participants <h6><span class='text-lg badge badge-lg badge-danger'>DO NOT MODIFY</span></h6>",
+          "key": "library-oncore-staff-roles",
+          "name": "<b>OnCore Protocol`s Roles that are allowed to create Subjects in OnCore</b>",
+          "required": true,
+          "type": "sub_settings",
+          "repeatable": true,
+          "sub_settings": [
+            {
+              "key": "library-staff-role",
+              "name": "<b>Staff Role <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
+              "type": "text",
+              "required": true
+            }
+          ]
+        },
+        {
+          "key": "description",
+          "name": "<hr>",
+          "type": "descriptive"
+        },
+        {
+          "key": "library-oncore-protocol-statuses",
+          "name": "<b>OnCore Protocol Statuses that can accept new Subjects via API. </b>",
+          "required": true,
+          "type": "sub_settings",
+          "repeatable": true,
+          "sub_settings": [
+            {
+              "key": "library-protocol-status",
+              "name": "<b>Protocol Status <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
+              "type": "text",
+              "required": true
+            }
+          ]
+        },
+        {
+          "key": "description-2",
+          "name": "<hr>",
+          "type": "descriptive"
+        },
+        {
+          "key": "library-oncore-study-sites",
+          "name": "<b>Add all study sites defined on your OnCore instance. REDCap users will pick the site participated in their protocol.</b>",
+          "required": true,
+          "type": "sub_settings",
+          "repeatable": true,
+          "sub_settings": [
+            {
+              "key": "library-study-site",
+              "name": "<b>OnCore Study site <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
+              "type": "text",
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "custom-error-messages",
+      "name": "<b>Attach custom error message to an existing OnCore error message.</b>",
+      "required": true,
+      "type": "sub_settings",
+      "repeatable": true,
+      "sub_settings": [
+        {
+          "key": "oncore-error-message",
+          "name": "<b>OnCore error message. this field MUST match returned error from OnCore.</b>",
           "required": false,
           "type": "textarea"
         },
-      {
-        "key": "enable-project-debug-logging",
-        "name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
-        "required": false,
-        "type": "checkbox"
-      },
-      {
-        "key": "oncore-skipped-contacts",
-        "name": "Comma Separated list for OnCore Protocol Staff that API cant return details for.",
-        "required": false,
-        "type": "textarea"
-      }
-    ],
-    "system-settings": [
         {
-            "key": "oncore-api-url",
-            "name": "<b>OnCore API URL</b>",
-            "type": "text"
-        },
-        {
-            "key": "oncore-api-auth-urn",
-            "name": "<b>OnCore API Auth URN</b>",
-            "type": "text"
-        },
-        {
-            "key": "oncore-api-urn",
-            "name": "<b>OnCore API URN</b>",
-            "type": "text"
-        },
-        {
-            "key": "global-client-id",
-            "name": "<b>Global OnCore Client ID</b>",
-            "type": "text"
-        },
-        {
-            "key": "global-client-secret",
-            "name": "<b>Global OnCore Client Secret</b>",
-            "type": "text"
-        },
-        {
-            "key": "global-access-token",
-            "name": "<b>Global OnCore Access Token</b>",
-            "type": "text"
-        },
-        {
-            "key": "global-token-timestamp",
-            "name": "<b>Expiration Unix timestamp for current access token</b>",
-            "type": "text"
-        },
-        {
-            "key": "mrn-verification-url",
-            "name": "<b>MRN Verification URL</b><i>(optional)</i>If MRN Verification and demographics retrieval is used from an EMR system, fill in the URL to the API endpoint.",
-            "required": false,
-            "type": "text"
-        },
-        {
-            "key": "oncore-field-definition",
-            "name": "<b>JSON Object that defines OnCore Fields info. For Examples check EM README.md</b>",
-            "required": true,
-            "type": "textarea"
-        },
-        {
-            "key": "oncore-staff-roles",
-            "name": "<b>OnCore Protocol`s Roles that are allowed to create Subjects in OnCore</b>",
-            "required": true,
-            "type": "sub_settings",
-            "repeatable": true,
-            "sub_settings": [
-                {
-                    "key": "staff-role",
-                    "name": "<b>Staff Role <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
-                    "type": "text",
-                    "required": true
-                }
-            ]
-        },
-        {
-            "key": "description",
-            "name": "<hr>",
-            "type": "descriptive"
-        },
-        {
-            "key": "oncore-protocol-statuses",
-            "name": "<b>OnCore Protocol Statuses that can accept new Subjects via API. </b>",
-            "required": true,
-            "type": "sub_settings",
-            "repeatable": true,
-            "sub_settings": [
-                {
-                    "key": "protocol-status",
-                    "name": "<b>Protocol Status <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
-                    "type": "text",
-                    "required": true
-                }
-            ]
-        },
-        {
-            "key": "description-2",
-            "name": "<hr>",
-            "type": "descriptive"
-        },
-        {
-            "key": "oncore-study-sites",
-            "name": "<b>Add all study sites defined on your OnCore instance. REDCap users will pick the site participated in their protocol.</b>",
-            "required": true,
-            "type": "sub_settings",
-            "repeatable": true,
-            "sub_settings": [
-                {
-                    "key": "study-site",
-                    "name": "<b>OnCore Study site <span class='text-lg badge badge-lg badge-danger'>CASE SENSITIVE</span></b>",
-                    "type": "text",
-                    "required": true
-                }
-            ]
-        },
-        {
-            "key": "disable-ssl-verify",
-            "name": "For testing ONLY Disable SSL verification when making requests.",
-            "required": false,
-            "type": "checkbox"
-        },
-        {
-            "key": "enable-system-debug-logging",
-            "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
-            "required": false,
-            "type": "checkbox"
+          "key": "extra-error-message",
+          "name": "<b>New error message that will be attached to OnCore message.</b>",
+          "required": true,
+          "type": "rich-text",
+          "branchingLogic": {
+            "field": "oncore-error-message",
+            "op": "<>",
+            "value": ""
+          }
         }
-    ],
-    "crons": [
-        {
-            "cron_name": "oncore_protocols_scan",
-            "cron_description": "This cron will run daily to scan OnCore API to Links REDCap projects and OnCore Protocols.",
-            "method": "onCoreProtocolsScanCron",
-            "cron_frequency": "86400",
-            "cron_max_run_time": "3600"
-        },
-        {
-            "cron_name": "oncore_protocols_subjects_scan",
-            "cron_description": "This cron will run daily to scan OnCore API to pull and sync exiting protocols subjects.",
-            "method": "onCoreProtocolsSubjectsScanCron",
-            "cron_frequency": "86400",
-            "cron_max_run_time": "3600"
-        },
-        {
-            "cron_name": "oncore_redcap_records_scan",
-            "cron_description": "This cron will run daily to only sync REDCap records with linkage entity table.",
-            "method": "onCoreREDCapRecordsScanCron",
-            "cron_frequency": "86400",
-            "cron_max_run_time": "3600"
-        }
-    ],
-    "compatibility": {
-        "php-version-min": "",
-        "php-version-max": "",
-        "redcap-version-min": "",
-        "redcap-version-max": ""
+      ]
+    },
+    {
+      "key": "disable-ssl-verify",
+      "name": "For testing ONLY Disable SSL verification when making requests.",
+      "required": false,
+      "type": "checkbox"
+    },
+    {
+      "key": "remove-super-users-roles-restriction",
+      "name": "<span class='text-lg badge badge-lg badge-danger'>FOR DEBUGGING ONLY</span>For debugging disable OnCore Users roles restriction for REDCap superusers only.",
+      "required": false,
+      "type": "checkbox"
+    },
+    {
+      "key": "enable-system-debug-logging",
+      "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
+      "required": false,
+      "type": "checkbox"
     }
+  ],
+  "crons": [
+    {
+      "cron_name": "oncore_protocols_scan",
+      "cron_description": "This cron will run daily to scan OnCore API to Links REDCap projects and OnCore Protocols.",
+      "method": "onCoreProtocolsScanCron",
+      "cron_frequency": "86400",
+      "cron_max_run_time": "3600"
+    },
+    {
+      "cron_name": "oncore_protocols_subjects_scan",
+      "cron_description": "This cron will run daily to scan OnCore API to pull and sync exiting protocols subjects.",
+      "method": "onCoreProtocolsSubjectsScanCron",
+      "cron_frequency": "86400",
+      "cron_max_run_time": "3600"
+    },
+    {
+      "cron_name": "oncore_redcap_cleanup_deleted_projects",
+      "cron_description": "Daily Cron to delete related records from OnCore entity tables for deleted REDCap project.",
+      "method": "redcapCleanupEntityRecords",
+      "cron_frequency": "86400",
+      "cron_max_run_time": "3600"
+    },
+    {
+      "cron_name": "oncore_redcap_auto_pull",
+      "cron_description": "Daily Cron to pull new OnCore subjects and create REDCap records for these subjects.",
+      "method": "onCoreAutoPullCron",
+      "cron_frequency": "86400",
+      "cron_max_run_time": "3600"
+    }
+  ],
+  "compatibility": {
+    "php-version-min": "8.0.0",
+    "php-version-max": "8.99.99",
+    "redcap-version-min": "12.0.0",
+    "redcap-version-max": ""
+  }
 }

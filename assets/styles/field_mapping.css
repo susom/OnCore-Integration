@@ -224,11 +224,11 @@ table.value_map th {
     padding-right:40px;
 }
 
-#field_mapping .loading::after {
-    top: 12px;
-    right: 25px;
+#field_mapping .form-select {
+    display: inline-block;
+    width: auto;
+    max-width: 80%;
 }
-
 
 #study_sites{
     margin-bottom:50px;
@@ -276,4 +276,10 @@ table.value_map th {
 #study_sites input:checked + span{
     background:#E9F4F4;
     color:#1B2E2E;
+}
+
+.linked_protocol {
+    border-radius: 5px;
+    padding: 10px;
+    margin: 0 0 5px;
 }

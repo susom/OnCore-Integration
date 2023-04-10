@@ -70,6 +70,14 @@ class Users extends Clients
      */
     public function isOnCoreContactAllowedToPush()
     {
+        // debug option for redcap super users.
+        if (ExternalModules::getSystemSetting($this->getPrefix(), 'remove-super-users-roles-restriction')) {
+            if ($this->getRedcapUser()->isSuperUser()) {
+                return true;
+            }
+        }
+
+
         if (empty($this->getRolesAllowedToPush()) || empty($this->getOnCoreContact())) {
             return false;
         }
@@ -117,6 +125,8 @@ class Users extends Clients
             if (!empty($staff['contact']['additionalIdentifiers'])) {
                 foreach ($staff['contact']['additionalIdentifiers'] as $identifier) {
                     if ($redcapUsername == $identifier['id']) {
+                        Entities::createLog('REDCap Username: ' . $redcapUsername);
+                        Entities::createLog(implode(',', $staff));
                         return $staff;
                     }
                 }

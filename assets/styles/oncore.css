@@ -90,3 +90,106 @@ td.link_status{
 table.excludes .import *{
     display:none;
 }
+
+
+
+
+
+.not_integrated {
+    color: #800000;
+}
+
+.integrated {
+    color: green;
+}
+
+.enable_oncore {
+    margin-left: 5px;
+}
+
+.oncore_mapping {
+    color: #9b5111
+}
+
+.oncore_results {
+    color: #0098db
+}
+
+.summary_oncore_adjudication {
+    list-style: none;
+    margin: 0;
+
+    padding: 0;
+}
+
+.summary_oncore_adjudication li {
+    display: inline-block;
+}
+
+.summary_oncore_adjudication li:after {
+    content: "|";
+    margin: 0 5px;
+}
+
+.summary_oncore_adjudication li:last-child:after {
+    content: "";
+    margin: initial;
+}
+
+.integrate_oncore{
+    white-space: nowrap;
+}
+.integrate_oncore i.fa{
+    font-size: 12px;
+    color: #333;
+    display:none;
+    margin-right:3px;
+}
+.integrate_oncore.oncore_link_working i.fa{
+    display:inline-block;
+}
+
+.confirm_link{
+    display:block;
+    vertical-align:baseline;
+    font-weight:bold;
+    margin-top:3px;
+    color:#5DA1B6;
+
+    visibility: hidden;
+    position: absolute;
+    z-index:-99;
+}
+.confirm_link input {
+    vertical-align: middle;
+}
+
+
+.dropdown-toggle.integrate_oncore {
+    text-decoration: none;
+    display:inline-block;
+}
+
+.injected_line {
+}
+
+.injected_line .dropdown,
+.injected_line .button_div{
+    display:table-cell;
+}
+
+.injected_line .dropdown-item{
+    padding:.25rem .5rem
+}
+
+.injected_line span{
+    display:table-cell;
+    padding-left:5px;
+}
+
+.no_matching_library{
+    color:red;
+    white-space:nowrap;
+}
+
+
