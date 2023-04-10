@@ -178,7 +178,7 @@
                             var btn_text            = "Link Project&nbsp;";
                             var integrated_class    = "not_integrated";
                             var dropdown            = `<div class="dropdown">
-                                                          <a class="btn-defaultrc btn-xs fs11 dropdown-toggle integrate_oncore" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-cog fa-spin"></i>`+btn_text+`</a>
+                                                          <a class="btn-defaultrc btn-xs fs11 dropdown-toggle integrate_oncore" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-cog fa-spin"></i>` + btn_text + `</a>
                                                           <div class="dropdown-menu" aria-labelledby="dropdownMenuLink"></div>
                                                         </div>`;
                             var button              = $(dropdown);
