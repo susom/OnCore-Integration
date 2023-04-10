@@ -1304,7 +1304,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $q = db_query($sql);
         // manually set users to make guzzle calls.
         if (!$this->users) {
-            $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+            $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, null, $this->getCSRFToken()));
         }
 
         while ($project = db_fetch_assoc($q)) {
