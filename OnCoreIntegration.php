@@ -861,8 +861,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $rc_id = $arr[$primary_field_event_id][\REDCap::getRecordIdField()];
 
                         // edge case if redcap record is missing try pull it from main array.
-                        if (!$rc_id) {
+                        if (!$rc_id or $rc_id == '') {
                             $rc_id = $record[\REDCap::getRecordIdField()];
+                        }
+                        Entities::createLog('Record Id: ' . $rc_id);
+
+                        if ($rc_id == '') {
+                            throw new \Exception('Cant Find Record Id');
                         }
 
 
