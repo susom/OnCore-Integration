@@ -254,6 +254,7 @@ class Subjects extends SubjectDemographics
         if ($this->getRedcapProjectRecords()) {
             foreach ($this->getRedcapProjectRecords() as $id => $record) {
                 if ($id == $recordId) {
+                    $record[\REDCap::getRecordIdField()] = $id;
                     return $record;
                 }
             }

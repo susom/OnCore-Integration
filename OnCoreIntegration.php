@@ -860,6 +860,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $primary_field_event_id = $fields_event[\REDCap::getRecordIdField()];
                         $rc_id = $arr[$primary_field_event_id][\REDCap::getRecordIdField()];
 
+                        // edge case if redcap record is missing try pull it from main array.
+                        if (!$rc_id) {
+                            $rc_id = $record[\REDCap::getRecordIdField()];
+                        }
+
+
                         // we are using pull fields to map redcap data
                         $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($rc_id, $this->getMapping()->getProjectFieldMappings()['push'], $this->getMapping()->getOnCoreFieldDefinitions());
 
