@@ -864,10 +864,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         if (!$rc_id or $rc_id == '') {
                             $rc_id = $record[\REDCap::getRecordIdField()];
                         }
-                        Entities::createLog('Record Id: ' . $rc_id);
+                        foreach ($record['redcap'] as $key => $value) {
+                            Entities::createLog('---');
+                            Entities::createLog('Key: ' . $key);
+                            if (is_array($value)) {
+                                Entities::createLog(implode(',', $value));
+                            } else {
+                                Entities::createLog($value);
+                            }
 
-                        if ($rc_id == '') {
-                            throw new \Exception('Cant Find Record Id');
+                            Entities::createLog('---');
                         }
 
 
