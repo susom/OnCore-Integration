@@ -1103,21 +1103,4 @@ class Subjects extends SubjectDemographics
     }
 
 
-    public function deleteLinkageRecords($redcapProjectId, $onCoreProtocolId)
-    {
-        if (!$redcapProjectId) {
-            throw new \Exception('REDCap Project Id is missing');
-        }
-
-        if (!$onCoreProtocolId) {
-            throw new \Exception('REDCap Project Id is missing');
-        }
-
-        $sql = sprintf("DELETE FROM %s WHERE redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
-        $result = db_query($sql);
-        if (!$result) {
-            throw new \Exception(db_error());
-        }
-        return $result;
-    }
 }

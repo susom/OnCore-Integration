@@ -1315,20 +1315,39 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $message;
     }
 
-    public function redcapCleanupEntityRecords()
+
+    public function deleteLinkageRecords($redcapProjectId, $onCoreProtocolId)
     {
-        $sql = sprintf("select  project_id from redcap_entity_oncore_protocols LEFT OUTER JOIN redcap_projects ON project_id = redcap_entity_oncore_protocols.redcap_project_id where redcap_projects.date_deleted is not null");
-        $q = db_query($sql);
-        // manually set users to make guzzle calls.
-        if (!$this->users) {
-            $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, null, $this->getCSRFToken()));
+        if (!$redcapProjectId) {
+            throw new \Exception('REDCap Project Id is missing');
         }
 
+        if (!$onCoreProtocolId) {
+            throw new \Exception('REDCap Project Id is missing');
+        }
+
+        $sql = sprintf("DELETE FROM %s WHERE redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
+        $result = db_query($sql);
+        if (!$result) {
+            throw new \Exception(db_error());
+        }
+        return $result;
+    }
+
+    public function redcapCleanupEntityRecords()
+    {
+        $sql = sprintf("select  project_id, oncore_protocol_id from redcap_entity_oncore_protocols LEFT OUTER JOIN redcap_projects ON project_id = redcap_entity_oncore_protocols.redcap_project_id where redcap_projects.date_deleted is not null");
+        $q = db_query($sql);
+
+
         while ($project = db_fetch_assoc($q)) {
-            $id = $project['project_id'];
-            $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id . '&action=clean_up';
-            $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
-            Entities::createLog("running cron for $url on project " . $project['project_id']);
+            $redcap_project_id = $project['project_id'];
+            $oncore_protocol_id = $project['oncore_protocol_id'];
+            $this->deleteLinkageRecords($redcap_project_id, $oncore_protocol_id);
+
+//            $url = $this->getUrl("ajax/cron.php", true) . '&pid=' . $id . '&action=clean_up';
+//            $this->getUsers()->getGuzzleClient()->get($url, array(\GuzzleHttp\RequestOptions::SYNCHRONOUS => true));
+//            Entities::createLog("running cron for $url on project " . $project['project_id']);
         }
     }
 

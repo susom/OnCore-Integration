@@ -92,7 +92,8 @@
   },
   "no-auth-pages": [
     "pages/getEmrDemographics",
-    "ajax/cron"
+    "ajax/cron",
+    "pages/test"
   ],
   "enable-ajax-logging": true,
   "auth-ajax-actions": [

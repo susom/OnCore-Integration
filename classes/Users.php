@@ -72,7 +72,7 @@ class Users extends Clients
     {
         // debug option for redcap super users.
         if (ExternalModules::getSystemSetting($this->getPrefix(), 'remove-super-users-roles-restriction')) {
-            if ($this->getRedcapUser()->isSuperUser()) {
+            if (!is_null($this->getRedcapUser()) && $this->getRedcapUser()->isSuperUser()) {
                 return true;
             }
         }
