@@ -658,7 +658,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $this->getProtocols()->updateProtocolEntityRecordStatus($entityId, $setStatus);
         // if user is unlinking protocol delete all linkage records.
         if ($setStatus == self::ONCORE_PROTOCOL_STATUS_NO) {
-            $this->getProtocols()->getSubjects()->deleteLinkageRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
+            $this->deleteLinkageRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
         }
         return $integrate;
     }

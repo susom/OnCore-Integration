@@ -94,7 +94,7 @@ class Protocols
         }
     }
 
-    private function matchREDCapRecordWithOnCoreSubject($redcapRecord, $subject, $fields)
+    private function matchREDCapRecordWithOnCoreSubject($redcapRecord, $subject, $fields, $count = 1)
     {
 
         // select oncore subject without redcap record
@@ -118,9 +118,12 @@ class Protocols
             if ($record) {
                 $this->getSubjects()->updateLinkageRecord($record['id'], $data);
             } else {
-                // manually override status and
-                $data['status'] = OnCoreIntegration::REDCAP_ONLY;
-                $data['oncore_protocol_subject_id'] = null;
+                // manually override status ONLY if there is a posi
+                if ($count > 1) {
+                    $data['status'] = OnCoreIntegration::REDCAP_ONLY;
+                    $data['oncore_protocol_subject_id'] = null;
+                }
+
                 //entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                 $entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
                 if (!$entity) {
@@ -229,7 +232,7 @@ class Protocols
                     if (count($redcapRecord) == 1) {
                         // if no duplicated MRN just use first one.
                         $id = $redcapRecord[0]['id'];
-                        $this->matchREDCapRecordWithOnCoreSubject($redcapRecord[0], $subject, $fields);
+                        $this->matchREDCapRecordWithOnCoreSubject($redcapRecord[0], $subject, $fields, count($redcapRecord));
 
                         // id to be removed
                         $id = $redcapRecord[0]['id'];
