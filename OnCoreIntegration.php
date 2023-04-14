@@ -630,16 +630,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             "matching_library"          => $matching_library
         );
 
+        $aa = ($this->escape(json_encode($notifs_config)));
         //Initialize JSMO
         $this->initializeJavascriptModuleObject();
         ?>
         <script src="<?= $oncore_js ?>" type="text/javascript"></script>
         <script src="<?= $notif_js ?>" type="text/javascript"></script>
-        <script src="<?= $integration_jsmo?>" type="text/javascript"></script>
+        <script src="<?= $integration_jsmo ?>" type="text/javascript"></script>
         <script>
-            $(function() {
-                const module    = <?=$this->getJavascriptModuleObjectName()?>;
-                module.config   = <?=json_encode($notifs_config)?>;
+            $(function () {
+                const module = <?=$this->getJavascriptModuleObjectName()?>;
+                module.config = decode_object("<?=$this->escape(json_encode($notifs_config))?>");
                 module.afterRender(<?=$this->getJavascriptModuleObjectName()?>.InitFunction);
             })
         </script>

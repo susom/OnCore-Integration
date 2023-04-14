@@ -101,11 +101,6 @@
     "approveIntegrateOncore",
     "triggerIRBSweep"
   ],
-  "no-auth-ajax-actions": [
-    "integrateOnCore",
-    "approveIntegrateOncore",
-    "triggerIRBSweep"
-  ],
   "project-settings": [
     {
       "key": "redcap-oncore-fields-mapping",
@@ -340,7 +335,7 @@
   "compatibility": {
     "php-version-min": "8.0.0",
     "php-version-max": "8.99.99",
-    "redcap-version-min": "12.0.0",
+    "redcap-version-min": "13.1.2",
     "redcap-version-max": ""
   }
 }
