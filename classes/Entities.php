@@ -180,22 +180,4 @@ class Entities
         return $result;
     }
 
-    /**
-     * @return \REDCapEntity\EntityFactory
-     */
-    public function getFactory(): \REDCapEntity\EntityFactory
-    {
-        if (!$this->factory) {
-            $this->setFactory(new \REDCapEntity\EntityFactory);
-        }
-        return $this->factory;
-    }
-
-    /**
-     * @param \REDCapEntity\EntityFactory $factory
-     */
-    public function setFactory(\REDCapEntity\EntityFactory $factory): void
-    {
-        $this->factory = $factory;
-    }
 }
