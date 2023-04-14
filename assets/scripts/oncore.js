@@ -11,7 +11,10 @@ function decode_object(obj) {
             if (typeof parsedObj[key] === 'object') {
                 parsedObj[key] = decode_object(parsedObj[key])
             } else {
-                parsedObj[key] = decode_string(parsedObj[key])
+                // ignore boolean because changing them to string will cause error.
+                if (typeof parsedObj[key] != 'boolean') {
+                    parsedObj[key] = decode_string(parsedObj[key])
+                }
             }
         }
         return parsedObj
