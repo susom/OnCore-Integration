@@ -629,7 +629,7 @@ class Subjects extends SubjectDemographics
 
             }
             foreach ($fields as $field) {
-                if ($subjectDemographics[$field] == '') {
+                if ($subjectDemographics[$field] == '' || (is_string($subjectDemographics[$field]) && trim($subjectDemographics[$field]) == '')) {
                     $e[] = $field;
                 }
             }
