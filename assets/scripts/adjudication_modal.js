@@ -106,7 +106,9 @@ class adjudicationModal{
 
     completeMsg(){
         if(this.totalItems == this.completedItems) {
-            this.enableSubmit();
+            // DO NOT RENABLE THE SUBMIT BUTTON, RIGHT AWAY
+            // ONLY RE-NENABLE THE SUBMIT BUTTON IF NEW CHECKBOXES CHECKED, so put that check in the checkbox event handler
+            // this.enableSubmit();
 
             $(".batch_counter em").text("Completed!");
         }else{
@@ -138,6 +140,11 @@ class adjudicationModal{
         this.setRowNote(id, status_txt, note)
         this.incFinished();
         $(".pushDATA td[data-status_rowid='" + id + "']").addClass(status_txt).html(status_txt);
+
+        //UNCHECK AND DISABLE IF OK, TO AVOID DUPE IMPORT
+        if(status_txt == "ok"){
+            $(".pushDATA td.import input.accept_diff[value='" + id + "']").prop('checked', false).prop('disabled', true);
+        }
     }
 
     setRowNote(id, status, note){

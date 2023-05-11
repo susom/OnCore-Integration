@@ -265,7 +265,7 @@ try {
                 }
             });
 
-            //CHECKBOX BEHAVIOR
+            //CHECKBOX BEHAVIOR IN MODAL
             $("body").on("change",".check_all",  function () {
                 if ($(this).is(":checked")) {
                     //check all
@@ -279,6 +279,9 @@ try {
                 if (!$(this).is(":checked")) {
                     //uncheck "check_all"
                     $(this).closest("table").find(".check_all").prop("checked", false);
+                }else{
+                    //if checked then re-enable the submit button (if it disabled)
+                    $("#pushModal .footer_action button[disabled='disabled']").attr("disabled",false);
                 }
             });
 
@@ -508,6 +511,7 @@ try {
                 push(form);
             });
 
+            // APPLY FILTER LOGIC FROM MAPPING PAGE (OPTIONAL)
             $(document).on('click', '#filter_logic', function (e) {
                 if ($(this).is(":checked")) {
                     //ajax new set of results with filter flag
@@ -520,6 +524,7 @@ try {
                 }
             });
 
+            // THE PAUSE UPLOAD BUTTONS
             $(document).on('click', "#ajaxq_buttons .pause", function(e){
                 ajaxQueue.pauseQueue();
                 if($(this).hasClass("paused")){
