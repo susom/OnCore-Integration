@@ -1374,7 +1374,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $this->initiateProtocol();
 
                 // actions exempt from allow to push
-                $exemptActions = array('triggerIRBSweep');
+                $exemptActions = array('triggerIRBSweep', 'integrateOnCore', 'approveIntegrateOncore');
 
                 if (!$this->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && !in_array($action, $exemptActions)) {
                     throw new \Exception('You do not have permissions to pull/push data from this protocol.');
