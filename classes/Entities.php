@@ -80,7 +80,7 @@ class Entities
      */
     public static function createException($message)
     {
-        (new Entities)->emError('Could not create log');
+        //(new Entities)->emError('Could not create log');
         self::createLog('EXCEPTION: ' . $message);
     }
 
