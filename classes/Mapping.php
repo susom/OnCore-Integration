@@ -124,7 +124,7 @@ class Mapping
             return $this->project_mapping;
         } else {
 //            $this->project_mapping = json_decode(ExternalModules::getProjectSetting($this->module->PREFIX, $this->module->getProjectId(), OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
-            $this->project_mapping = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
+            $this->project_mapping = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME)?:'', true);
 
             return $this->project_mapping ?: array("pull" => array(), "push" => array());
         }
