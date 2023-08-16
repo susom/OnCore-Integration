@@ -899,7 +899,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     $mrn = $mrn . '_' . $entity_id ?: rand(1000, 9999);
                     $bin_var = $bin_array[$link_status];
                     $bin = $excluded ? $$bin_var["excluded"] : $$bin_var["included"];
-                    if (!array_key_exists($mrn, $bin)) {
+                    if (!array_key_exists($mrn, is_array($bin)? $bin : [])) {
                         if ($excluded) {
                             $$bin_var["excluded"][$mrn] = array();
                         } else {
