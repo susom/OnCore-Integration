@@ -323,7 +323,7 @@ try {
 
             case "schedulePull":
                 if (isset($_POST['flag'])) {
-                    $auto_pull_flag = json_decode($_POST['flag']) ? 1 : 0;
+                    $auto_pull_flag = json_decode($_POST['flag']) ? '1' : '0';
                     $result         = $module->setProjectSetting("enable-auto-pull", $auto_pull_flag);
                 }
                 break;

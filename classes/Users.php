@@ -77,6 +77,11 @@ class Users extends Clients
             }
         }
 
+        // edge case for auto pull we need to skip this.
+        if(defined("CRON")){
+            return true;
+        }
+
 
         if (empty($this->getRolesAllowedToPush()) || empty($this->getOnCoreContact())) {
             return false;
