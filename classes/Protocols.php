@@ -393,7 +393,7 @@ class Protocols
      * determine if redcap user can push REDCap records and create protocol subjects
      * @return bool
      */
-    private function canPushToProtocol()
+    public function canPushToProtocol()
     {
         if (!$this->getEntityRecord()) {
             return false;

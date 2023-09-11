@@ -194,6 +194,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
             // after protocol is init find its OnCore library and load it.
             $this->setProtocolLibrary();
+
+            // update Subject can push flag.
+            $this->getProtocols()->getSubjects()->setCanPush($this->getProtocols()->canPushToProtocol());
         }
     }
 
@@ -866,17 +869,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         if (!$rc_id or $rc_id == '') {
                             $rc_id = $record[\REDCap::getRecordIdField()];
                         }
-                        foreach ($record['redcap'] as $key => $value) {
-                            Entities::createLog('---');
-                            Entities::createLog('Key: ' . $key);
-                            if (is_array($value)) {
-                                Entities::createLog(implode(',', $value));
-                            } else {
-                                Entities::createLog($value);
-                            }
-
-                            Entities::createLog('---');
-                        }
+//                        foreach ($record['redcap'] as $key => $value) {
+//                            Entities::createLog('---');
+//                            Entities::createLog('Key: ' . $key);
+//                            if (is_array($value)) {
+//                                Entities::createLog(implode(',', $value));
+//                            } else {
+//                                Entities::createLog($value);
+//                            }
+//
+//                            Entities::createLog('---');
+//                        }
 
 
                         // we are using pull fields to map redcap data
