@@ -52,7 +52,9 @@ class Protocols
 
         $this->setMapping($mapping);
         // if protocol is initiated for specific REDCap project. then check if this ONCORE_PROTOCOL entity record exists and pull OnCore Protocol via  API
-        if ($redcapProjectId) {
+        global $Proj;
+        $irb = $Proj->project['project_irb_number'];
+        if ($redcapProjectId && $irb) {
             $this->prepareProtocol($redcapProjectId);
 
         }
