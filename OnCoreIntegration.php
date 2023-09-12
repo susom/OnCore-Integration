@@ -193,9 +193,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             $this->setProtocols(new Protocols($this->getUsers(), $this->getMapping(), $this->getProjectId()));
 
             global $Proj;
+            // only load Protocol library and subject only if IRB is available.
             $irb = $Proj->project['project_irb_number'];
-            // after protocol is init find its OnCore library and load it.
+
             if ($irb) {
+                // after protocol is init find its OnCore library and load it.
                 $this->setProtocolLibrary();
 
                 // update Subject can push flag.
