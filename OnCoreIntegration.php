@@ -202,7 +202,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $this->setProtocolLibrary();
 
                 // update Subject can push flag.
-                $this->getProtocols()->getSubjects()->setCanPush($this->getProtocols()->canPushToProtocol());
+                if($this->getProtocols()->getEntityRecord()){
+                    $this->getProtocols()->getSubjects()->setCanPush($this->getProtocols()->canPushToProtocol());
+                }
             }
 
         }
