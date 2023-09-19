@@ -270,7 +270,7 @@ class Protocols
                                 if ($redcapProtocolSubjectId == $subject['protocolSubjectId']) {
                                     $this->matchREDCapRecordWithOnCoreSubject($item, $subject, $fields);
                                     $id = $item['id'];
-                                    break;
+                                    //break;
                                 }
                             }
                         }
