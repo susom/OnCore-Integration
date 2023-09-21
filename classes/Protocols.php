@@ -66,6 +66,8 @@ class Protocols
         $fields = $this->getMapping()->getProjectFieldMappings();
         $record = array('id' => $redcapId, 'record' => $this->getSubjects()->getRedcapProjectRecords()[$redcapId]);;
 
+        // force pulling and updating demographics data
+        $this->getSubjects()->forceDemographicsPull = true;
         $redcapMRN = $record['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event'])][$fields['pull']['mrn']['redcap_field']];
 
         // TODO what to do if no MRN
@@ -227,7 +229,11 @@ class Protocols
             foreach ($oncoreProtocolSubjects as $subject) {
                 $onCoreMrn = $subject['demographics']['mrn'];
 //            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $this->getEntityRecord()['redcap_event_id'], $fields['mrn']);
-                $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event']), $fields['pull']['mrn']['redcap_field']);
+                if(isset($fields['pull']['protocolSubjectId']) && is_array($fields['pull']['protocolSubjectId'])){
+                    $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event']), $fields['pull']['mrn']['redcap_field'], $fields['pull']['protocolSubjectId']['redcap_field'], $subject['protocolSubjectId']);
+                }else{
+                    $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event']), $fields['pull']['mrn']['redcap_field']);
+                }
                 if (!empty($redcapRecord)) {
                     if (count($redcapRecord) == 1) {
                         // if no duplicated MRN just use first one.

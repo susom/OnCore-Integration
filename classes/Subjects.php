@@ -52,6 +52,8 @@ class Subjects extends SubjectDemographics
      */
     private $mapping;
 
+    public $forceDemographicsPull = false;
+
     /**
      * The top functions can be used to query and verify MRNs in the home institution's Electronic
      * Medical Record system.
@@ -205,10 +207,21 @@ class Subjects extends SubjectDemographics
                     // if redcap field is checkbox
                     if ($field['field_type'] == 'checkbox') {
                         // get array of 0/1 from redcap for checkboxes
-                        $rc = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
-                        foreach ($parsed as $item) {
+                        $temp = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                        $rc = [];
+                        foreach ($temp as $index => $item) {
+                            if ($item) {
+                                $rc[$index] = $item;
+                            }
+                        }
+                        // if  number of fields from oncore and redcap are not equal then it partial match.
+                        if (count($rc) != count($parsed)) {
+                            return OnCoreIntegration::PARTIAL_MATCH;
+                        }
+
+                        foreach ($parsed as $index => $item) {
                             $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
-                            // if the oncore value mapped redcap checkbox is not check then partial match
+                            // if the oncore value mapped to redcap checkbox is not checked then partial match
                             if (!$rc[$map['rc']]) {
                                 return OnCoreIntegration::PARTIAL_MATCH;
                             }
@@ -269,13 +282,20 @@ class Subjects extends SubjectDemographics
      * @param $redcapMRNField
      * @return array|false
      */
-    public function getREDCapRecordIdViaMRN($mrn, $redcapEventId, $redcapMRNField)
+    public function getREDCapRecordIdViaMRN($mrn, $redcapEventId, $redcapMRNField, $protocolSubjectIdField = null, $protocolSubjectId = null)
     {
         $result = [];
         if ($this->getRedcapProjectRecords()) {
             foreach ($this->getRedcapProjectRecords() as $id => $record) {
                 if ($record[$redcapEventId][$redcapMRNField] == $mrn) {
-                    $result[] = array('id' => $id, 'record' => $record);
+                    if ($protocolSubjectIdField && $protocolSubjectId) {
+                        if ($record[$redcapEventId][$protocolSubjectIdField] == $protocolSubjectId) {
+                            $result[] = array('id' => $id, 'record' => $record);
+                        }
+                    } else {
+                        $result[] = array('id' => $id, 'record' => $record);
+                    }
+
                 }
             }
         }
@@ -355,7 +375,7 @@ class Subjects extends SubjectDemographics
                         foreach ($subjects as $key => $subject) {
                             try {
                                 // pull protocol subject demographics. If subject demographics saved in oncore_subjects entity table it will be pulled from there. otherwise will be pulled via API then saved in entity table.
-                                $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId']);
+                                $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId'], $this->forceDemographicsPull);
                                 // make it easy to prepare for push/pull
                                 $subjects[$key]['demographics']['studySites'] = $subject['studySite'];
                             } catch (\Exception $e) {
@@ -928,6 +948,20 @@ class Subjects extends SubjectDemographics
                             $data[$field['event']][$field['redcap_field']] = $map['rc'];
                         }
                     }
+                    // for checkbox only mark other checkboxes to false.
+                    if ($field['field_type'] == 'checkbox') {
+                        // set other checkboxes to false.
+                        foreach ($field['value_mapping'] as $item) {
+                            // if checkboxes is check in oncore then skip
+                            if (in_array($item['oc'], $parsed)) {
+                                continue;
+                            }else{
+                                $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
+                                $data[$field['event']][$field['redcap_field'] . '___' . $item['rc']] = false;
+                            }
+                        }
+                    }
+
                 } else {
                     $map = $this->getMapping()->getOnCoreMappedValue($onCoreValue, $field);
                     $data[$field['event']][$field['redcap_field']] = $map['rc'];
