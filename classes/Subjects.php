@@ -289,7 +289,9 @@ class Subjects extends SubjectDemographics
             foreach ($this->getRedcapProjectRecords() as $id => $record) {
                 if ($record[$redcapEventId][$redcapMRNField] == $mrn) {
                     if ($protocolSubjectIdField && $protocolSubjectId) {
-                        if ($record[$redcapEventId][$protocolSubjectIdField] == $protocolSubjectId) {
+
+                        // if protocol allows duplicate MRN then try to match MRN AND protocolSubjectId to get the right REDCap record. OR for new REDCap records that do not have protocolSubjectId YET. use the first record that match the MRN but does not have protocolSubjectId
+                        if ($record[$redcapEventId][$protocolSubjectIdField] == $protocolSubjectId || $record[$redcapEventId][$protocolSubjectIdField] == '' || !$record[$redcapEventId][$protocolSubjectIdField]) {
                             $result[] = array('id' => $id, 'record' => $record);
                         }
                     } else {

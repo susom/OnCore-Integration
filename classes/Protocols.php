@@ -146,8 +146,6 @@ class Protocols
                 'redcap_project_id' => (string)$this->getEntityRecord()['redcap_project_id'],
                 'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
                 'redcap_record_id' => (string)$id,
-                'oncore_protocol_subject_id' => '',
-                #'excluded' => OnCoreIntegration::NO,
                 'status' => OnCoreIntegration::REDCAP_ONLY
             );
             //$e = (new Entities)->getFactory();
@@ -170,7 +168,6 @@ class Protocols
             $data = array(
                 'redcap_project_id' => (string)$this->getEntityRecord()['redcap_project_id'],
                 'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
-                'redcap_record_id' => '',
                 'oncore_protocol_subject_id' => $subject['protocolSubjectId'],
                 'oncore_protocol_subject_status' => $subject['status'] == 'ON STUDY' ? OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY : OnCoreIntegration::ONCORE_SUBJECT_ON_STUDY,
                 #'excluded' => OnCoreIntegration::NO,
