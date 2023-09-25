@@ -680,8 +680,10 @@ class Subjects extends SubjectDemographics
 
 
         if ($response->getStatusCode() == 201) {
-            $data = json_decode($response->getBody(), true);
-            return array('status' => 'success');
+            $location = $response->getHeader('location');
+            $parts = explode('/', end($location));
+            $id = end($parts);
+            return array('status' => 'success', 'protocol_subject_id' => $id);
         } else {
             $data = json_decode($response->getBody(), true);
             return $data;

@@ -318,6 +318,12 @@ class Protocols
 //
 //        // now sync redcap with oncore
 //        $this->syncIndividualRecord($redcapRecordId);
+        $record = array('id' => $redcapRecordId, 'record' => $this->getSubjects()->getRedcapProjectRecords()[$redcapRecordId]);;
+        $fields = $this->getMapping()->getProjectFieldMappings();
+        $redcapMRN = $record['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event'])][$fields['pull']['mrn']['redcap_field']];
+        $subject = $this->getSubjects()->searchOnCoreProtocolSubjectViaMRN($this->getEntityRecord()['oncore_protocol_id'], $redcapMRN);
+        $this->matchREDCapRecordWithOnCoreSubject($record, $subject, $fields);
+
 
         Entities::createLog("REDCap Record Id#$redcapRecordId was pushed succesfully to OnCore Protocol .");
         return $result;
