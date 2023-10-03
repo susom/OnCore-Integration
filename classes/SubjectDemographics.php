@@ -52,7 +52,7 @@ class SubjectDemographics
 
     public function __construct($validateFields)
     {
-        $this->$validateFields = $validateFields;
+        $this->validateFields = $validateFields;
     }
 
 
