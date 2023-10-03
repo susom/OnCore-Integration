@@ -640,7 +640,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             "has_oncore_integration" => $this->hasOnCoreIntegration(),
             "has_field_mappings" => !empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false,
             "last_adjudication" => $last_adjudication,
-            "matching_library" => $matching_library
+            "matching_library" => $matching_library,
+            "alert_notifications" => $this->getSystemSetting('display-alert-notification') ? $this->getSystemSetting('alert-notification') : ""
         );
 
         $aa = ($this->escape(json_encode($notifs_config)));
@@ -1392,7 +1393,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $exemptActions = array('triggerIRBSweep', 'integrateOnCore', 'approveIntegrateOncore');
 
                 if (!$this->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && !in_array($action, $exemptActions)) {
-                    throw new \Exception('You do not have permissions to pull/push data from this protocol.');
+                    $keys = array_keys($this->getMapping()->getProjectFieldMappings());
+                    $text = implode('/', $keys);
+                    throw new \Exception('You do not have permissions to '.$text.' data from this protocol.');
                 }
 
                 switch ($action) {

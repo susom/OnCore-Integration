@@ -18,7 +18,9 @@ try {
         $exemptActions = array('triggerIRBSweep');
 
         if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && !in_array($action, $exemptActions)) {
-            throw new \Exception('You do not have permissions to pull/push data from this protocol.');
+            $keys = array_keys($module->getMapping()->getProjectFieldMappings());
+            $text = implode('/', $keys);
+            throw new \Exception('You do not have permissions to ' . $text . ' data from this protocol.');
         }
         switch ($action) {
             case "getMappingHTML":
@@ -38,29 +40,29 @@ try {
             case "saveMapping":
                 //Saves to em project settings
                 //MAKE THIS A MORE GRANULAR SAVE.  GET
-                $project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
-                $current_mapping        = $module->getMapping()->getProjectMapping();
-                $result                 = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
-                $update_oppo            = !empty($_POST["update_oppo"]) ? filter_var($_POST["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
+                $project_oncore_subset = $module->getMapping()->getProjectOncoreSubset();
+                $current_mapping = $module->getMapping()->getProjectMapping();
+                $result = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
+                $update_oppo = !empty($_POST["update_oppo"]) ? filter_var($_POST["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
 
-                $pull_mapping           = !empty($result["mapping"]) ? $result["mapping"] : null;
-                $oncore_field           = !empty($result["oncore_field"]) && $result["oncore_field"] !== "-99" ? $result["oncore_field"] : null;
-                $redcap_field           = !empty($result["redcap_field"]) && $result["redcap_field"] !== "-99" ? $result["redcap_field"] : null;
-                $eventname              = !empty($result["event"]) ? $result["event"] : null;
-                $ftype                  = !empty($result["field_type"]) ? $result["field_type"] : null;
-                $vmap                   = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
-                $use_default            = !empty($result["use_default"]);
-                $default_value          = !empty($result["default_value"]) ? $result["default_value"] : null;
-                $birthDateNotAvailable  = false;
+                $pull_mapping = !empty($result["mapping"]) ? $result["mapping"] : null;
+                $oncore_field = !empty($result["oncore_field"]) && $result["oncore_field"] !== "-99" ? $result["oncore_field"] : null;
+                $redcap_field = !empty($result["redcap_field"]) && $result["redcap_field"] !== "-99" ? $result["redcap_field"] : null;
+                $eventname = !empty($result["event"]) ? $result["event"] : null;
+                $ftype = !empty($result["field_type"]) ? $result["field_type"] : null;
+                $vmap = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
+                $use_default = !empty($result["use_default"]);
+                $default_value = !empty($result["default_value"]) ? $result["default_value"] : null;
+                $birthDateNotAvailable = false;
 
                 //$pull_mapping tells me the actual click (pull or push side)... doing the opposite side is more just a convenience..
-                if($pull_mapping == "pull"){
+                if ($pull_mapping == "pull") {
                     $rc_mapping = 0;
                     //pull side
-                    if(!$redcap_field){
+                    if (!$redcap_field) {
                         unset($current_mapping[$pull_mapping][$oncore_field]);
-                    }else{
-                        if(!$vmap && $update_oppo){
+                    } else {
+                        if (!$vmap && $update_oppo) {
                             //if its just a one to one mapping, then just go ahead and map the other direction
                             $current_mapping["push"][$oncore_field] = array(
                                 "redcap_field" => $redcap_field,
@@ -79,44 +81,44 @@ try {
                             "value_mapping" => $vmap
                         );
                     }
-                }else{
+                } else {
                     $rc_mapping = 1;
                     //push side
-                    if(!$redcap_field){
+                    if (!$redcap_field) {
                         unset($current_mapping[$pull_mapping][$oncore_field]);
-                        if($use_default){
-                            if($oncore_field == "birthDate"){
+                        if ($use_default) {
+                            if ($oncore_field == "birthDate") {
                                 $birthDateNotAvailable = true;
                                 $default_value = "birthDateNotAvailable";
                             }
 
                             $current_mapping[$pull_mapping][$oncore_field] = array(
-                                "redcap_field"  => $redcap_field,
-                                "event"         => $eventname,
-                                "field_type"    => $ftype,
+                                "redcap_field" => $redcap_field,
+                                "event" => $eventname,
+                                "field_type" => $ftype,
                                 "value_mapping" => $vmap,
                                 "default_value" => $default_value
                             );
 
-                            if($birthDateNotAvailable){
+                            if ($birthDateNotAvailable) {
                                 $current_mapping[$pull_mapping][$oncore_field]["birthDateNotAvailable"] = true;
                             }
                         }
-                    }else{
-                        if(!$vmap && in_array($oncore_field, $project_oncore_subset) && $update_oppo){
+                    } else {
+                        if (!$vmap && in_array($oncore_field, $project_oncore_subset) && $update_oppo) {
                             //if its just a one to one mapping, then just go ahead and map the other direction
                             $current_mapping["pull"][$oncore_field] = array(
-                                "redcap_field"  => $redcap_field,
-                                "event"         => $eventname,
-                                "field_type"    => $ftype,
+                                "redcap_field" => $redcap_field,
+                                "event" => $eventname,
+                                "field_type" => $ftype,
                                 "value_mapping" => $vmap
                             );
                         }
 
                         $current_mapping[$pull_mapping][$oncore_field] = array(
-                            "redcap_field"  => $redcap_field,
-                            "event"         => $eventname,
-                            "field_type"    => $ftype,
+                            "redcap_field" => $redcap_field,
+                            "event" => $eventname,
+                            "field_type" => $ftype,
                             "value_mapping" => $vmap
                         );
                     }
@@ -124,66 +126,66 @@ try {
                 $module->emDebug("current mapping", $current_mapping[$pull_mapping]);
                 $module->getMapping()->setProjectFieldMappings($current_mapping);
             case "checkPushPullStatus":
-                if(!isset($oncore_field)){
-                    $oncore_field   = filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) ;
+                if (!isset($oncore_field)) {
+                    $oncore_field = filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING);
                 }
-                $oncore_field   = htmlspecialchars($oncore_field);
-                $oncore_field   = $oncore_field ?: null;
+                $oncore_field = htmlspecialchars($oncore_field);
+                $oncore_field = $oncore_field ?: null;
                 $indy_push_pull = $module->getMapping()->calculatePushPullStatus($oncore_field);
             case "checkOverallStatus":
-                if(!isset($indy_push_pull)){
-                    $indy_push_pull = array("pull"=>null,"push"=>null);
+                if (!isset($indy_push_pull)) {
+                    $indy_push_pull = array("pull" => null, "push" => null);
                 }
-                $pull           = $module->getMapping()->getOverallPullStatus();
-                $push           = $module->getMapping()->getOverallPushStatus();
-                $pp_result      = array_merge(array("overallPull" => $pull, "overallPush" => $push), $indy_push_pull);
+                $pull = $module->getMapping()->getOverallPullStatus();
+                $push = $module->getMapping()->getOverallPushStatus();
+                $pp_result = array_merge(array("overallPull" => $pull, "overallPush" => $push), $indy_push_pull);
             case "getValueMappingUI":
-                if(!isset($redcap_field)){
-                    $redcap_field   = filter_var($_POST["redcap_field"], FILTER_SANITIZE_STRING) ;
+                if (!isset($redcap_field)) {
+                    $redcap_field = filter_var($_POST["redcap_field"], FILTER_SANITIZE_STRING);
                 }
                 $redcap_field = htmlspecialchars($redcap_field);
                 $redcap_field = $redcap_field ?: null;
 
-                if(!isset($oncore_field)){
-                    $oncore_field   = filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING) ;
+                if (!isset($oncore_field)) {
+                    $oncore_field = filter_var($_POST["oncore_field"], FILTER_SANITIZE_STRING);
                 }
                 $oncore_field = htmlspecialchars($oncore_field);
                 $oncore_field = $oncore_field ?: null;
 
-                if(!isset($rc_mapping)){
-                    $rc_mapping     = filter_var($_POST["rc_mapping"], FILTER_SANITIZE_NUMBER_INT) ;
+                if (!isset($rc_mapping)) {
+                    $rc_mapping = filter_var($_POST["rc_mapping"], FILTER_SANITIZE_NUMBER_INT);
                 }
                 $rc_mapping = htmlspecialchars($rc_mapping);
                 $rc_mapping = $rc_mapping ?: null;
 
-                $rc_obj     = $module->getMapping()->getRedcapValueSet($redcap_field);
-                $oc_obj     = $module->getMapping()->getOncoreValueSet($oncore_field);
+                $rc_obj = $module->getMapping()->getRedcapValueSet($redcap_field);
+                $oc_obj = $module->getMapping()->getOncoreValueSet($oncore_field);
 
-                if($use_default) {
+                if ($use_default) {
                     $res = $module->getMapping()->makeValueMappingUI_UseDefault($oncore_field, $default_value);
                     $res["html_oppo"] = null;
-                }elseif(!empty($rc_obj) || !empty($oc_obj)){
+                } elseif (!empty($rc_obj) || !empty($oc_obj)) {
                     if ($rc_mapping) {
                         $res = $module->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
                     } else {
                         $res = $module->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
                     }
-                }else{
+                } else {
                     $res = array("html" => null, "html_oppo" => null);
                 }
 
-                $result = array_merge( array("html" => $res["html"], "html_oppo" => $res["html_oppo"]), $pp_result) ;
+                $result = array_merge(array("html" => $res["html"], "html_oppo" => $res["html_oppo"]), $pp_result);
                 break;
 
             case "deleteMapping":
                 //DELETE ENTIRE MAPPING FOR PUSH Or PULL
-                $current_mapping    = $module->getMapping()->getProjectMapping();
-                $push_pull          = !empty($_POST["push_pull"]) ? filter_var($_POST["push_pull"], FILTER_SANITIZE_STRING) : null;
+                $current_mapping = $module->getMapping()->getProjectMapping();
+                $push_pull = !empty($_POST["push_pull"]) ? filter_var($_POST["push_pull"], FILTER_SANITIZE_STRING) : null;
 
-                if($push_pull){
+                if ($push_pull) {
                     $current_mapping[$push_pull] = array();
 
-                    if($push_pull == "pull"){
+                    if ($push_pull == "pull") {
                         //empty it
                         $module->getMapping()->setProjectOncoreSubset(array());
                     }
@@ -194,16 +196,16 @@ try {
 
             case "deletePullField":
                 //DELETE ENTIRE MAPPING FOR PUSH Or PULL
-                $current_mapping        = $module->getMapping()->getProjectMapping();
-                $pull_field             = !empty($_POST["oncore_prop"]) ? filter_var($_POST["oncore_prop"], FILTER_SANITIZE_STRING) : null;
+                $current_mapping = $module->getMapping()->getProjectMapping();
+                $pull_field = !empty($_POST["oncore_prop"]) ? filter_var($_POST["oncore_prop"], FILTER_SANITIZE_STRING) : null;
 
                 //REMOVE FROM PULL SUBSET
-                $project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
+                $project_oncore_subset = $module->getMapping()->getProjectOncoreSubset();
                 $unset_idx = array_search($pull_field, $project_oncore_subset);
                 unset($project_oncore_subset[$unset_idx]);
                 $module->getMapping()->setProjectOncoreSubset($project_oncore_subset);
 
-                if(array_key_exists($pull_field, $current_mapping["pull"]) ){
+                if (array_key_exists($pull_field, $current_mapping["pull"])) {
                     //REMOVE FROM MAPPING
                     unset($current_mapping["pull"][$pull_field]);
                 }
@@ -211,22 +213,22 @@ try {
 //                $module->emDebug("new mapping less $pull_field", $current_mapping["pull"], $project_oncore_subset);
                 $result = $module->getMapping()->setProjectFieldMappings($current_mapping);
 
-                $pull           = $module->getMapping()->getOverallPullStatus();
-                $push           = $module->getMapping()->getOverallPushStatus();
-                $result         = array("overallPull" => $pull, "overallPush" => $push);
+                $pull = $module->getMapping()->getOverallPullStatus();
+                $push = $module->getMapping()->getOverallPushStatus();
+                $result = array("overallPull" => $pull, "overallPush" => $push);
                 break;
 
             case "saveOncoreSubset":
-                $oncore_prop    = !empty($_POST["oncore_prop"]) ? filter_var($_POST["oncore_prop"], FILTER_SANITIZE_STRING) : array();
-                $subtract       = !empty($_POST["subtract"]) ? filter_var($_POST["subtract"], FILTER_SANITIZE_NUMBER_INT) : 0;
+                $oncore_prop = !empty($_POST["oncore_prop"]) ? filter_var($_POST["oncore_prop"], FILTER_SANITIZE_STRING) : array();
+                $subtract = !empty($_POST["subtract"]) ? filter_var($_POST["subtract"], FILTER_SANITIZE_NUMBER_INT) : 0;
 
-                $project_oncore_subset  = $module->getMapping()->getProjectOncoreSubset();
+                $project_oncore_subset = $module->getMapping()->getProjectOncoreSubset();
 
-                if($subtract){
+                if ($subtract) {
                     $unset_idx = array_search($oncore_prop, $project_oncore_subset);
                     unset($project_oncore_subset[$unset_idx]);
-                }else{
-                    if(!in_array($oncore_prop,$project_oncore_subset)) {
+                } else {
+                    if (!in_array($oncore_prop, $project_oncore_subset)) {
                         array_push($project_oncore_subset, $oncore_prop);
                     }
                 }
@@ -242,9 +244,9 @@ try {
 
             case "integrateOnCore":
                 //integrate oncore project(s)!!
-                $entity_record_id   = !empty($_POST["entity_record_id"]) ? filter_var($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
-                $integrate          = !empty($_POST["integrate"]) ? filter_var($_POST["integrate"], FILTER_SANITIZE_NUMBER_INT) : null;
-                $result             = $module->integrateOnCoreProject($entity_record_id, $integrate);
+                $entity_record_id = !empty($_POST["entity_record_id"]) ? filter_var($_POST["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
+                $integrate = !empty($_POST["integrate"]) ? filter_var($_POST["integrate"], FILTER_SANITIZE_NUMBER_INT) : null;
+                $result = $module->integrateOnCoreProject($entity_record_id, $integrate);
                 break;
 
             case "syncDiff":
@@ -271,19 +273,19 @@ try {
                     $excluded = $module->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["excluded"], false, "disabled", true);
                 }
 
-                $result["included"]         = $included["html"] ?: "";
-                $result["excluded"]         = $excluded["html"] ?: "";
-                $result["footer_action"]    = $included["footer_action"] ?: "";
-                $result["show_all"]         = $included["show_all"] ?: "";
+                $result["included"] = $included["html"] ?: "";
+                $result["excluded"] = $excluded["html"] ?: "";
+                $result["footer_action"] = $included["footer_action"] ?: "";
+                $result["show_all"] = $included["show_all"] ?: "";
                 break;
 
             case "approveSync":
                 $temp = !empty($_POST["record"]) ? filter_var_array($_POST["record"], FILTER_SANITIZE_STRING) : null;
                 $mrn = $temp['mrn'];
                 unset($temp["mrn"]);
-                $id     = $temp["oncore"];
-                $res    = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($temp);
-                if(is_array($res)){
+                $id = $temp["oncore"];
+                $res = $module->getProtocols()->pullOnCoreRecordsIntoREDCap($temp);
+                if (is_array($res)) {
                     $result = array("mrn" => $mrn, "id" => $res["id"], 'message' => 'Record synced successfully!');
                 }
                 break;
@@ -296,8 +298,8 @@ try {
                     throw new \Exception('REDCap Record ID is missing.');
                 }
 
-                $rc_id  = $id = $record["value"];
-                $temp   = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $module->getMapping()->getOnCoreFieldDefinitions());
+                $rc_id = $id = $record["value"];
+                $temp = $module->getProtocols()->pushREDCapRecordToOnCore($rc_id, $module->getMapping()->getOnCoreFieldDefinitions());
                 if (is_array($temp)) {
                     $result = array('id' => $rc_id, 'status' => 'success', 'message' => $temp['message']);
                 }
@@ -324,7 +326,7 @@ try {
             case "schedulePull":
                 if (isset($_POST['flag'])) {
                     $auto_pull_flag = json_decode($_POST['flag']) ? '1' : '0';
-                    $result         = $module->setProjectSetting("enable-auto-pull", $auto_pull_flag);
+                    $result = $module->setProjectSetting("enable-auto-pull", $auto_pull_flag);
                 }
                 break;
 

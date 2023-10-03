@@ -201,7 +201,9 @@ class Protocols
         }
 
         if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
-            throw new \Exception('You do not have permissions to pull/push data from this protocol.');
+            $keys = array_keys($this->getMapping()->getProjectFieldMappings());
+            $text = implode('/', $keys);
+            throw new \Exception('You do not have permissions to '.$text.' data from this protocol.');
         }
 
         $redcapRecords = $this->getSubjects()->getRedcapProjectRecords();
@@ -420,7 +422,11 @@ class Protocols
             }
             $contactRole = $this->getUser()->isOnCoreContactAllowedToPush();
             if (!$contactRole) {
-                Entities::createLog(($this->getUser()->getRedcapUser()?$this->getUser()->getRedcapUser()->getUsername():'UNKNOWN') . " has OnCore role (" . $this->getUser()->getOnCoreContact()['role'] . ") which is not allowed to push records to OnCore");
+                if($this->getUser()->getOnCoreContact()){
+                    Entities::createLog(($this->getUser()->getRedcapUser()?$this->getUser()->getRedcapUser()->getUsername():'UNKNOWN') . " has OnCore  role (" . $this->getUser()->getOnCoreContact()['role'] . ") which is not allowed to push records to OnCore");
+                }else{
+                    Entities::createLog(($this->getUser()->getRedcapUser()?$this->getUser()->getRedcapUser()->getUsername():'UNKNOWN') . " is not a Protocol Staff on this protocol. ");
+                }
             }
             return $status && $linked && $contactRole;
         }

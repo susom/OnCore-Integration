@@ -7,33 +7,34 @@ try {
 
 //URLS FOR SUPPORT ASSETS
     $oncore_css = $module->getUrl("assets/styles/oncore.css");
-    $batch_css  = $module->getUrl("assets/styles/batch_modal.css");
-    $notif_css  = $module->getUrl("assets/styles/notif_modal.css");
+    $batch_css = $module->getUrl("assets/styles/batch_modal.css");
+    $notif_css = $module->getUrl("assets/styles/notif_modal.css");
     $adjude_css = $module->getUrl("assets/styles/adjudication.css");
 
-    $notif_js   = $module->getUrl("assets/scripts/notif_modal.js");
-    $oncore_js  = $module->getUrl("assets/scripts/oncore.js");
+    $notif_js = $module->getUrl("assets/scripts/notif_modal.js");
+    $oncore_js = $module->getUrl("assets/scripts/oncore.js");
     $adjudication_js = $module->getUrl("assets/scripts/adjudication_modal.js");
 
-    $icon_ajax      = $module->getUrl("assets/images/icon_ajax.gif");
-    $ajax_endpoint  = $module->getUrl("ajax/handler.php");
+    $icon_ajax = $module->getUrl("assets/images/icon_ajax.gif");
+    $ajax_endpoint = $module->getUrl("ajax/handler.php");
 
-    $linked_protocol        = array();
-    $protocol_full          = $module->getIntegratedProtocol();
+    $linked_protocol = array();
+    $protocol_full = $module->getIntegratedProtocol();
 
-    if($protocol_full){
-        $protocol               = $protocol_full["protocol"];
-        $linked_protocol[]      = "<div class='linked_protocol'>";
-        $linked_protocol[]      = "<b>Linked Protocol : </b> <span>IRB #{$protocol_full["irbNo"]} {$protocol["title"]} #{$protocol["protocolId"]}</span><br>";
-        $linked_protocol[]      = "<b>Library : </b> <span>{$protocol["library"]}</span><br>";
-        $linked_protocol[]      = "<b>Status : </b> <span>{$protocol["protocolStatus"]}</span><br/>";
-        $linked_protocol[]      = "</div>";
+
+    if ($protocol_full) {
+        $protocol = $protocol_full["protocol"];
+        $linked_protocol[] = "<div class='linked_protocol'>";
+        $linked_protocol[] = "<b>Linked Protocol : </b> <span>IRB #{$protocol_full["irbNo"]} {$protocol["title"]} #{$protocol["protocolId"]}</span><br>";
+        $linked_protocol[] = "<b>Library : </b> <span>{$protocol["library"]}</span><br>";
+        $linked_protocol[] = "<b>Status : </b> <span>{$protocol["protocolStatus"]}</span><br/>";
+        $linked_protocol[] = "</div>";
     }
-    $linked_protocol        = implode("\r\n", $linked_protocol);
+    $linked_protocol = implode("\r\n", $linked_protocol);
 
 
     require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
-?>
+    ?>
     <link rel="stylesheet"
           href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
@@ -76,7 +77,19 @@ try {
         <p class="lead">Data Stored in OnCore must be synced and adjudicated periodically. The data will be pulled into
             an entity table and then matched against this projects REDCap data on the mapped fields.</p>
 
-        <?=$linked_protocol?>
+        <?php
+        if ($module->getSystemSetting('display-alert-notification') != '') {
+            ?>
+            <div class="alert alert-danger"><?= $module->getSystemSetting('alert-notification') ?></div>
+            <?php
+        }
+
+        if (empty($module->getUsers()->getOnCoreContact()) && !$module->isSuperUser()) {
+            throw new \Exception("No OnCore Contact found for " . $module->getUser()->getUsername());
+        }
+        ?>
+
+        <?= $linked_protocol ?>
 
         <div id="overview" class="container">
             <div id="filters">
@@ -85,9 +98,15 @@ try {
                         <p class='h1 mt-2 mb-0 p-0 oncore_only_count'><?php echo $sync_summ['oncore_only_count'] ?></p>
                         <i class="d-block">Not in REDCap</i>
                         <?php if (empty($module->getMapping()->getProjectFieldMappings()['pull'])) { ?>
-                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="You can`t pull OnCore Data because Pull Mapping is not defined. Please define Pull Mapping from the mapping page"></i> <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
+                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
+                               title="You can`t pull OnCore Data because Pull Mapping is not defined. Please define Pull Mapping from the mapping page"></i>
+                            <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
                         <?php } else { ?>
-                            <i class="d-block"><button class='btn btn-primary getadjudication' data-bin='oncore' id='pull_data'>See Unlinked Subjects</button></i>
+                            <i class="d-block">
+                                <button class='btn btn-primary getadjudication' data-bin='oncore' id='pull_data'>See
+                                    Unlinked Subjects
+                                </button>
+                            </i>
                         <?php } ?>
                     </div>
 
@@ -104,8 +123,10 @@ try {
                         <?php
                         $vis = $missing_status_count > 0 ? "" : "make_invis";
                         ?>
-                        <div class="<?= $vis?>">
-                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="<?=  $missing_status_count ?> OnCore Subject<?= $missing_status_count > 1 ? "s are" : " is" ?> missing Protocol Subject Status. Please update manually from OnCore UI."></i> (<span class="missing_status_count"><?=  $missing_status_count ?></span>)
+                        <div class="<?= $vis ?>">
+                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
+                               title="<?= $missing_status_count ?> OnCore Subject<?= $missing_status_count > 1 ? "s are" : " is" ?> missing Protocol Subject Status. Please update manually from OnCore UI."></i>
+                            (<span class="missing_status_count"><?= $missing_status_count ?></span>)
                         </div>
                     </div>
 
@@ -113,18 +134,25 @@ try {
                         <p class='h1 mt-2 mb-0 p-0 partial_match_count'><?php echo $partial_match_count ?></p>
                         <i class="d-block">Partially Matched</i>
                         <?php if (empty($module->getMapping()->getProjectFieldMappings()['pull'])) { ?>
-                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="You can`t pull OnCore Data because Pull Mapping is not defined. Please define Pull Mapping from the mapping page"></i> <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
+                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
+                               title="You can`t pull OnCore Data because Pull Mapping is not defined. Please define Pull Mapping from the mapping page"></i>
+                            <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
                         <?php } else { ?>
-                            <button class='btn btn-warning getadjudication' data-bin='partial' id='adjudicate_partials'>Adjudicate Diff</button>
+                            <button class='btn btn-warning getadjudication' data-bin='partial' id='adjudicate_partials'>
+                                Adjudicate Diff
+                            </button>
                         <?php } ?>
                     </div>
 
                     <div class="stat-body mt-3">
 
-                        <b class="stat-title d-block">Total Subjects/Records : <span class="match_count"><?php echo $total_subjects ?></span></b>
+                        <b class="stat-title d-block">Total Subjects/Records : <span
+                                    class="match_count"><?php echo $total_subjects ?></span></b>
                         <ul class="adjudication">
                             <li>Records Excluded: <span class="excluded_count"><?php echo $excluded_count ?></span></li>
-                            <li>Records for adjudication: <span class="for_adjudication"><?php echo $total_subjects - $excluded_count ?></span></li>
+                            <li>Records for adjudication: <span
+                                        class="for_adjudication"><?php echo $total_subjects - $excluded_count ?></span>
+                            </li>
                         </ul>
 
                         <button class='btn btn-success' id='refresh_sync_diff'>Refresh Synced Data</button>
@@ -136,9 +164,15 @@ try {
                         <p class='h1 mt-2 mb-0 p-0 redcap_only_count'><?php echo $sync_summ['redcap_only_count'] ?></p>
                         <i class="d-block">Not in OnCore</i>
                         <?php if (empty($module->getMapping()->getProjectFieldMappings()['push'])) { ?>
-                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="You can't push REDCap Records because Push Mapping is not defined. Please define Push Mapping from the mapping page"></i> <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
+                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
+                               title="You can't push REDCap Records because Push Mapping is not defined. Please define Push Mapping from the mapping page"></i>
+                            <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
                         <?php } else { ?>
-                            <i class="d-block"><button class='btn btn-danger getadjudication' data-bin='redcap' id='push_data'>See Unlinked Records</button></i>
+                            <i class="d-block">
+                                <button class='btn btn-danger getadjudication' data-bin='redcap' id='push_data'>See
+                                    Unlinked Records
+                                </button>
+                            </i>
                         <?php } ?>
                     </div>
 
@@ -149,56 +183,56 @@ try {
                 </div>
             </div>
         </div>
-</div>
+    </div>
 
     <!-- THIS WILL REMAIN HIDDEN -->
-<div class="tab-content">
-    <div class="tab-pane" id="partial">
-        <form id="syncFromOncore" class="oncore_match">
-            <input type="hidden" name="matchtype" value="fullmatch"/>
-            <div class="included"></div>
-            <br>
-            <h2>Excluded Subjects</h2>
-            <p>The following subjects have been excluded from syncing with Oncore</p>
-            <div class="excluded"></div>
-        </form>
-    </div>
-    <div class="tab-pane" id="oncore">
-        <form id="pullFromOncore" class="oncore_match">
-            <input type="hidden" name="matchtype" value="oncoreonly"/>
-            <div class="included"></div>
-            <br>
-            <h2>Excluded Subjects</h2>
-            <p>The following subjects have been excluded from syncing with REDCap</p>
-            <div class="excluded"></div>
-        </form>
-    </div>
-    <div class="tab-pane" id="redcap">
-        <form id="pushToOncore" class="oncore_match">
-            <?= $use_filter ?>
+    <div class="tab-content">
+        <div class="tab-pane" id="partial">
+            <form id="syncFromOncore" class="oncore_match">
+                <input type="hidden" name="matchtype" value="fullmatch"/>
+                <div class="included"></div>
+                <br>
+                <h2>Excluded Subjects</h2>
+                <p>The following subjects have been excluded from syncing with Oncore</p>
+                <div class="excluded"></div>
+            </form>
+        </div>
+        <div class="tab-pane" id="oncore">
+            <form id="pullFromOncore" class="oncore_match">
+                <input type="hidden" name="matchtype" value="oncoreonly"/>
+                <div class="included"></div>
+                <br>
+                <h2>Excluded Subjects</h2>
+                <p>The following subjects have been excluded from syncing with REDCap</p>
+                <div class="excluded"></div>
+            </form>
+        </div>
+        <div class="tab-pane" id="redcap">
+            <form id="pushToOncore" class="oncore_match">
+                <?= $use_filter ?>
 
-            <input type="hidden" name="matchtype" value="redcaponly"/>
-            <div class="included"></div>
-            <br>
-            <h2>Excluded Subjects</h2>
-            <p>The following subjects have been excluded from syncing with Oncore</p>
-            <div class="excluded"></div>
-        </form>
+                <input type="hidden" name="matchtype" value="redcaponly"/>
+                <div class="included"></div>
+                <br>
+                <h2>Excluded Subjects</h2>
+                <p>The following subjects have been excluded from syncing with Oncore</p>
+                <div class="excluded"></div>
+            </form>
+        </div>
     </div>
-</div>
-<style>
-    #oncore_mapping button.loading:after{
-        content: "";
-        position: absolute;
-        top: 0px;
-        width: 25px;
-        height: 25px;
-        right: 5px;
+    <style>
+        #oncore_mapping button.loading:after {
+            content: "";
+            position: absolute;
+            top: 0px;
+            width: 25px;
+            height: 25px;
+            right: 5px;
 
-        background: url(<?=$icon_ajax?>) 0 0 no-repeat;
-        background-size: contain;
-    }
-</style>
+            background: url(<?=$icon_ajax?>) 0 0 no-repeat;
+            background-size: contain;
+        }
+    </style>
     <script src="<?= $adjudication_js ?>" type="text/javascript"></script>
     <script src="<?= $oncore_js ?>" type="text/javascript"></script>
     <script>
@@ -210,7 +244,7 @@ try {
             //THIS WILL QUEUE THE AJAX REQUESTS SO THEY DONT RACE CONDITION EACH OTHER
             var ajaxQueue = {
                 queuedRequests: [],
-                pauseFlag : false,
+                pauseFlag: false,
                 addRequest: function (req) {
                     this.queuedRequests.push(req);
                     // if it's the first request, start execution
@@ -222,37 +256,37 @@ try {
                     this.queuedRequests = [];
                 },
                 executeNextRequest: function (subtract) {
-                    var queuedRequests  = this.queuedRequests;
-                    var pauseFlag       = this.pauseFlag;
+                    var queuedRequests = this.queuedRequests;
+                    var pauseFlag = this.pauseFlag;
 
-                    if(subtract){
+                    if (subtract) {
                         console.log("something messed up subtract and continue");
                         queuedRequests.shift();
                     }
 
-                    if(queuedRequests.length){
+                    if (queuedRequests.length) {
                         queuedRequests[0]().then(function (data) {
                             // console.log("request complete", data);
                             // remove completed request from queue
                             queuedRequests.shift();
                             // if there are more requests, execute the next in line
-                            if (queuedRequests.length  && !pauseFlag) {
+                            if (queuedRequests.length && !pauseFlag) {
                                 ajaxQueue.executeNextRequest();
                             }
                         });
                     }
                 },
-                pauseQueue: function(){
+                pauseQueue: function () {
                     this.pauseFlag = !this.pauseFlag;
                 },
-                isPaused : function(){
+                isPaused: function () {
                     return this.pauseFlag;
                 }
             };
 
 
             //SHOW "no diff" MATCHES
-            $("body").on("click",".show_all_matched", function (e) {
+            $("body").on("click", ".show_all_matched", function (e) {
                 e.preventDefault();
                 if (!$(this).hasClass('expanded')) {
                     $(".show_all_matched").html("Show Less");
@@ -266,7 +300,7 @@ try {
             });
 
             //CHECKBOX BEHAVIOR
-            $("body").on("change",".check_all",  function () {
+            $("body").on("change", ".check_all", function () {
                 if ($(this).is(":checked")) {
                     //check all
                     $(this).closest("table").find(".accept_diff").prop("checked", true);
@@ -275,7 +309,7 @@ try {
                     $(this).closest("table").find(".accept_diff").prop("checked", false);
                 }
             });
-            $("body").on("change",".accept_diff",  function () {
+            $("body").on("change", ".accept_diff", function () {
                 if (!$(this).is(":checked")) {
                     //uncheck "check_all"
                     $(this).closest("table").find(".check_all").prop("checked", false);
@@ -285,11 +319,11 @@ try {
             //EXCLUDE SUBJECT FROM DIFF OVERWRITE
             $("body").on("click", ".exclude_subject, .include_subject", function (e) {
                 e.preventDefault();
-                var subject_mrn         = $(this).data("subject_mrn");
-                var entity_record_id    = $(this).data("entity_id");
+                var subject_mrn = $(this).data("subject_mrn");
+                var entity_record_id = $(this).data("entity_id");
 
-                var _parent_tbody       = $("tbody." + subject_mrn);
-                var _parent_form        = _parent_tbody.closest(".oncore_match");
+                var _parent_tbody = $("tbody." + subject_mrn);
+                var _parent_form = _parent_tbody.closest(".oncore_match");
 
                 var exclude_include = $(this).hasClass("exclude_subject") ? "excludeSubject" : "includeSubject";
 
@@ -346,7 +380,7 @@ try {
                         be_lead = response.hasOwnProperty("message") ? response.message + "\r\n" : "";
                     }
 
-                    var headline    = be_status + "Record status failed to save";
+                    var headline = be_status + "Record status failed to save";
                     var lead = be_lead + "Please refresh page and try again";
                     var notif = new notifModal(lead, headline);
                     notif.show();
@@ -396,9 +430,9 @@ try {
 
             //show hide adjudcation tables
             $(".getadjudication").click(function (e) {
-                var _this       = $(this);
-                var bin         = _this.data("bin");
-                var use_filter  = _this.data("use_filter") == "1" ? 1 : null;
+                var _this = $(this);
+                var bin = _this.data("bin");
+                var use_filter = _this.data("use_filter") == "1" ? 1 : null;
 
                 $(".stat-group").removeClass("picked");
                 var par = _this.closest(".stat-group");
@@ -424,21 +458,21 @@ try {
                     _this.removeClass("loading");
 
                     //POP OPEN THE MODAL
-                    var adjModal    = new adjudicationModal(bin);
+                    var adjModal = new adjudicationModal(bin);
                     window.adjModal = adjModal;
                     adjModal.show();
 
                     //THIS IS TO CONTINUE THE PROGRESS BAR UI INCASE THEY CLOSE THE MODAL AND REOPEN IT
                     //USES SESSION STORAGE TO TRACK NUMBER OF PROECESS IN AJAX QUEUe
-                    if(sessionStorage.getItem("process_queue") ){
-                        if(sessionStorage.getItem("process_queue") && ajaxQueue.queuedRequests.length){
-                            var ls_inprogress_processing    = sessionStorage.getItem("process_queue")
-                            var pullModal                   = window.adjModal;
-                            pullModal.completedItems        = ls_inprogress_processing - ajaxQueue.queuedRequests.length;
-                            pullModal.totalItems            = ls_inprogress_processing;
+                    if (sessionStorage.getItem("process_queue")) {
+                        if (sessionStorage.getItem("process_queue") && ajaxQueue.queuedRequests.length) {
+                            var ls_inprogress_processing = sessionStorage.getItem("process_queue")
+                            var pullModal = window.adjModal;
+                            pullModal.completedItems = ls_inprogress_processing - ajaxQueue.queuedRequests.length;
+                            pullModal.totalItems = ls_inprogress_processing;
                             pullModal.showProgressUI();
 
-                            if(ajaxQueue.isPaused()){
+                            if (ajaxQueue.isPaused()) {
                                 pullModal.showContinue();
                             }
                         }
@@ -461,8 +495,8 @@ try {
                     $("#" + bin).clone().appendTo($("#pushModal .pushDATA"));
 
 
-                    var footer_action   = $(result["footer_action"]);
-                    var show_all        = $(result["show_all"]);
+                    var footer_action = $(result["footer_action"]);
+                    var show_all = $(result["show_all"]);
                     $("#pushModal .footer_action").append(footer_action);
                     $("#pushModal .show_all").append(show_all);
 
@@ -520,22 +554,22 @@ try {
                 }
             });
 
-            $(document).on('click', "#ajaxq_buttons .pause", function(e){
+            $(document).on('click', "#ajaxq_buttons .pause", function (e) {
                 ajaxQueue.pauseQueue();
-                if($(this).hasClass("paused")){
+                if ($(this).hasClass("paused")) {
                     ajaxQueue.executeNextRequest();
                     $(this).removeClass("paused").html("Pause Sync");
-                }else{
+                } else {
                     $(this).addClass("paused").html("Continue Sync");
                 }
             });
-            $(document).on('click', "#ajaxq_buttons .cancel", function(e){
-                if( $(".check_all").is(":checked")){
+            $(document).on('click', "#ajaxq_buttons .cancel", function (e) {
+                if ($(".check_all").is(":checked")) {
                     $(".check_all").trigger("change");
-                }else{
-                    $(".accept_diff").each(function(){
-                        if($(this).is(":checked")){
-                            $(this).attr("checked",null);
+                } else {
+                    $(".accept_diff").each(function () {
+                        if ($(this).is(":checked")) {
+                            $(this).attr("checked", null);
                         }
                     });
                 }
@@ -568,20 +602,20 @@ try {
                 });
 
                 if (approved_ids.length) {
-                    var pullModal               = window.adjModal;
-                    pullModal.completedItems    = 0;
-                    pullModal.totalItems        = approved_ids.length;
+                    var pullModal = window.adjModal;
+                    pullModal.completedItems = 0;
+                    pullModal.totalItems = approved_ids.length;
                     pullModal.showProgressUI();
 
                     //stuff in session storage temporarily incase close modal and ned to reopen
                     sessionStorage.setItem("process_queue", approved_ids.length);
 
-                    var arr_length  = approved_ids.length - 1;
+                    var arr_length = approved_ids.length - 1;
                     for (var i in approved_ids) {
-                        var _mrn    = approved_ids[i]["mrn"];
-                        var rc_id   = approved_ids[i]["redcap"];
-                        var oncore  = approved_ids[i]["oncore"];
-                        var temp    = {"redcap": rc_id, "oncore": oncore, "mrn" : _mrn}
+                        var _mrn = approved_ids[i]["mrn"];
+                        var rc_id = approved_ids[i]["redcap"];
+                        var oncore = approved_ids[i]["oncore"];
+                        var temp = {"redcap": rc_id, "oncore": oncore, "mrn": _mrn}
 
                         //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
                         var rndInt = randomIntFromInterval(500, 1500);
@@ -601,13 +635,13 @@ try {
                                     pullModal.setRowStatus(result.id, true, result.message);
 
                                     //TRIGGER REFRESH SYNC AFTER LAST RECORD
-                                    if(inc == tot){
+                                    if (inc == tot) {
                                         $("#refresh_sync_diff").trigger("click");
                                     }
                                 }).fail(function (e) {
-                                    var result  = decode_object(e.responseText);
+                                    var result = decode_object(e.responseText);
 
-                                    result.id   = result.id == '' ? temp["oncore"] :  result.id;
+                                    result.id = result.id == '' ? temp["oncore"] : result.id;
                                     pullModal.setRowStatus(result.id, false, result.message);
 
                                     // console.log("failure exception , restart queue?", result);
@@ -629,10 +663,10 @@ try {
                 var approved_ids = []
                 form.find(".includes input[name='approved_ids']:checked").each(function () {
                     if (this.checked) {
-                        var _el         = $(this);
-                        var oncore_id   = _el.data("oncore");
-                        var rc_id       = _el.val();
-                        var mrn         = _el.data("mrn");
+                        var _el = $(this);
+                        var oncore_id = _el.data("oncore");
+                        var rc_id = _el.val();
+                        var mrn = _el.data("mrn");
                         approved_ids.push({
                             "name": 'approved_ids',
                             'mrn': mrn,
@@ -644,19 +678,19 @@ try {
                 });
 
                 if (approved_ids.length) {
-                    var pushModal               = window.adjModal;
-                    pushModal.completedItems    = 0;
-                    pushModal.totalItems        = approved_ids.length;
+                    var pushModal = window.adjModal;
+                    pushModal.completedItems = 0;
+                    pushModal.totalItems = approved_ids.length;
                     pushModal.showProgressUI();
 
                     //stuff in session storage temporarily incase close modal and ned to reopen
                     sessionStorage.setItem("process_queue", approved_ids.length);
 
-                    var arr_length  = approved_ids.length - 1;
+                    var arr_length = approved_ids.length - 1;
                     for (var i in approved_ids) {
-                        var rc_id   = approved_ids[i]["value"];
-                        var mrn     = approved_ids[i]["mrn"];
-                        var temp    = {"value": rc_id, "mrn": mrn}
+                        var rc_id = approved_ids[i]["value"];
+                        var mrn = approved_ids[i]["mrn"];
+                        var temp = {"value": rc_id, "mrn": mrn}
 
                         //THIS IS JUST FOR SHOWMANSHIP, SO THE PROGRESS BAR "grows" AND NOT JUST APPEARS IN AN INSTANT
                         var rndInt = randomIntFromInterval(500, 1500);
@@ -677,12 +711,12 @@ try {
                                     pushModal.setRowStatus(result.id, true, result.message);
 
                                     //TRIGGER REFRESH SYNC AFTER LAST RECORD
-                                    if(inc == tot){
+                                    if (inc == tot) {
                                         $("#refresh_sync_diff").trigger("click");
                                     }
                                 }).fail(function (e) {
-                                    var result  = decode_object(e.responseText);
-                                    result.id   = result.id == '' ? temp["value"] :  result.id;
+                                    var result = decode_object(e.responseText);
+                                    result.id = result.id == '' ? temp["value"] : result.id;
                                     pushModal.setRowStatus(result.id, false, result.message);
 
                                     // console.log("failure exception , restart queue?", result);

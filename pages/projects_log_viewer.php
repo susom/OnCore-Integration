@@ -7,7 +7,7 @@ namespace Stanford\OnCoreIntegration;
 
 try {
     $right = $module->framework->getRights(USERID);
-    if (!$right['design']) {
+    if (!$right['design'] && !$module->isSuperUser()) {
         throw new \Exception('You do not have permission to view this page.');
     }
     ?>
