@@ -722,6 +722,21 @@ class Subjects extends SubjectDemographics
         }
     }
 
+        public function searchOnCoreProtocolSubjectViaProtocolSubjectId($protocolId, $protocolSubjectId)
+    {
+        // reset oncore protocol subjects to get latest subjects
+        $this->setOnCoreProtocolSubjects(null, true);
+
+        $oncoreProtocolSubjects = $this->getOnCoreProtocolSubjects($protocolId);
+
+        foreach ($oncoreProtocolSubjects as $oncoreProtocolSubject) {
+            if ($oncoreProtocolSubject['protocolSubjectId'] == $protocolSubjectId) {
+                return $oncoreProtocolSubject;
+            }
+        }
+    }
+
+
     /**
      * get the mapped OnCore value for REDCap value.
      * @param $redcapRecord

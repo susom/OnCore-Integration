@@ -322,8 +322,7 @@ class Protocols
 //        $this->syncIndividualRecord($redcapRecordId);
         $record = array('id' => $redcapRecordId, 'record' => $this->getSubjects()->getRedcapProjectRecords()[$redcapRecordId]);;
         $fields = $this->getMapping()->getProjectFieldMappings();
-        $redcapMRN = $record['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event'])][$fields['pull']['mrn']['redcap_field']];
-        $subject = $this->getSubjects()->searchOnCoreProtocolSubjectViaMRN($this->getEntityRecord()['oncore_protocol_id'], $redcapMRN);
+        $subject = $this->getSubjects()->searchOnCoreProtocolSubjectViaProtocolSubjectId($this->getEntityRecord()['oncore_protocol_id'], $result['protocol_subject_id']);
         $this->matchREDCapRecordWithOnCoreSubject($record, $subject, $fields);
 
 
