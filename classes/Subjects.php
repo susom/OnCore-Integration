@@ -767,7 +767,7 @@ class Subjects extends SubjectDemographics
     public function pushToOnCore($protocolId, $redcapId, $fields, $oncoreFieldsDef)
     {
         if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
-            throw new \Exception('You do not have permissions to push data from this protocol.');
+            throw new \Exception(OnCoreIntegration::getActionExceptionText('pushToOncore'));
         }
 
         $record = $this->getRedcapProjectRecords()[$redcapId];
@@ -1008,7 +1008,7 @@ class Subjects extends SubjectDemographics
     public function pullOnCoreRecordsIntoREDCap($projectId, $protocolId, $record, $fields)
     {
         if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
-            throw new \Exception('You do not have permissions to pull data from this protocol.');
+            throw new \Exception(OnCoreIntegration::getActionExceptionText('pull'));
         }
 
         if (!is_array($record)) {

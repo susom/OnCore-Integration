@@ -1393,9 +1393,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $exemptActions = array('triggerIRBSweep', 'integrateOnCore', 'approveIntegrateOncore');
 
                 if (!$this->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && !in_array($action, $exemptActions)) {
-                    $keys = array_keys($this->getMapping()->getProjectFieldMappings());
-                    $text = implode('/', $keys);
-                    throw new \Exception('You do not have permissions to '.$text.' data from this protocol.');
+                    throw new \Exception(self::getActionExceptionText($action));
                 }
 
                 switch ($action) {
@@ -1722,5 +1720,76 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         // Return is left as php object, is converted automatically
         return $return_o;
+    }
+
+
+    public static function getActionExceptionText($action){
+        switch ($action) {
+            case "getValueMappingUI":
+            case "getMappingHTML":
+                return 'You do not have Permissions to view Mapping UI.';
+
+            case "saveSiteStudies":
+                return 'You do not have Permissions to save Study sites.';
+
+
+            case "saveFilterLogic":
+                return 'You do not have Permissions to save Filter Logic.';
+
+
+            case "saveMapping":
+                return 'You do not have Permissions to save Mapping. ';
+            case "checkPushPullStatus":
+                return 'You do not have Permissions to check Mapping status. ';
+            case "checkOverallStatus":
+                return 'You do not have Permissions to check Mapping overall status. ';
+            case "deleteMapping":
+                return 'You do not have Permissions to delete mapping. ';
+            case "deletePullField":
+                return 'You do not have Permissions to delete pull field. ';
+
+            case "saveOncoreSubset":
+                return 'You do not have Permissions to save OnCore Subset. ';
+
+            case "savePushPullPref":
+                return 'You do not have Permissions to save Push/Pull preference.';
+
+            case "integrateOnCore":
+                //integrate oncore project(s)!!
+                return 'You do not have Permissions to Link protocol.';
+
+            case "syncDiff":
+            case "pull":
+                return 'You do not have Permissions to Sync REDCap with OnCore protocol.';
+
+            case "getSyncDiff":
+                return 'You do not have Permissions to get sync differences.';
+
+            case "approveSync":
+                return 'You do not have Permissions to approve sync.';
+
+            case "pushToOncore":
+                return 'You do not have Permissions to push to OnCore.';
+
+            case "excludeSubject":
+                //flips excludes flag on entitry record
+                return 'You do not have Permissions to exclude subject.';
+
+            case "includeSubject":
+                //flips excludes flag on entitry record
+                return 'You do not have Permissions to include subject.';
+
+            case "schedulePull":
+                return 'You do not have Permissions to enable auto-pull.';
+
+            case "triggerIRBSweep":
+                return 'You do not have Permissions to trigger IRB sweep.';
+            case "projectLogs":
+                return 'You do not have Permissions to get project logs.';
+            case "projectProtocols":
+                return 'You do not have Permissions to search OnCore Protocol.';
+            default:
+                return 'You do not have Permissions to perform this action.';
+        }
     }
 }

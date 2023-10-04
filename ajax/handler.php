@@ -18,9 +18,8 @@ try {
         $exemptActions = array('triggerIRBSweep');
 
         if (!$module->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && !in_array($action, $exemptActions)) {
-            $keys = array_keys($module->getMapping()->getProjectFieldMappings());
-            $text = implode('/', $keys);
-            throw new \Exception('You do not have permissions to ' . $text . ' data from this protocol.');
+
+            throw new \Exception($module::getActionExceptionText($action));
         }
         switch ($action) {
             case "getMappingHTML":
