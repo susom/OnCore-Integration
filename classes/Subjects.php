@@ -818,8 +818,8 @@ class Subjects extends SubjectDemographics
     {
         foreach ($fields as $key => $field) {
             // if oncore race array is empty
+            $redcapValue = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
             if (is_array($onCoreRecord[$key]) && empty($onCoreRecord[$key])) {
-                $redcapValue = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
                 if (is_array($redcapValue)) {
                     foreach ($redcapValue as $id => $value) {
                         //checkbox not checked
@@ -842,7 +842,13 @@ class Subjects extends SubjectDemographics
                     $onCoreRecord[$key] = array($map['oc']);
                 }
             } elseif ($onCoreRecord[$key] == '' || is_null($onCoreRecord[$key])) {
-                $onCoreRecord[$key] = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                // ethnicity or gender
+                if (isset($field['value_mapping'])) {
+                    $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
+                    $onCoreRecord[$key] = $map['oc'];
+                }else{
+                    $onCoreRecord[$key] = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                }
             }
         }
         return $onCoreRecord;
