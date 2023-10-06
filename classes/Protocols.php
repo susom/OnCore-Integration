@@ -78,7 +78,23 @@ class Protocols
             $subject = $this->getSubjects()->searchOnCoreProtocolSubjectViaMRN($this->getEntityRecord()['oncore_protocol_id'], $redcapMRN);
 
             if (!empty($subject)) {
-                $record = $this->matchREDCapRecordWithOnCoreSubject($record, $subject, $fields);
+
+
+                if (isset($fields['pull']['protocolSubjectId']) && is_array($fields['pull']['protocolSubjectId'])) {
+                    // when protocol subject id is mapped and not empty.
+                    $redcapProtocolSubjectId = $record['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']];
+                    if ($redcapProtocolSubjectId) {
+                        $record = $this->matchREDCapRecordWithOnCoreSubject($record, $subject, $fields);
+                    } else {
+                        //if protocol subject is mapped but its value is empty then record is redcap only.
+                        $record = $this->processREDCapOnlyRecord($redcapId);
+                    }
+
+                } else {
+                    // when protocol subject mapping is not defined then match with oncore subject.
+                    $record = $this->matchREDCapRecordWithOnCoreSubject($record, $subject, $fields);
+                }
+
             } else {
                 $record = $this->processREDCapOnlyRecord($redcapId);
             }
@@ -140,21 +156,29 @@ class Protocols
     private function processREDCapOnlyRecord($id)
     {
         $record = $this->getSubjects()->getLinkageRecord($this->getEntityRecord()['redcap_project_id'], $this->getEntityRecord()['oncore_protocol_id'], $id, '');
-
+        $e = (new Entities);
+        $data = array(
+            'redcap_project_id' => (string)$this->getEntityRecord()['redcap_project_id'],
+            'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
+            'redcap_record_id' => (string)$id,
+            'oncore_protocol_subject_id' => null,
+            'status' => OnCoreIntegration::REDCAP_ONLY
+        );
         if (!$record) {
-            $data = array(
-                'redcap_project_id' => (string)$this->getEntityRecord()['redcap_project_id'],
-                'oncore_protocol_id' => (string)$this->getEntityRecord()['oncore_protocol_id'],
-                'redcap_record_id' => (string)$id,
-                'status' => OnCoreIntegration::REDCAP_ONLY
-            );
+
             //$e = (new Entities)->getFactory();
-            $e = (new Entities);
+
             $entity = $e->create(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $data);
             if (!$entity) {
                 throw new \Exception(implode(',', $e->errors));
             }
             $record = $entity;
+        }else{
+
+            $entity = $e->update(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE,  $record['id'], $data);
+            if (!$entity) {
+                throw new \Exception(implode(',', $e->errors));
+            }
         }
         return $record;
     }
@@ -203,7 +227,7 @@ class Protocols
         if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
             $keys = array_keys($this->getMapping()->getProjectFieldMappings());
             $text = implode('/', $keys);
-            throw new \Exception('You do not have permissions to '.$text.' data from this protocol.');
+            throw new \Exception('You do not have permissions to ' . $text . ' data from this protocol.');
         }
 
         $redcapRecords = $this->getSubjects()->getRedcapProjectRecords();
@@ -229,9 +253,9 @@ class Protocols
                 $onCoreMrn = $subject['demographics']['mrn'];
 //            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $this->getEntityRecord()['redcap_event_id'], $fields['mrn']);
                 // check if oncore subject has matching redcap records. with protocol subject id if defined.
-                if(isset($fields['pull']['protocolSubjectId']) && is_array($fields['pull']['protocolSubjectId'])){
+                if (isset($fields['pull']['protocolSubjectId']) && is_array($fields['pull']['protocolSubjectId'])) {
                     $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event']), $fields['pull']['mrn']['redcap_field'], $fields['pull']['protocolSubjectId']['redcap_field'], $subject['protocolSubjectId']);
-                }else{
+                } else {
                     $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event']), $fields['pull']['mrn']['redcap_field']);
                 }
                 if (!empty($redcapRecord)) {
@@ -249,43 +273,42 @@ class Protocols
                             // we need to match record using protocol Subject Id.
 //                            foreach ($redcapRecord as $item) {
 
-                                // this will cover edge-case when user forget to map protocolSubjectId and has multiple redcap records with same MRN.
-                                $item = $redcapRecord[0];
-                                $id = $item['id'];
-                                $redcapProtocolSubjectId = $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']];
-                                if (!$redcapProtocolSubjectId) {
-                                    // for new records update redcap and add new subject protocol id. then sync it with the subject.
-                                    $data = [];
-                                    $data[\REDCap::getRecordIdField()] = $item['id'];
-                                    $data[$fields['pull']['protocolSubjectId']['redcap_field']] = $subject['protocolSubjectId'];
-                                    $data['redcap_event_name'] = OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event']);
-                                    $response = \REDCap::saveData($this->getEntityRecord()['redcap_project_id'], 'json', json_encode(array($data)));
-                                    if (!empty($response['errors'])) {
-                                        {
-                                            if (is_array($response['errors'])) {
-                                                throw new \Exception(implode(",", $response['errors']));
-                                            } else {
-                                                throw new \Exception($response['errors']);
-                                            }
-
+                            // this will cover edge-case when user forget to map protocolSubjectId and has multiple redcap records with same MRN.
+                            $item = $redcapRecord[0];
+                            $id = $item['id'];
+                            $redcapProtocolSubjectId = $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']];
+                            if (!$redcapProtocolSubjectId) {
+                                // for new records update redcap and add new subject protocol id. then sync it with the subject.
+                                $data = [];
+                                $data[\REDCap::getRecordIdField()] = $item['id'];
+                                $data[$fields['pull']['protocolSubjectId']['redcap_field']] = $subject['protocolSubjectId'];
+                                $data['redcap_event_name'] = OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event']);
+                                $response = \REDCap::saveData($this->getEntityRecord()['redcap_project_id'], 'json', json_encode(array($data)));
+                                if (!empty($response['errors'])) {
+                                    {
+                                        if (is_array($response['errors'])) {
+                                            throw new \Exception(implode(",", $response['errors']));
+                                        } else {
+                                            throw new \Exception($response['errors']);
                                         }
-                                    }
-                                    $redcapProtocolSubjectId = $subject['protocolSubjectId'];
-                                    // set the value to make sure match is full
-                                    $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']] = $subject['protocolSubjectId'];
-                                    // get redcap data after saving protocolSUbjectid
-                                    $this->prepareProjectRecords();
 
-                                    $this->matchREDCapRecordWithOnCoreSubject($item, $subject, $fields);
-                                }
-                                else{
-
-                                    $ids = [];
-                                    foreach ($redcapRecord as $item){
-                                        $ids[] = $item['id'];
                                     }
-                                    throw new \Exception('Following REDCap records <strong>' . implode(',', $ids) . '</strong> are mapped to the same OnCore Protocol Subject. Make sure only one REDCap record has <strong>'.$subject['protocolSubjectId'].'</strong> in field name: <strong>'.$fields['pull']['protocolSubjectId']['redcap_field'].'</strong>');
                                 }
+                                $redcapProtocolSubjectId = $subject['protocolSubjectId'];
+                                // set the value to make sure match is full
+                                $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']] = $subject['protocolSubjectId'];
+                                // get redcap data after saving protocolSUbjectid
+                                $this->prepareProjectRecords();
+
+                                $this->matchREDCapRecordWithOnCoreSubject($item, $subject, $fields);
+                            } else {
+
+                                $ids = [];
+                                foreach ($redcapRecord as $item) {
+                                    $ids[] = $item['id'];
+                                }
+                                throw new \Exception('Following REDCap records <strong>' . implode(',', $ids) . '</strong> are mapped to the same OnCore Protocol Subject. Make sure only one REDCap record has <strong>' . $subject['protocolSubjectId'] . '</strong> in field name: <strong>' . $fields['pull']['protocolSubjectId']['redcap_field'] . '</strong>');
+                            }
 //                                if ($redcapProtocolSubjectId == $subject['protocolSubjectId']) {
 //                                    $this->matchREDCapRecordWithOnCoreSubject($item, $subject, $fields);
 //                                    $id = $item['id'];
@@ -435,10 +458,10 @@ class Protocols
             }
             $contactRole = $this->getUser()->isOnCoreContactAllowedToPush();
             if (!$contactRole) {
-                if($this->getUser()->getOnCoreContact()){
-                    Entities::createLog(($this->getUser()->getRedcapUser()?$this->getUser()->getRedcapUser()->getUsername():'UNKNOWN') . " has OnCore  role (" . $this->getUser()->getOnCoreContact()['role'] . ") which is not allowed to push records to OnCore");
-                }else{
-                    Entities::createLog(($this->getUser()->getRedcapUser()?$this->getUser()->getRedcapUser()->getUsername():'UNKNOWN') . " is not a Protocol Staff on this protocol. ");
+                if ($this->getUser()->getOnCoreContact()) {
+                    Entities::createLog(($this->getUser()->getRedcapUser() ? $this->getUser()->getRedcapUser()->getUsername() : 'UNKNOWN') . " has OnCore  role (" . $this->getUser()->getOnCoreContact()['role'] . ") which is not allowed to push records to OnCore");
+                } else {
+                    Entities::createLog(($this->getUser()->getRedcapUser() ? $this->getUser()->getRedcapUser()->getUsername() : 'UNKNOWN') . " is not a Protocol Staff on this protocol. ");
                 }
             }
             return $status && $linked && $contactRole;
