@@ -228,6 +228,7 @@ class Protocols
             foreach ($oncoreProtocolSubjects as $subject) {
                 $onCoreMrn = $subject['demographics']['mrn'];
 //            $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, $this->getEntityRecord()['redcap_event_id'], $fields['mrn']);
+                // check if oncore subject has matching redcap records. with protocol subject id if defined.
                 if(isset($fields['pull']['protocolSubjectId']) && is_array($fields['pull']['protocolSubjectId'])){
                     $redcapRecord = $this->getSubjects()->getREDCapRecordIdViaMRN($onCoreMrn, OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event']), $fields['pull']['mrn']['redcap_field'], $fields['pull']['protocolSubjectId']['redcap_field'], $subject['protocolSubjectId']);
                 }else{
@@ -236,7 +237,6 @@ class Protocols
                 if (!empty($redcapRecord)) {
                     if (count($redcapRecord) == 1) {
                         // if no duplicated MRN just use first one.
-                        $id = $redcapRecord[0]['id'];
                         $this->matchREDCapRecordWithOnCoreSubject($redcapRecord[0], $subject, $fields, count($redcapRecord));
 
                         // id to be removed
@@ -247,7 +247,11 @@ class Protocols
                             throw new \Exception("MRN $onCoreMrn enrolled multiple times. In order to correctly match records you <strong>Must</strong> map `protocolSubjectid` in the <string>Pull</string> fields mapping page.");
                         } else {
                             // we need to match record using protocol Subject Id.
-                            foreach ($redcapRecord as $item) {
+//                            foreach ($redcapRecord as $item) {
+
+                                // this will cover edge-case when user forget to map protocolSubjectId and has multiple redcap records with same MRN.
+                                $item = $redcapRecord[0];
+                                $id = $item['id'];
                                 $redcapProtocolSubjectId = $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']];
                                 if (!$redcapProtocolSubjectId) {
                                     // for new records update redcap and add new subject protocol id. then sync it with the subject.
@@ -271,13 +275,23 @@ class Protocols
                                     $item['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event'])][$fields['pull']['protocolSubjectId']['redcap_field']] = $subject['protocolSubjectId'];
                                     // get redcap data after saving protocolSUbjectid
                                     $this->prepareProjectRecords();
-                                }
-                                if ($redcapProtocolSubjectId == $subject['protocolSubjectId']) {
+
                                     $this->matchREDCapRecordWithOnCoreSubject($item, $subject, $fields);
-                                    $id = $item['id'];
-                                    //break;
                                 }
-                            }
+                                else{
+
+                                    $ids = [];
+                                    foreach ($redcapRecord as $item){
+                                        $ids[] = $item['id'];
+                                    }
+                                    throw new \Exception('Following REDCap records <strong>' . implode(',', $ids) . '</strong> are mapped to the same OnCore Protocol Subject. Make sure only one REDCap record has <strong>'.$subject['protocolSubjectId'].'</strong> in field name: <strong>'.$fields['pull']['protocolSubjectId']['redcap_field'].'</strong>');
+                                }
+//                                if ($redcapProtocolSubjectId == $subject['protocolSubjectId']) {
+//                                    $this->matchREDCapRecordWithOnCoreSubject($item, $subject, $fields);
+//                                    $id = $item['id'];
+//                                    //break;
+//                                }
+                            //}
                         }
 
                     }
