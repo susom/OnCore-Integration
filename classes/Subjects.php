@@ -52,6 +52,8 @@ class Subjects extends SubjectDemographics
      */
     private $mapping;
 
+    public $forceDemographicsPull = false;
+
     /**
      * The top functions can be used to query and verify MRNs in the home institution's Electronic
      * Medical Record system.
@@ -205,10 +207,21 @@ class Subjects extends SubjectDemographics
                     // if redcap field is checkbox
                     if ($field['field_type'] == 'checkbox') {
                         // get array of 0/1 from redcap for checkboxes
-                        $rc = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
-                        foreach ($parsed as $item) {
+                        $temp = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                        $rc = [];
+                        foreach ($temp as $index => $item) {
+                            if ($item) {
+                                $rc[$index] = $item;
+                            }
+                        }
+                        // if  number of fields from oncore and redcap are not equal then it partial match.
+                        if (count($rc) != count($parsed)) {
+                            return OnCoreIntegration::PARTIAL_MATCH;
+                        }
+
+                        foreach ($parsed as $index => $item) {
                             $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
-                            // if the oncore value mapped redcap checkbox is not check then partial match
+                            // if the oncore value mapped to redcap checkbox is not checked then partial match
                             if (!$rc[$map['rc']]) {
                                 return OnCoreIntegration::PARTIAL_MATCH;
                             }
@@ -269,13 +282,22 @@ class Subjects extends SubjectDemographics
      * @param $redcapMRNField
      * @return array|false
      */
-    public function getREDCapRecordIdViaMRN($mrn, $redcapEventId, $redcapMRNField)
+    public function getREDCapRecordIdViaMRN($mrn, $redcapEventId, $redcapMRNField, $protocolSubjectIdField = null, $protocolSubjectId = null)
     {
         $result = [];
         if ($this->getRedcapProjectRecords()) {
             foreach ($this->getRedcapProjectRecords() as $id => $record) {
                 if ($record[$redcapEventId][$redcapMRNField] == $mrn) {
-                    $result[] = array('id' => $id, 'record' => $record);
+                    if ($protocolSubjectIdField && $protocolSubjectId) {
+
+                        // if protocol allows duplicate MRN then try to match MRN AND protocolSubjectId to get the right REDCap record. OR for new REDCap records that do not have protocolSubjectId YET. use the first record that match the MRN but does not have protocolSubjectId
+                        if ($record[$redcapEventId][$protocolSubjectIdField] == $protocolSubjectId || $record[$redcapEventId][$protocolSubjectIdField] == '' || !$record[$redcapEventId][$protocolSubjectIdField]) {
+                            $result[] = array('id' => $id, 'record' => $record);
+                        }
+                    } else {
+                        $result[] = array('id' => $id, 'record' => $record);
+                    }
+
                 }
             }
         }
@@ -355,7 +377,7 @@ class Subjects extends SubjectDemographics
                         foreach ($subjects as $key => $subject) {
                             try {
                                 // pull protocol subject demographics. If subject demographics saved in oncore_subjects entity table it will be pulled from there. otherwise will be pulled via API then saved in entity table.
-                                $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId']);
+                                $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId'], $this->forceDemographicsPull);
                                 // make it easy to prepare for push/pull
                                 $subjects[$key]['demographics']['studySites'] = $subject['studySite'];
                             } catch (\Exception $e) {
@@ -658,8 +680,10 @@ class Subjects extends SubjectDemographics
 
 
         if ($response->getStatusCode() == 201) {
-            $data = json_decode($response->getBody(), true);
-            return array('status' => 'success');
+            $location = $response->getHeader('location');
+            $parts = explode('/', end($location));
+            $id = end($parts);
+            return array('status' => 'success', 'protocol_subject_id' => $id);
         } else {
             $data = json_decode($response->getBody(), true);
             return $data;
@@ -698,6 +722,21 @@ class Subjects extends SubjectDemographics
         }
     }
 
+        public function searchOnCoreProtocolSubjectViaProtocolSubjectId($protocolId, $protocolSubjectId)
+    {
+        // reset oncore protocol subjects to get latest subjects
+        $this->setOnCoreProtocolSubjects(null, true);
+
+        $oncoreProtocolSubjects = $this->getOnCoreProtocolSubjects($protocolId);
+
+        foreach ($oncoreProtocolSubjects as $oncoreProtocolSubject) {
+            if ($oncoreProtocolSubject['protocolSubjectId'] == $protocolSubjectId) {
+                return $oncoreProtocolSubject;
+            }
+        }
+    }
+
+
     /**
      * get the mapped OnCore value for REDCap value.
      * @param $redcapRecord
@@ -728,7 +767,7 @@ class Subjects extends SubjectDemographics
     public function pushToOnCore($protocolId, $redcapId, $fields, $oncoreFieldsDef)
     {
         if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
-            throw new \Exception('You do not have permissions to pull/push data from this protocol.');
+            throw new \Exception(OnCoreIntegration::getActionExceptionText('pushToOncore'));
         }
 
         $record = $this->getRedcapProjectRecords()[$redcapId];
@@ -779,8 +818,8 @@ class Subjects extends SubjectDemographics
     {
         foreach ($fields as $key => $field) {
             // if oncore race array is empty
+            $redcapValue = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
             if (is_array($onCoreRecord[$key]) && empty($onCoreRecord[$key])) {
-                $redcapValue = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
                 if (is_array($redcapValue)) {
                     foreach ($redcapValue as $id => $value) {
                         //checkbox not checked
@@ -803,7 +842,13 @@ class Subjects extends SubjectDemographics
                     $onCoreRecord[$key] = array($map['oc']);
                 }
             } elseif ($onCoreRecord[$key] == '' || is_null($onCoreRecord[$key])) {
-                $onCoreRecord[$key] = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                // ethnicity or gender
+                if (isset($field['value_mapping'])) {
+                    $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
+                    $onCoreRecord[$key] = $map['oc'];
+                }else{
+                    $onCoreRecord[$key] = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                }
             }
         }
         return $onCoreRecord;
@@ -928,6 +973,20 @@ class Subjects extends SubjectDemographics
                             $data[$field['event']][$field['redcap_field']] = $map['rc'];
                         }
                     }
+                    // for checkbox only mark other checkboxes to false.
+                    if ($field['field_type'] == 'checkbox') {
+                        // set other checkboxes to false.
+                        foreach ($field['value_mapping'] as $item) {
+                            // if checkboxes is check in oncore then skip
+                            if (in_array($item['oc'], $parsed)) {
+                                continue;
+                            }else{
+                                $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
+                                $data[$field['event']][$field['redcap_field'] . '___' . $item['rc']] = false;
+                            }
+                        }
+                    }
+
                 } else {
                     $map = $this->getMapping()->getOnCoreMappedValue($onCoreValue, $field);
                     $data[$field['event']][$field['redcap_field']] = $map['rc'];
@@ -949,7 +1008,7 @@ class Subjects extends SubjectDemographics
     public function pullOnCoreRecordsIntoREDCap($projectId, $protocolId, $record, $fields)
     {
         if (!$this->getUser()->isOnCoreContactAllowedToPush()) {
-            throw new \Exception('You do not have permissions to pull/push data from this protocol.');
+            throw new \Exception(OnCoreIntegration::getActionExceptionText('pull'));
         }
 
         if (!is_array($record)) {

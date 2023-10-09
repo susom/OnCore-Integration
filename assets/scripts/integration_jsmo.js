@@ -15,6 +15,7 @@
             const has_field_mappings        = module.config["has_field_mappings"];
             const last_adjudication         = module.config["last_adjudication"];
             const matching_library          = module.config["matching_library"];
+            const alert_notifications          = module.config["alert_notifications"];
 
             //THIS IS MATCHING ROWS STUFFED IN ENTITY TABLE
             const multiple_protocols        = oncore_protocols.length > 1 ? true : false;
@@ -50,7 +51,13 @@
                     //IF ONCORE HAS BEEN INTEGATED WITH THIS PROJECT, THEN DISPLAY SUMMARY OF LAST ADJUDICATION
                     if (has_field_mappings) {
                         var lead_class = "oncore_results";
-                        var lead_text = "Results summary from last adjudication : ";
+                        if(alert_notifications != ""){
+                            var lead_text = "<div class='alert alert-danger'>"+alert_notifications+"</div>"
+                            lead_text += "Results summary from last adjudication : ";
+                        }else{
+                            var lead_text = "Results summary from last adjudication : ";
+                        }
+
                         lead_text += "<ul class='summary_oncore_adjudication'>";
                         lead_text += "<li>Total Subjects : " + last_adjudication["total_count"] + "</li>";
                         lead_text += "<li>Full Match : " + last_adjudication["full_match_count"] + "</li>";

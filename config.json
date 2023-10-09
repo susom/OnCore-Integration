@@ -128,7 +128,7 @@
     },
     {
       "key": "oncore-skipped-contacts",
-      "name": "Comma Separated list for OnCore Protocol Staff that API cant return details for.",
+      "name": "Comma Separated list for OnCore Protocol Staff that API cant pull their demographics information.",
       "required": false,
       "type": "textarea"
     },
@@ -140,6 +140,22 @@
     }
   ],
   "system-settings": [
+    {
+      "key": "display-alert-notification",
+      "name": "<b>Display a notification on top of All EM pages.  </b>",
+      "type": "checkbox"
+    },
+    {
+      "key": "alert-notification",
+      "name": "<b>Notification body</b>",
+      "required": true,
+      "type": "rich-text",
+      "branchingLogic": {
+        "field": "display-alert-notification",
+        "op": "=",
+        "value": "true"
+      }
+    },
     {
       "key": "oncore-api-url",
       "name": "<b>OnCore API URL</b>",

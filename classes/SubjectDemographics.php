@@ -52,7 +52,7 @@ class SubjectDemographics
 
     public function __construct($validateFields)
     {
-        $this->$validateFields = $validateFields;
+        $this->validateFields = $validateFields;
     }
 
 
@@ -94,12 +94,12 @@ class SubjectDemographics
      * @return array|mixed|void
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function getOnCoreSubjectDemographics($subjectDemographicsId)
+    public function getOnCoreSubjectDemographics($subjectDemographicsId, $forceDemographicsPull = false)
     {
         try {
             // check if entity table already has that subject otherwise go to API to get info
             $demo = $this->getAllSubjects()[$subjectDemographicsId];
-            if (empty($demo)) {
+            if (empty($demo) || $forceDemographicsPull) {
                 $response = $this->getUser()->get('subjectDemographics/' . $subjectDemographicsId);
 
                 if ($response->getStatusCode() < 300) {
@@ -109,7 +109,12 @@ class SubjectDemographics
                     } else {
                         // create entity table record before return.
                         #$entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
-                        $entity = (new Entities)->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
+                        if($demo){
+                            $entity = (new Entities)->update(OnCoreIntegration::ONCORE_SUBJECTS, $demo['id'], $data);
+                        }
+                        else{
+                            $entity = (new Entities)->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
+                        }
                         if ($entity) {
                             return $data;
                         } else {

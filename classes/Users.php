@@ -77,6 +77,11 @@ class Users extends Clients
             }
         }
 
+        // edge case for auto pull we need to skip this.
+        if(defined("CRON")){
+            return true;
+        }
+
 
         if (empty($this->getRolesAllowedToPush()) || empty($this->getOnCoreContact())) {
             return false;
@@ -110,7 +115,7 @@ class Users extends Clients
     {
         $this->setProtocolStaff($protocolId);
 
-        $this->setOnCoreContact($this->searchProtocolStaff($this->getRedcapUser()->getUsername()));
+        $this->setOnCoreContact($this->searchProtocolStaff($this->getRedcapUser()->getUsername(), $this->getRedcapUser()->getEmail()));
 
     }
 
@@ -119,7 +124,7 @@ class Users extends Clients
      * @param $redcapUsername
      * @return array|mixed
      */
-    public function searchProtocolStaff($redcapUsername)
+    public function searchProtocolStaff($redcapUsername, $redcapUserEmail)
     {
         foreach ($this->getProtocolStaff() as $staff) {
             if (!empty($staff['contact']['additionalIdentifiers'])) {
@@ -131,7 +136,12 @@ class Users extends Clients
                     }
                 }
             }
+            if($staff['contact'] == $redcapUserEmail){
+                Entities::createLog("OnCore Contact found using $redcapUserEmail.");
+                return $staff;
+            }
         }
+        Entities::createLog('EM could not find a Protocol Staff for ' . $redcapUsername . '. User must confirm "Staff ID" is configured for his OnCore Contact.  ');
         return [];
     }
 
@@ -218,7 +228,7 @@ class Users extends Clients
                         if (empty($contact)) {
                             $message = 'System did not find demographic information for contact ID: ' . $staff['contactId'];
                             Entities::createLog($message);
-                            \REDCap::logEvent($message);
+                            \REDCap::logEvent('OnCore API Error.',$message);
                         } elseif (isset($contact['errorType'])) {
 //                            Entities::createLog($contact['message']);
 //                            \REDCap::logEvent($contact['message']);

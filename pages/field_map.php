@@ -5,106 +5,122 @@ namespace Stanford\OnCoreIntegration;
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
 //URLS FOR SUPPORT ASSETS
-$oncore_css             = $module->getUrl("assets/styles/field_mapping.css");
-$notif_css              = $module->getUrl("assets/styles/notif_modal.css");
+$oncore_css = $module->getUrl("assets/styles/field_mapping.css");
+$notif_css = $module->getUrl("assets/styles/notif_modal.css");
 
-$notif_js               = $module->getUrl("assets/scripts/notif_modal.js");
-$oncore_js              = $module->getUrl("assets/scripts/oncore.js");
+$notif_js = $module->getUrl("assets/scripts/notif_modal.js");
+$oncore_js = $module->getUrl("assets/scripts/oncore.js");
 
-$icon_ajax              = $module->getUrl("assets/images/icon_ajax.gif");
-$ajax_endpoint          = $module->getUrl("ajax/handler.php");
+$icon_ajax = $module->getUrl("assets/images/icon_ajax.gif");
+$ajax_endpoint = $module->getUrl("ajax/handler.php");
 
 //INITIAL SET UP FOR MAPPING PAGE STATE PULL AND PUSH SIDE
-$mapping                = $module->getMapping();
-$project_oncore_subset  = $mapping->getProjectOncoreSubset();
+$mapping = $module->getMapping();
+$project_oncore_subset = $mapping->getProjectOncoreSubset();
 
-$pushpull_pref          = $mapping->getProjectPushPullPref();
-$overall_pull_status    = $mapping->getOverallPullStatus() ? "ok" : "";
-$overall_push_status    = $mapping->getOverallPushStatus() ? "ok" : "";
-$auto_pull              = $module->getProjectSetting("enable-auto-pull");
+$pushpull_pref = $mapping->getProjectPushPullPref();
+$overall_pull_status = $mapping->getOverallPullStatus() ? "ok" : "";
+$overall_push_status = $mapping->getOverallPushStatus() ? "ok" : "";
+$auto_pull = $module->getProjectSetting("enable-auto-pull");
 
-$field_map_ui           = $mapping->makeFieldMappingUI();
-$oncore_fields          = $field_map_ui["oncore_fields"];
-$pull_html              = $field_map_ui["pull"];
-$push_html              = $field_map_ui["push"]["required"];
-$push_html_optional     = $field_map_ui["push"]["optional"];
+$field_map_ui = $mapping->makeFieldMappingUI();
+$oncore_fields = $field_map_ui["oncore_fields"];
+$pull_html = $field_map_ui["pull"];
+$push_html = $field_map_ui["push"]["required"];
+$push_html_optional = $field_map_ui["push"]["optional"];
 
-$linked_protocol        = array();
-$protocol_full          = $module->getIntegratedProtocol();
+$linked_protocol = array();
+$protocol_full = $module->getIntegratedProtocol();
 
-if($protocol_full){
-    $protocol               = $protocol_full["protocol"];
-    $linked_protocol[]      = "<div class='linked_protocol'>";
-    $linked_protocol[]      = "<b>Linked Protocol : </b> <span>IRB #{$protocol_full["irbNo"]} {$protocol["title"]} #{$protocol["protocolId"]}</span><br>";
-    $linked_protocol[]      = "<b>Library : </b> <span>{$protocol["library"]}</span><br>";
-    $linked_protocol[]      = "<b>Status : </b> <span>{$protocol["protocolStatus"]}</span><br/>";
-    $linked_protocol[]      = "</div>";
+if ($protocol_full) {
+    $protocol = $protocol_full["protocol"];
+    $linked_protocol[] = "<div class='linked_protocol'>";
+    $linked_protocol[] = "<b>Linked Protocol : </b> <span>IRB #{$protocol_full["irbNo"]} {$protocol["title"]} #{$protocol["protocolId"]}</span><br>";
+    $linked_protocol[] = "<b>Library : </b> <span>{$protocol["library"]}</span><br>";
+    $linked_protocol[] = "<b>Status : </b> <span>{$protocol["protocolStatus"]}</span><br/>";
+    $linked_protocol[] = "</div>";
 }
-$linked_protocol        = implode("\r\n", $linked_protocol);
+$linked_protocol = implode("\r\n", $linked_protocol);
 
 //ONCORE STUDY SITE SUBSET SELECTION
-$study_sites            = $module->getUsers()->getOnCoreStudySites();
-$project_study_sites    = $mapping->getProjectSiteStudies();
-$site_selection         = array();
-$site_selection[]       = "<ul>\r\n";
-foreach($study_sites as $site){
-    $checked            = in_array($site, $project_study_sites) ? "checked" : "";
-    $site_selection[]   = "<li><label><input type='checkbox' $checked name='site_study_subset' value='$site'><span>$site</span></label></li>\r\n";
+$study_sites = $module->getUsers()->getOnCoreStudySites();
+$project_study_sites = $mapping->getProjectSiteStudies();
+$site_selection = array();
+$site_selection[] = "<ul>\r\n";
+foreach ($study_sites as $site) {
+    $checked = in_array($site, $project_study_sites) ? "checked" : "";
+    $site_selection[] = "<li><label><input type='checkbox' $checked name='site_study_subset' value='$site'><span>$site</span></label></li>\r\n";
 }
-$site_selection[]       = "</ul>\r\n";
+$site_selection[] = "</ul>\r\n";
 
 //ONCORE PROPERTY DROP DOWN PICKER FOR PULL SIDE
-$oncore_props   = $mapping->getOnCoreFieldDefinitions();
-$req_field      = [];
-$opt_field      = [];
-foreach($oncore_props as $field => $props){
-    if(in_array($field, $project_oncore_subset)){
+$oncore_props = $mapping->getOnCoreFieldDefinitions();
+$req_field = [];
+$opt_field = [];
+foreach ($oncore_props as $field => $props) {
+    if (in_array($field, $project_oncore_subset)) {
         continue;
     }
-    $req        = $props["required"];
-    $selection  = "<button class='dropdown-item oncore_pull_prop' type='button' data-val='$field'>$field</button>";
-    if($req == "true"){
+    $req = $props["required"];
+    $selection = "<button class='dropdown-item oncore_pull_prop' type='button' data-val='$field'>$field</button>";
+    if ($req == "true") {
         $req_field[] = $selection;
-    }else{
+    } else {
         $opt_field[] = $selection;
     }
-    $checked            = in_array($field, $project_oncore_subset) ? "checked" : "";
-    $field_selection[]  = "<li><label><input type='checkbox' $checked name='oncore_field_subset' value='$field'><span>$field</span></label></li>\r\n";
+    $checked = in_array($field, $project_oncore_subset) ? "checked" : "";
+    $field_selection[] = "<li><label><input type='checkbox' $checked name='oncore_field_subset' value='$field'><span>$field</span></label></li>\r\n";
 }
-$bs_dropdown    = array();
-$bs_dropdown[]  = '<div class="dropdown-menu" aria-labelledby="dropdownMenu2">';
-$bs_dropdown[]  = '<h6 class="dropdown-header req_hdr">Required</h6>';
-$bs_dropdown[]  = implode("\r\n",$req_field);
-$bs_dropdown[]  = '<div class="dropdown-divider"></div>';
-$bs_dropdown[]  = '<h6 class="dropdown-header no_req_hdr">Optional</h6>';
-$bs_dropdown[]  = implode("\r\n",$opt_field);
-$bs_dropdown[]  = '</div>';
-$pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
+$bs_dropdown = array();
+$bs_dropdown[] = '<div class="dropdown-menu" aria-labelledby="dropdownMenu2">';
+$bs_dropdown[] = '<h6 class="dropdown-header req_hdr">Required</h6>';
+$bs_dropdown[] = implode("\r\n", $req_field);
+$bs_dropdown[] = '<div class="dropdown-divider"></div>';
+$bs_dropdown[] = '<h6 class="dropdown-header no_req_hdr">Optional</h6>';
+$bs_dropdown[] = implode("\r\n", $opt_field);
+$bs_dropdown[] = '</div>';
+$pull_oncore_prop_dd = implode("\r\n", $bs_dropdown);
 ?>
-<link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
+<link rel="stylesheet"
+      href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:600i,700,700i">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
 <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
-<link rel="stylesheet" href="<?=$oncore_css?>">
+<link rel="stylesheet" href="<?= $oncore_css ?>">
 <link rel="stylesheet" href="<?= $notif_css ?>">
 
 <div id="field_mapping">
     <h1>REDCap - OnCore Field Mapping</h1>
-    <p class="lead">Map REDCap Variables to OnCore Properties and vice versa to ensure that data can be both pulled and pushed between the two.</p>
+    <p class="lead">Map REDCap Variables to OnCore Properties and vice versa to ensure that data can be both pulled and
+        pushed between the two.</p>
+    <?php
+    if ($module->getSystemSetting('display-alert-notification') != '') {
+        ?>
+        <div class="alert alert-danger"><?= $module->getSystemSetting('alert-notification') ?></div>
+        <?php
+    }
+    if (empty($module->getUsers()->getOnCoreContact()) && !$module->isSuperUser()) {
+        throw new \Exception("No OnCore Contact found for " . $module->getUser()->getUsername());
+    }
+    ?>
     <ul class="nav nav-tabs">
         <li class="active"><a data-toggle="tab" href="#oncore_config" class="oncore_config">Configurations</a></li>
-        <li class=""><a data-toggle="tab" href="#pull_mapping" class="optional pull_mapping <?=$overall_pull_status?>">Pull Data From OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
-        <li class=""><a data-toggle="tab" href="#push_mapping" class="optional push_mapping <?=$overall_push_status?>">Push Data To OnCore <i class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
+        <li class=""><a data-toggle="tab" href="#pull_mapping"
+                        class="optional pull_mapping <?= $overall_pull_status ?>">Pull Data From OnCore <i
+                        class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
+        <li class=""><a data-toggle="tab" href="#push_mapping"
+                        class="optional push_mapping <?= $overall_push_status ?>">Push Data To OnCore <i
+                        class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
     </ul>
     <div class="tab-content pull-left">
         <div class="tab-pane active" id="oncore_config">
             <form id="oncore_config" class="container">
                 <h2>Oncore Project Linked</h2>
 
-                <?=$linked_protocol ?>
+                <?= $linked_protocol ?>
 
                 <p class="lead">Some configurations need to be set before using this module:</p>
 
@@ -129,19 +145,23 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         <div class="tab-pane" id="pull_mapping">
             <form id="oncore_mapping" class="container">
                 <h2>Map OnCore properties to REDCap variables to PULL</h2>
-                <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
-                    project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
+                <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to
+                    a REDCap
+                    project the analogous REDCap field name will need to be manually mapped and stored in the project's
+                    EM
                     Settings to be able to PULL.</p>
 
                 <label class="map_dir">
-                    <input type="checkbox" class="auto_pull" value="1" <?=($auto_pull) ? "checked" : "" ?>> Schedule an auto-pull of records once mapping is complete?
+                    <input type="checkbox" class="auto_pull" value="1" <?= ($auto_pull) ? "checked" : "" ?>> Schedule an
+                    auto-pull of records once mapping is complete?
                 </label>
 
                 <div id="oncore_prop_selector" class="pull-right">
-                    <button class="btn btn-success btn-lg dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <button class="btn btn-success btn-lg dropdown-toggle" type="button" id="dropdownMenu2"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         + Add an OnCore Property to Map
                     </button>
-                    <?=$pull_oncore_prop_dd?>
+                    <?= $pull_oncore_prop_dd ?>
                 </div>
 
                 <table class="table">
@@ -164,7 +184,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         <div class="tab-pane" id="push_mapping">
             <form id="consent_logic" class="container">
                 <h2>REDCap Filtering Logic</h2>
-                <p class="lead">Each REDCap project may have a unique set up. In order to push data from REDCap to OnCore it may be useful to filter records on the REDCap side.  Save filtering logic that can be applied (optional) in the Push to Oncore UI:</p>
+                <p class="lead">Each REDCap project may have a unique set up. In order to push data from REDCap to
+                    OnCore it may be useful to filter records on the REDCap side. Save filtering logic that can be
+                    applied (optional) in the Push to Oncore UI:</p>
 
                 <label class="map_dir">
                     <div style="margin:0 30px;float:right;">
@@ -346,8 +368,10 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
             <form id="redcap_mapping" class="container">
                 <h2>Map REDCap variables to Oncore properties to PUSH</h2>
-                <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to a REDCap
-                    project the analogous REDCap field name will need to be manually mapped and stored in the project's EM
+                <p class="lead">Data stored in OnCore will have a fixed nomenclature. When linking an OnCore project to
+                    a REDCap
+                    project the analogous REDCap field name will need to be manually mapped and stored in the project's
+                    EM
                     Settings to be able to PUSH.</p>
                 <table class="table">
                     <thead>
@@ -363,7 +387,13 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     </tbody>
 
                     <tfoot>
-                    <tr><td colspan="4"><button class="btn btn-secondary btn-lg " type="button" id="show_optional" ><b>Show</b> Optional OnCore Properties</button></td></tr>
+                    <tr>
+                        <td colspan="4">
+                            <button class="btn btn-secondary btn-lg " type="button" id="show_optional"><b>Show</b>
+                                Optional OnCore Properties
+                            </button>
+                        </td>
+                    </tr>
                     </tfoot>
                     <tbody class="opt_props">
                     <?= $push_html_optional ?>
@@ -374,20 +404,20 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     </div>
 </div>
 <style>
-#field_mapping .loading::after{
-    content:"";
-    background:url(<?=$icon_ajax?>) 0 0 no-repeat;
-    position: absolute;
-    margin-left: 10px;
-    width: 30px;
-    height: 30px;
-    background-size: contain;
-    z-index:100;
-}
+    #field_mapping .loading::after {
+        content: "";
+        background: url(<?=$icon_ajax?>) 0 0 no-repeat;
+        position: absolute;
+        margin-left: 10px;
+        width: 30px;
+        height: 30px;
+        background-size: contain;
+        z-index: 100;
+    }
 
-#field_mapping .default_value{
-    padding: 15px 10px;
-}
+    #field_mapping .default_value {
+        padding: 15px 10px;
+    }
 </style>
 <!--<script src="--><? //= $notif_js
 ?><!--" type="text/javascript"></script>-->
@@ -430,32 +460,32 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         //SUPERFICIAL UI
         oncoreConfigVis(pushpull_pref);
         $("#field_mapping .opt_props").hide();
-        $("#show_optional").click(function(e){
+        $("#show_optional").click(function (e) {
             e.preventDefault();
 
-            if($("#field_mapping .opt_props").is(":visible")){
+            if ($("#field_mapping .opt_props").is(":visible")) {
                 $("#field_mapping .opt_props").slideUp();
                 $(this).find("b").text("Show");
-            }else{
+            } else {
                 $("#field_mapping .opt_props").slideDown();
                 $(this).find("b").text("Hide");
             }
         });
 
         //TAB BEHAVIOR
-        $("#field_mapping ul.nav-tabs a").on("click", function(){
+        $("#field_mapping ul.nav-tabs a").on("click", function () {
             $(".nav-tabs .active, .tab-pane.active").removeClass("active");
             $(this).parent("li").addClass("active");
             $($(this).attr("href")).addClass("active");
         });
-        $(".pCheck").click(function(e){
+        $(".pCheck").click(function (e) {
             var tab_state = [];
-            $(".pCheck:checked").each(function(){
+            $(".pCheck:checked").each(function () {
                 var tab = $(this).data("tab");
                 tab_state.push(tab);
             });
 
-            if(!$(this).is(":checked")){
+            if (!$(this).is(":checked")) {
                 var tab = $(this).data("tab");
 
                 if (confirm("Unchecking this checkbox will delete all mapped fields.  Do you want to proceed?") == true) {
@@ -542,42 +572,42 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
         //SOME RESPONSIVE UI TO SEE
         //ON SELECT OF TOP LEVEL REDCAP FIELD
-        $("#oncore_mapping, #redcap_mapping").on("change","select.redcap_field", function(){
-            if($(this).find("option:selected")){
-                var _opt            = $(this).find("option:selected");
-                var map_direction   = $(this).data("mapdir") == "push" ? "push" : "pull";
-                var is_rc_mapping   = map_direction == "push" ? 1 : 0;
-                var redcap_field    = _opt.val();
-                var oncore_field    = $(this).attr("name");
-                var event_name      = _opt.data("eventname");
-                var ftype           = _opt.data("type");
-                var vmaps           = _opt.data("val_mapping");
+        $("#oncore_mapping, #redcap_mapping").on("change", "select.redcap_field", function () {
+            if ($(this).find("option:selected")) {
+                var _opt = $(this).find("option:selected");
+                var map_direction = $(this).data("mapdir") == "push" ? "push" : "pull";
+                var is_rc_mapping = map_direction == "push" ? 1 : 0;
+                var redcap_field = _opt.val();
+                var oncore_field = $(this).attr("name");
+                var event_name = _opt.data("eventname");
+                var ftype = _opt.data("type");
+                var vmaps = _opt.data("val_mapping");
 
-                var no_refresh      = $(this).hasClass("second_level_trigger");
-                var _select         = $(this);
+                var no_refresh = $(this).hasClass("second_level_trigger");
+                var _select = $(this);
 
                 //UI UPDATE
-                var _update_oppo    = true;
-                $("select.redcap_field[name='"+oncore_field+"']").each(function(){
-                    var temp_map_direction   = $(this).data("mapdir") == "push" ? "push" : "pull";
+                var _update_oppo = true;
+                $("select.redcap_field[name='" + oncore_field + "']").each(function () {
+                    var temp_map_direction = $(this).data("mapdir") == "push" ? "push" : "pull";
 
-                    if(map_direction !== temp_map_direction){
+                    if (map_direction !== temp_map_direction) {
                         //THIS MEANS THIS ITERATION IS THE OPPOSITE NUMBER SO WE MUST BE CAREFUL
-                        if( $(this).find(":checked").length && $(this).find(":checked").val() !== "-99"){
+                        if ($(this).find(":checked").length && $(this).find(":checked").val() !== "-99") {
                             _update_oppo = false;
                             return false;
                         }
                     }
 
-                    if(redcap_field !== "-99"){
-                        $(this).find("option[value='"+redcap_field+"']").prop("selected","selected");
-                        if($(this).closest("tr").find(".rc_event").length){
+                    if (redcap_field !== "-99") {
+                        $(this).find("option[value='" + redcap_field + "']").prop("selected", "selected");
+                        if ($(this).closest("tr").find(".rc_event").length) {
                             $(this).closest("tr").find(".rc_event").empty();
                             $(this).closest("tr").find(".rc_event").html(event_name);
                         }
-                    }else{
-                        if(map_direction == temp_map_direction){
-                            if($(this).closest("tr").find(".rc_event").length){
+                    } else {
+                        if (map_direction == temp_map_direction) {
+                            if ($(this).closest("tr").find(".rc_event").length) {
                                 $(this).closest("tr").find(".rc_event").empty();
                                 $(this).closest("tr").find(".rc_event").html(event_name);
                             }
@@ -585,28 +615,28 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     }
                 });
 
-                var value_mapping   = [];
-                if(vmaps){
-                    if(map_direction == "pull"){
-                        for(var oncore_value in vmaps){
+                var value_mapping = [];
+                if (vmaps) {
+                    if (map_direction == "pull") {
+                        for (var oncore_value in vmaps) {
                             var redcap_mapping = vmaps[oncore_value];
-                            value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
+                            value_mapping.push({"oc": oncore_value, "rc": redcap_mapping});
                         }
-                    }else{
-                        for(var redcap_mapping in vmaps){
+                    } else {
+                        for (var redcap_mapping in vmaps) {
                             var oncore_value = vmaps[redcap_mapping];
-                            value_mapping.push({"oc" : oncore_value, "rc" : redcap_mapping});
+                            value_mapping.push({"oc": oncore_value, "rc": redcap_mapping});
                         }
                     }
                 }
 
                 var field_maps = {
-                      "mapping" : map_direction
+                    "mapping": map_direction
                     , "oncore_field": oncore_field
                     , "redcap_field": redcap_field
                     , "event": event_name
-                    , "field_type" : ftype
-                    , "value_mapping" : value_mapping
+                    , "field_type": ftype
+                    , "value_mapping": value_mapping
                 };
 
                 $(this).parent().addClass("loading");
@@ -676,16 +706,16 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         });
 
         //ON SELECT OF FIXED VALUE SET REDCAP/ONCORE MAPPING
-        $("#oncore_mapping").on("change","select.redcap_value", function(){
-            if($(this).find("option:selected")){
-                var _opt            = $(this).find("option:selected");
+        $("#oncore_mapping").on("change", "select.redcap_value", function () {
+            if ($(this).find("option:selected")) {
+                var _opt = $(this).find("option:selected");
 
-                var temp            = $(this).attr("name").split("_");
-                var oncore_field    = temp[0];
-                var oncore_val_i    = temp[1];
-                var redcap_val_i    = _opt.val();
+                var temp = $(this).attr("name").split("_");
+                var oncore_field = temp[0];
+                var oncore_val_i = temp[1];
+                var redcap_val_i = _opt.val();
 
-                var top_level       = $(this).data("rc_field");
+                var top_level = $(this).data("rc_field");
 
                 if ($("#oncore_mapping select[name='" + oncore_field + "']").find("option:selected").length) {
                     var val_mapping = $("#oncore_mapping select[name='" + oncore_field + "']").find("option:selected").data("val_mapping");
@@ -695,7 +725,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     }
                     var oset = oncore_fields[oncore_field]["oncore_valid_values"];
                     if (redcap_val_i == "-99") {
-                        if(val_mapping.hasOwnProperty(oset[oncore_val_i])){
+                        if (val_mapping.hasOwnProperty(oset[oncore_val_i])) {
                             delete val_mapping[oset[oncore_val_i]];
                         }
                     } else {
@@ -710,15 +740,16 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 }
             }
         });
-        $("#redcap_mapping").on("change","select.oncore_value", function(){
-            if($(this).find("option:selected").length){
-                var _opt            = $(this).find("option:selected");
+        $("#redcap_mapping").on("change", "select.oncore_value", function () {
+            if ($(this).find("option:selected").length) {
+                var _opt = $(this).find("option:selected");
 
-                var temp            = $(this).attr("name").split("_");
-                var redcap_val_i    = temp.pop();
-                var rc_field        = $(this).data("rc_field");;
-                var oncore_val      = _opt.val();
-                var oncore_field    = $(this).data("oc_field");
+                var temp = $(this).attr("name").split("_");
+                var redcap_val_i = temp.pop();
+                var rc_field = $(this).data("rc_field");
+                ;
+                var oncore_val = _opt.val();
+                var oncore_field = $(this).data("oc_field");
 
                 if ($("#redcap_mapping select[name='" + oncore_field + "']").find("option:selected").length) {
                     var val_mapping = $("#redcap_mapping select[name='" + oncore_field + "']").find("option:selected").data("val_mapping");
@@ -729,7 +760,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
                     var oset = oncore_fields[oncore_field]["oncore_valid_values"];
                     if (oncore_val == "-99") {
-                        if(val_mapping.hasOwnProperty(redcap_val_i)){
+                        if (val_mapping.hasOwnProperty(redcap_val_i)) {
                             delete val_mapping[redcap_val_i];
                         }
                     } else {
@@ -746,9 +777,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         });
 
         //ONCORE ADD PULL PROP
-        $("#oncore_mapping").on("click", ".oncore_pull_prop", function(e){
+        $("#oncore_mapping").on("click", ".oncore_pull_prop", function (e) {
             e.preventDefault();
-            var _this       = $(this);
+            var _this = $(this);
             var oncore_prop = _this.data("val");
 
             $("#oncore_prop_selector .dropdown-toggle").prop("disabled", "disabled");
@@ -798,7 +829,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
             });
         });
         //DELETE PULL PROP
-        $("#oncore_mapping").on("click", ".delete_pull_prop", function(e){
+        $("#oncore_mapping").on("click", ".delete_pull_prop", function (e) {
             e.preventDefault(e);
             var oncore_prop = $(this).data("oncore_prop");
             var _req = $(this).data("req");
@@ -842,7 +873,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     }
                     var headline = be_status + "Failed to delete field";
                     var lead = be_lead + "Please refresh page and try again";
-                    var notif       = new notifModal(lead,headline);
+                    var notif = new notifModal(lead, headline);
                     notif.show();
                 });
 
@@ -855,12 +886,12 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         })
 
         //SAVE SITE STUDIES SUB SET
-        $("#study_sites").on("change", "input[name='site_study_subset']",function(){
+        $("#study_sites").on("change", "input[name='site_study_subset']", function () {
             $(this).parent("label").addClass("loading");
-            $("#study_sites input").prop("disabled","disabled");
+            $("#study_sites input").prop("disabled", "disabled");
             $("#study_sites").submit();
         });
-        $("#study_sites").submit(function(e){
+        $("#study_sites").submit(function (e) {
             e.preventDefault();
             var site_study_subset = $(this).find("input:checked").serializeArray();
 
@@ -902,7 +933,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         });
 
         //Schedule Auto_pull on Pull Side
-        $("input.auto_pull").on("click", function(){
+        $("input.auto_pull").on("click", function () {
             var data = {
                 "action": "schedulePull",
                 "flag": $(this).is(":checked"),
@@ -966,7 +997,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
 
         //USE DEFAULT VALUE (PRESENT THE ONCORE VALUES)
-        var savePushDefaultValue = function(oncore_field,default_value){
+        var savePushDefaultValue = function (oncore_field, default_value) {
             var redcap_field = null;
             var field_maps = {
                 mapping: "push",
@@ -1008,9 +1039,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         be_lead = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
                     }
 
-                    var headline    = be_status + "Failed to save Mapping";
-                    var lead        = be_lead + "Please refresh page and try again";
-                    var notif       = new notifModal(lead, headline);
+                    var headline = be_status + "Failed to save Mapping";
+                    var lead = be_lead + "Please refresh page and try again";
+                    var notif = new notifModal(lead, headline);
                     notif.show();
                 });
 
@@ -1021,17 +1052,17 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 });
             });
         }
-        $("#redcap_mapping").on("click", ".use_default", function(){
-            var _this           = $(this);
-            var oncore_field    = _this.data("oncore_field");
+        $("#redcap_mapping").on("click", ".use_default", function () {
+            var _this = $(this);
+            var oncore_field = _this.data("oncore_field");
 
-            var redcap_field    = null;
+            var redcap_field = null;
 
             $(this).parent().addClass("loading");
             disableSelects();
 
-            if(_this.is(":checked")){
-                _this.parents(".rc_selects").find('select[name=\''+oncore_field+'\'] option:selected').attr("selected",false);
+            if (_this.is(":checked")) {
+                _this.parents(".rc_selects").find('select[name=\'' + oncore_field + '\'] option:selected').attr("selected", false);
 
                 //CHECKED, PRESENT THE DEFAULT VALUES FROM THE ONCORE FIELD
                 var field_maps = {
@@ -1039,7 +1070,7 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     oncore_field: oncore_field,
                     use_default: 1
                 };
-            }else{
+            } else {
                 //UNCHECKED, REMOVE THE PUSH MAP...
                 var field_maps = {
                     mapping: "push",
@@ -1072,8 +1103,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                     updateOverAllStatus(result);
 
                     var html = result["html"];
-                    if($(html).find(":selected").length){
-                        $("select.default_select[name='"+oncore_field+"']").trigger("change");
+                    if ($(html).find(":selected").length) {
+                        $("select.default_select[name='" + oncore_field + "']").trigger("change");
                     }
 
                     //remove spinners
@@ -1087,9 +1118,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                         be_lead = e.responseJSON.hasOwnProperty("message") ? e.responseJSON.message + "\r\n" : "";
                     }
 
-                    var headline    = be_status + "Failed to save Mapping";
-                    var lead        = be_lead + "Please refresh page and try again";
-                    var notif       = new notifModal(lead, headline);
+                    var headline = be_status + "Failed to save Mapping";
+                    var lead = be_lead + "Please refresh page and try again";
+                    var notif = new notifModal(lead, headline);
                     notif.show();
                 });
 
@@ -1100,27 +1131,27 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
                 });
             });
         });
-        $("#redcap_mapping").on("change", ".default_select", function(){
-            var _this           = $(this);
-            var oncore_field    = _this.data("oncore_field");
-            var default_value   = null;
+        $("#redcap_mapping").on("change", ".default_select", function () {
+            var _this = $(this);
+            var oncore_field = _this.data("oncore_field");
+            var default_value = null;
             _this.parent().addClass("loading");
 
-            if(_this.find(":selected").length){
+            if (_this.find(":selected").length) {
                 //ITS A DROP DOWN
                 default_value = _this.find(":selected").val();
             }
 
-            savePushDefaultValue(oncore_field,default_value);
+            savePushDefaultValue(oncore_field, default_value);
         });
-        $("#redcap_mapping").on("blur", ".default_value", function(){
-            var _this           = $(this);
-            var oncore_field    = _this.data("oncore_field");
-            var default_value   = _this.val();
+        $("#redcap_mapping").on("blur", ".default_value", function () {
+            var _this = $(this);
+            var oncore_field = _this.data("oncore_field");
+            var default_value = _this.val();
 
             _this.parent().addClass("loading");
 
-            savePushDefaultValue(oncore_field,default_value);
+            savePushDefaultValue(oncore_field, default_value);
         });
     });
 
@@ -1132,33 +1163,33 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
 
     function enableSelects() {
         $("#field_mapping select").each(function () {
-            $(this).prop("disabled",false);
+            $(this).prop("disabled", false);
         });
     }
 
-    function oncoreConfigVis(initial_pushpull){
+    function oncoreConfigVis(initial_pushpull) {
         var show = false;
-        $(".pCheck").each(function(){
+        $(".pCheck").each(function () {
             var tab = $(this).data("tab");
 
-            if(initial_pushpull && initial_pushpull.includes(tab) ){
-                $(this).attr("checked",true);
+            if (initial_pushpull && initial_pushpull.includes(tab)) {
+                $(this).attr("checked", true);
             }
 
-            if($(this).is(":checked")){
-                $("."+tab).fadeIn(function(){
-                    $(this).css("display","block");
+            if ($(this).is(":checked")) {
+                $("." + tab).fadeIn(function () {
+                    $(this).css("display", "block");
                 });
                 show = true;
-            }else{
-                $("."+tab).fadeOut();
+            } else {
+                $("." + tab).fadeOut();
             }
         });
 
-        if(show || $("#oncore_fields").find("input:checked").length){
+        if (show || $("#oncore_fields").find("input:checked").length) {
             $("#oncore_fields").fadeIn();
-        }else{
-            if(!$("#oncore_fields").find("input:checked").length){
+        } else {
+            if (!$("#oncore_fields").find("input:checked").length) {
                 $("#oncore_fields").fadeOut();
             }
         }
@@ -1168,18 +1199,18 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         return self.indexOf(value) === index;
     }
 
-    function updateOverAllStatus(result){
+    function updateOverAllStatus(result) {
         var overallPull = JSON.parse(result["overallPull"]);
         var overallPush = JSON.parse(result["overallPush"]);
 
-        if(overallPull !== null){
+        if (overallPull !== null) {
             $(".nav-tabs .pull_mapping").removeClass("ok");
-            if(overallPull){
+            if (overallPull) {
                 $(".nav-tabs .pull_mapping").addClass("ok");
             }
         }
 
-        if(overallPush !== null) {
+        if (overallPush !== null) {
             $(".nav-tabs .push_mapping").removeClass("ok");
             if (overallPush) {
                 $(".nav-tabs .push_mapping").addClass("ok");
@@ -1187,9 +1218,9 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
         }
     }
 
-    function updatePushPullStatus(oncore_field, redcap_field, result){
-        var _el     = $("#oncore_mapping tr."+oncore_field);
-        var _el2    = $("#redcap_mapping tr."+oncore_field);
+    function updatePushPullStatus(oncore_field, redcap_field, result) {
+        var _el = $("#oncore_mapping tr." + oncore_field);
+        var _el2 = $("#redcap_mapping tr." + oncore_field);
 
         _el.find("td.status.pull").removeClass("ok");
         _el2.find("td.status.push").removeClass("ok");
@@ -1205,8 +1236,8 @@ $pull_oncore_prop_dd = implode("\r\n",$bs_dropdown);
     }
 
     function makeValueMappingRow(result_html, oncore_field, rc_mapping) {
-        var html        = result_html;
-        var parent_id   = rc_mapping ? "#redcap_mapping" : "#oncore_mapping";
+        var html = result_html;
+        var parent_id = rc_mapping ? "#redcap_mapping" : "#oncore_mapping";
         if ($(parent_id + " tr." + oncore_field).length) {
             //CLEAR EXISTING ROW BEFORE BUILDING NEW UI
             $(parent_id + " tr.more." + oncore_field).remove();

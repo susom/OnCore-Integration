@@ -10,6 +10,7 @@ require_once 'classes/Subjects.php';
 require_once 'classes/Mapping.php';
 
 /**
+ * new commit
  * Class OnCoreIntegration
  * @package Stanford\OnCoreIntegration
  * @property \Stanford\OnCoreIntegration\Users $users;
@@ -192,8 +193,20 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         if (!$this->protocols) {
             $this->setProtocols(new Protocols($this->getUsers(), $this->getMapping(), $this->getProjectId()));
 
-            // after protocol is init find its OnCore library and load it.
-            $this->setProtocolLibrary();
+            global $Proj;
+            // only load Protocol library and subject only if IRB is available.
+            $irb = $Proj->project['project_irb_number'];
+
+            if ($irb) {
+                // after protocol is init find its OnCore library and load it.
+                $this->setProtocolLibrary();
+
+                // update Subject can push flag.
+                if($this->getProtocols()->getEntityRecord()){
+                    $this->getProtocols()->getSubjects()->setCanPush($this->getProtocols()->canPushToProtocol());
+                }
+            }
+
         }
     }
 
@@ -207,16 +220,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $this->initiateProtocol();
 
                 //TODO ANY MORE PERFORMANT WAY TO DO THIS THAN HITTING IT EVERY ProjectSetup page?
-                $sql    = sprintf("SELECT project_irb_number from redcap_projects WHERE project_id = %s ", db_escape($project_id));
+                $sql = sprintf("SELECT project_irb_number from redcap_projects WHERE project_id = %s ", db_escape($project_id));
                 $record = db_query($sql);
                 if ($record->num_rows) {
-                   $r           = db_fetch_assoc($record);
-                   $project_irb = $r["project_irb_number"];
-                   $this->injectIntegrationUI($project_irb);
+                    $r = db_fetch_assoc($record);
+                    $project_irb = $r["project_irb_number"];
+                    $this->injectIntegrationUI($project_irb);
                 }
             }
         } catch (\Exception $e) {
-            \REDCap::logEvent($e->getMessage());
+            \REDCap::logEvent('Exception initiating OnCore Protocol.',$e->getMessage());
         }
     }
 
@@ -589,45 +602,46 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     //ONCORE INTEGRATION/STATUS METHODS
     public function injectIntegrationUI($project_irb)
     {
-        $field_map_url              = $this->getUrl("pages/field_map.php");
-        $integration_jsmo           = $this->getUrl("assets/scripts/integration_jsmo.js");
-        $notif_js                   = $this->getUrl("assets/scripts/notif_modal.js");
-        $oncore_js                  = $this->getUrl("assets/scripts/oncore.js");
-        $notif_css                  = $this->getUrl("assets/styles/notif_modal.css");
-        $oncore_css                 = $this->getUrl("assets/styles/oncore.css");
+        $field_map_url = $this->getUrl("pages/field_map.php");
+        $integration_jsmo = $this->getUrl("assets/scripts/integration_jsmo.js");
+        $notif_js = $this->getUrl("assets/scripts/notif_modal.js");
+        $oncore_js = $this->getUrl("assets/scripts/oncore.js");
+        $notif_css = $this->getUrl("assets/styles/notif_modal.css");
+        $oncore_css = $this->getUrl("assets/styles/oncore.css");
 
-        $protocols                  = $this->getProtocols()->getOnCoreProtocolsViaIRB($project_irb);
-        $integrations               = $this->getOnCoreIntegrations();
-        $last_adjudication          = $this->getSyncDiffSummary();
+        $protocols = $this->getProtocols()->getOnCoreProtocolsViaIRB($project_irb);
+        $integrations = $this->getOnCoreIntegrations();
+        $last_adjudication = $this->getSyncDiffSummary();
 
         //if no integrations, and only one protocol, pre-pull the protocol into the entity table
         $matching_library = false;
-        if(count($protocols) == 1 && empty($integrations)) {
-            $protocol           = current($protocols);
-            $protocolId         = $protocol["protocolId"];
-            $library            = $protocol["protocol"]["library"];
+        if (count($protocols) == 1 && empty($integrations)) {
+            $protocol = current($protocols);
+            $protocolId = $protocol["protocolId"];
+            $library = $protocol["protocol"]["library"];
 
             $lib_names = array();
-            foreach($this->getDefinedLibraries() as $lib){
+            foreach ($this->getDefinedLibraries() as $lib) {
                 array_push($lib_names, $lib["library-name"]);
             }
 //            $this->emDebug($protocol);
-            if(in_array($library, $lib_names)){
-                $matching_library   = true;
-                $new_entity_record  = $this->getProtocols()->processCron($this->getProjectId(), $project_irb, $protocolId, $this->getDefinedLibraries());
-                $integrations[$protocolId]  = $new_entity_record;
+            if (in_array($library, $lib_names)) {
+                $matching_library = true;
+                $new_entity_record = $this->getProtocols()->processCron($this->getProjectId(), $project_irb, $protocolId, $this->getDefinedLibraries());
+                $integrations[$protocolId] = $new_entity_record;
             }
         }
 
         //DATA TO INIT JSMO module
         $notifs_config = array(
-            "field_map_url"             => $field_map_url,
-            "oncore_protocols"          => $protocols,
-            "oncore_integrations"       => $integrations,
-            "has_oncore_integration"    => $this->hasOnCoreIntegration() ,
-            "has_field_mappings"        => !empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false ,
+            "field_map_url" => $field_map_url,
+            "oncore_protocols" => $protocols,
+            "oncore_integrations" => $integrations,
+            "has_oncore_integration" => $this->hasOnCoreIntegration(),
+            "has_field_mappings" => !empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false,
             "last_adjudication" => $last_adjudication,
-            "matching_library" => $matching_library
+            "matching_library" => $matching_library,
+            "alert_notifications" => $this->getSystemSetting('display-alert-notification') ? $this->getSystemSetting('alert-notification') : ""
         );
 
         $aa = ($this->escape(json_encode($notifs_config)));
@@ -734,16 +748,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     /**
      * @return protocol array
      */
-    public function getIntegratedProtocol(){
+    public function getIntegratedProtocol()
+    {
         $protocol = null;
-        if($this->hasOnCoreIntegration()){
+        if ($this->hasOnCoreIntegration()) {
             $integrations = $this->getOnCoreIntegrations();
-            foreach($integrations as $protocol_id => $integration){
-                if($integration["status"] == 2){
-                    $project_irb    = $integration["irb_number"];
-                    $protocol_id    = $integration["oncore_protocol_id"];
-                    $protocols      = $this->getProtocols()->getOnCoreProtocolsViaIRB($project_irb);
-                    foreach($protocols as $p) {
+            foreach ($integrations as $protocol_id => $integration) {
+                if ($integration["status"] == 2) {
+                    $project_irb = $integration["irb_number"];
+                    $protocol_id = $integration["oncore_protocol_id"];
+                    $protocols = $this->getProtocols()->getOnCoreProtocolsViaIRB($project_irb);
+                    foreach ($protocols as $p) {
                         if ($p["protocolId"] == $protocol_id) {
                             $protocol = $p;
                             break;
@@ -866,17 +881,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         if (!$rc_id or $rc_id == '') {
                             $rc_id = $record[\REDCap::getRecordIdField()];
                         }
-                        foreach ($record['redcap'] as $key => $value) {
-                            Entities::createLog('---');
-                            Entities::createLog('Key: ' . $key);
-                            if (is_array($value)) {
-                                Entities::createLog(implode(',', $value));
-                            } else {
-                                Entities::createLog($value);
-                            }
-
-                            Entities::createLog('---');
-                        }
+//                        foreach ($record['redcap'] as $key => $value) {
+//                            Entities::createLog('---');
+//                            Entities::createLog('Key: ' . $key);
+//                            if (is_array($value)) {
+//                                Entities::createLog(implode(',', $value));
+//                            } else {
+//                                Entities::createLog($value);
+//                            }
+//
+//                            Entities::createLog('---');
+//                        }
 
 
                         // we are using pull fields to map redcap data
@@ -899,7 +914,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     $mrn = $mrn . '_' . $entity_id ?: rand(1000, 9999);
                     $bin_var = $bin_array[$link_status];
                     $bin = $excluded ? $$bin_var["excluded"] : $$bin_var["included"];
-                    if (!array_key_exists($mrn, $bin)) {
+                    if (!array_key_exists($mrn, is_array($bin) ? $bin : [])) {
                         if ($excluded) {
                             $$bin_var["excluded"][$mrn] = array();
                         } else {
@@ -1114,7 +1129,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         } catch (\Exception $e) {
 //            $this->emError($e->getMessage());
-            \REDCap::logEvent('CRON JOB ERROR: ' . $e->getMessage());
+            \REDCap::logEvent('CRON JOB ERROR: ' , $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
         }
@@ -1172,7 +1187,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         } catch (\Exception $e) {
 //            $this->emError($e->getMessage());
-            \REDCap::logEvent('CRON JOB ERROR: ' . $e->getMessage());
+            \REDCap::logEvent('CRON JOB ERROR: ' , $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
         }
@@ -1204,7 +1219,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         } catch (\Exception $e) {
 //            $this->emError($e->getMessage());
-            \REDCap::logEvent('CRON JOB ERROR: ' . $e->getMessage());
+            \REDCap::logEvent('CRON JOB ERROR: ' , $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
         }
@@ -1354,7 +1369,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     }
 
     /* AJAX HANDLING IN HERE INSTEAD OF A STAND ALONE AjaxHandler PAGE? */
-    public function redcap_module_ajax($action, $payload, $project_id, $record, $instrument, $event_id, $repeat_instance, $survey_hash, $response_id, $survey_queue_hash, $page, $page_full, $user_id, $group_id) {
+    public function redcap_module_ajax($action, $payload, $project_id, $record, $instrument, $event_id, $repeat_instance, $survey_hash, $response_id, $survey_queue_hash, $page, $page_full, $user_id, $group_id)
+    {
         //        $this->emDebug(func_get_args());
         //        $this->emDebug("is redcap_module_ajax a reserved name?",
         //            $action,
@@ -1365,7 +1381,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         //            $user_id
         //        );
 
-        $return_o = array("success" => 0) ;
+        $return_o = array("success" => 0);
 
         try {
             if (isset($action)) {
@@ -1374,10 +1390,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $this->initiateProtocol();
 
                 // actions exempt from allow to push
-                $exemptActions = array('triggerIRBSweep');
+                $exemptActions = array('triggerIRBSweep', 'integrateOnCore', 'approveIntegrateOncore');
 
                 if (!$this->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && !in_array($action, $exemptActions)) {
-                    throw new \Exception('You do not have permissions to pull/push data from this protocol.');
+                    throw new \Exception(self::getActionExceptionText($action));
                 }
 
                 switch ($action) {
@@ -1395,29 +1411,29 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     case "saveMapping":
                         //Saves to em project settings
                         //MAKE THIS A MORE GRANULAR SAVE.  GET
-                        $project_oncore_subset  = $this->getMapping()->getProjectOncoreSubset();
-                        $current_mapping        = $this->getMapping()->getProjectMapping();
-                        $result                 = !empty($payload["field_mappings"]) ? filter_var_array($payload["field_mappings"], FILTER_SANITIZE_STRING) : null;
-                        $update_oppo            = !empty($payload["update_oppo"]) ? filter_var($payload["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
+                        $project_oncore_subset = $this->getMapping()->getProjectOncoreSubset();
+                        $current_mapping = $this->getMapping()->getProjectMapping();
+                        $result = !empty($payload["field_mappings"]) ? filter_var_array($payload["field_mappings"], FILTER_SANITIZE_STRING) : null;
+                        $update_oppo = !empty($payload["update_oppo"]) ? filter_var($payload["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
 
-                        $pull_mapping           = !empty($result["mapping"]) ? $result["mapping"] : null;
-                        $oncore_field           = !empty($result["oncore_field"]) && $result["oncore_field"] !== "-99" ? $result["oncore_field"] : null;
-                        $redcap_field           = !empty($result["redcap_field"]) && $result["redcap_field"] !== "-99" ? $result["redcap_field"] : null;
-                        $eventname              = !empty($result["event"]) ? $result["event"] : null;
-                        $ftype                  = !empty($result["field_type"]) ? $result["field_type"] : null;
-                        $vmap                   = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
-                        $use_default            = !empty($result["use_default"]);
-                        $default_value          = !empty($result["default_value"]) ? $result["default_value"] : null;
-                        $birthDateNotAvailable  = false;
+                        $pull_mapping = !empty($result["mapping"]) ? $result["mapping"] : null;
+                        $oncore_field = !empty($result["oncore_field"]) && $result["oncore_field"] !== "-99" ? $result["oncore_field"] : null;
+                        $redcap_field = !empty($result["redcap_field"]) && $result["redcap_field"] !== "-99" ? $result["redcap_field"] : null;
+                        $eventname = !empty($result["event"]) ? $result["event"] : null;
+                        $ftype = !empty($result["field_type"]) ? $result["field_type"] : null;
+                        $vmap = !empty($result["value_mapping"]) ? $result["value_mapping"] : null;
+                        $use_default = !empty($result["use_default"]);
+                        $default_value = !empty($result["default_value"]) ? $result["default_value"] : null;
+                        $birthDateNotAvailable = false;
 
                         //$pull_mapping tells me the actual click (pull or push side)... doing the opposite side is more just a convenience..
-                        if($pull_mapping == "pull"){
+                        if ($pull_mapping == "pull") {
                             $rc_mapping = 0;
                             //pull side
-                            if(!$redcap_field){
+                            if (!$redcap_field) {
                                 unset($current_mapping[$pull_mapping][$oncore_field]);
-                            }else{
-                                if(!$vmap && $update_oppo){
+                            } else {
+                                if (!$vmap && $update_oppo) {
                                     //if its just a one to one mapping, then just go ahead and map the other direction
                                     $current_mapping["push"][$oncore_field] = array(
                                         "redcap_field" => $redcap_field,
@@ -1436,44 +1452,44 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                                     "value_mapping" => $vmap
                                 );
                             }
-                        }else{
+                        } else {
                             $rc_mapping = 1;
                             //push side
-                            if(!$redcap_field){
+                            if (!$redcap_field) {
                                 unset($current_mapping[$pull_mapping][$oncore_field]);
-                                if($use_default){
-                                    if($oncore_field == "birthDate"){
+                                if ($use_default) {
+                                    if ($oncore_field == "birthDate") {
                                         $birthDateNotAvailable = true;
                                         $default_value = "birthDateNotAvailable";
                                     }
 
                                     $current_mapping[$pull_mapping][$oncore_field] = array(
-                                        "redcap_field"  => $redcap_field,
-                                        "event"         => $eventname,
-                                        "field_type"    => $ftype,
+                                        "redcap_field" => $redcap_field,
+                                        "event" => $eventname,
+                                        "field_type" => $ftype,
                                         "value_mapping" => $vmap,
                                         "default_value" => $default_value
                                     );
 
-                                    if($birthDateNotAvailable){
+                                    if ($birthDateNotAvailable) {
                                         $current_mapping[$pull_mapping][$oncore_field]["birthDateNotAvailable"] = true;
                                     }
                                 }
-                            }else{
-                                if(!$vmap && in_array($oncore_field, $project_oncore_subset) && $update_oppo){
+                            } else {
+                                if (!$vmap && in_array($oncore_field, $project_oncore_subset) && $update_oppo) {
                                     //if its just a one to one mapping, then just go ahead and map the other direction
                                     $current_mapping["pull"][$oncore_field] = array(
-                                        "redcap_field"  => $redcap_field,
-                                        "event"         => $eventname,
-                                        "field_type"    => $ftype,
+                                        "redcap_field" => $redcap_field,
+                                        "event" => $eventname,
+                                        "field_type" => $ftype,
                                         "value_mapping" => $vmap
                                     );
                                 }
 
                                 $current_mapping[$pull_mapping][$oncore_field] = array(
-                                    "redcap_field"  => $redcap_field,
-                                    "event"         => $eventname,
-                                    "field_type"    => $ftype,
+                                    "redcap_field" => $redcap_field,
+                                    "event" => $eventname,
+                                    "field_type" => $ftype,
                                     "value_mapping" => $vmap
                                 );
                             }
@@ -1481,64 +1497,64 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $this->emDebug("current mapping", $current_mapping[$pull_mapping]);
                         $this->getMapping()->setProjectFieldMappings($current_mapping);
                     case "checkPushPullS tatus":
-                        if(!isset($oncore_field)){
-                            $oncore_field   = filter_var($payload["oncore_field"], FILTER_SANITIZE_STRING) ;
+                        if (!isset($oncore_field)) {
+                            $oncore_field = filter_var($payload["oncore_field"], FILTER_SANITIZE_STRING);
                         }
-                        $oncore_field   = htmlspecialchars($oncore_field);
-                        $oncore_field   = $oncore_field ?: null;
+                        $oncore_field = htmlspecialchars($oncore_field);
+                        $oncore_field = $oncore_field ?: null;
                         $indy_push_pull = $this->getMapping()->calculatePushPullStatus($oncore_field);
                     case "checkOverallStatus":
-                        if(!isset($indy_push_pull)){
-                            $indy_push_pull = array("pull"=>null,"push"=>null);
+                        if (!isset($indy_push_pull)) {
+                            $indy_push_pull = array("pull" => null, "push" => null);
                         }
-                        $pull           = $this->getMapping()->getOverallPullStatus();
-                        $push           = $this->getMapping()->getOverallPushStatus();
-                        $pp_result      = array_merge(array("overallPull" => $pull, "overallPush" => $push), $indy_push_pull);
+                        $pull = $this->getMapping()->getOverallPullStatus();
+                        $push = $this->getMapping()->getOverallPushStatus();
+                        $pp_result = array_merge(array("overallPull" => $pull, "overallPush" => $push), $indy_push_pull);
                     case "getValueMappingUI":
-                        if(!isset($redcap_field)){
-                            $redcap_field   = filter_var($payload["redcap_field"], FILTER_SANITIZE_STRING) ;
+                        if (!isset($redcap_field)) {
+                            $redcap_field = filter_var($payload["redcap_field"], FILTER_SANITIZE_STRING);
                         }
                         $redcap_field = htmlspecialchars($redcap_field);
                         $redcap_field = $redcap_field ?: null;
 
-                        if(!isset($oncore_field)){
-                            $oncore_field   = filter_var($payload["oncore_field"], FILTER_SANITIZE_STRING) ;
+                        if (!isset($oncore_field)) {
+                            $oncore_field = filter_var($payload["oncore_field"], FILTER_SANITIZE_STRING);
                         }
                         $oncore_field = htmlspecialchars($oncore_field);
                         $oncore_field = $oncore_field ?: null;
 
-                        if(!isset($rc_mapping)){
-                            $rc_mapping     = filter_var($payload["rc_mapping"], FILTER_SANITIZE_NUMBER_INT) ;
+                        if (!isset($rc_mapping)) {
+                            $rc_mapping = filter_var($payload["rc_mapping"], FILTER_SANITIZE_NUMBER_INT);
                         }
                         $rc_mapping = htmlspecialchars($rc_mapping);
                         $rc_mapping = $rc_mapping ?: null;
 
-                        $rc_obj     = $this->getMapping()->getRedcapValueSet($redcap_field);
-                        $oc_obj     = $this->getMapping()->getOncoreValueSet($oncore_field);
+                        $rc_obj = $this->getMapping()->getRedcapValueSet($redcap_field);
+                        $oc_obj = $this->getMapping()->getOncoreValueSet($oncore_field);
 
-                        if($use_default) {
+                        if ($use_default) {
                             $res = $this->getMapping()->makeValueMappingUI_UseDefault($oncore_field, $default_value);
-                        }elseif(!empty($rc_obj) || !empty($oc_obj)){
+                        } elseif (!empty($rc_obj) || !empty($oc_obj)) {
                             if ($rc_mapping) {
                                 $res = $this->getMapping()->makeValueMappingUI_RC($oncore_field, $redcap_field);
                             } else {
                                 $res = $this->getMapping()->makeValueMappingUI($oncore_field, $redcap_field);
                             }
-                        }else{
+                        } else {
                             $res = array("html" => null);
                         }
 
-                        $result = array_merge( array("html" => $res["html"]), $pp_result) ;
+                        $result = array_merge(array("html" => $res["html"]), $pp_result);
                         break;
                     case "deleteMapping":
                         //DELETE ENTIRE MAPPING FOR PUSH Or PULL
-                        $current_mapping    = $this->getMapping()->getProjectMapping();
-                        $push_pull          = !empty($payload["push_pull"]) ? filter_var($payload["push_pull"], FILTER_SANITIZE_STRING) : null;
+                        $current_mapping = $this->getMapping()->getProjectMapping();
+                        $push_pull = !empty($payload["push_pull"]) ? filter_var($payload["push_pull"], FILTER_SANITIZE_STRING) : null;
 
-                        if($push_pull){
+                        if ($push_pull) {
                             $current_mapping[$push_pull] = array();
 
-                            if($push_pull == "pull"){
+                            if ($push_pull == "pull") {
                                 //empty it
                                 $this->getMapping()->setProjectOncoreSubset(array());
                             }
@@ -1548,16 +1564,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         break;
                     case "deletePullField":
                         //DELETE ENTIRE MAPPING FOR PUSH Or PULL
-                        $current_mapping        = $this->getMapping()->getProjectMapping();
-                        $pull_field             = !empty($payload["oncore_prop"]) ? filter_var($payload["oncore_prop"], FILTER_SANITIZE_STRING) : null;
+                        $current_mapping = $this->getMapping()->getProjectMapping();
+                        $pull_field = !empty($payload["oncore_prop"]) ? filter_var($payload["oncore_prop"], FILTER_SANITIZE_STRING) : null;
 
                         //REMOVE FROM PULL SUBSET
-                        $project_oncore_subset  = $this->getMapping()->getProjectOncoreSubset();
+                        $project_oncore_subset = $this->getMapping()->getProjectOncoreSubset();
                         $unset_idx = array_search($pull_field, $project_oncore_subset);
                         unset($project_oncore_subset[$unset_idx]);
                         $this->getMapping()->setProjectOncoreSubset($project_oncore_subset);
 
-                        if(array_key_exists($pull_field, $current_mapping["pull"]) ){
+                        if (array_key_exists($pull_field, $current_mapping["pull"])) {
                             //REMOVE FROM MAPPING
                             unset($current_mapping["pull"][$pull_field]);
                         }
@@ -1565,21 +1581,21 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 //                $this->emDebug("new mapping less $pull_field", $current_mapping["pull"], $project_oncore_subset);
                         $result = $this->getMapping()->setProjectFieldMappings($current_mapping);
 
-                        $pull           = $this->getMapping()->getOverallPullStatus();
-                        $push           = $this->getMapping()->getOverallPushStatus();
-                        $result         = array("overallPull" => $pull, "overallPush" => $push);
+                        $pull = $this->getMapping()->getOverallPullStatus();
+                        $push = $this->getMapping()->getOverallPushStatus();
+                        $result = array("overallPull" => $pull, "overallPush" => $push);
                         break;
                     case "saveOncoreSubset":
-                        $oncore_prop    = !empty($payload["oncore_prop"]) ? filter_var($payload["oncore_prop"], FILTER_SANITIZE_STRING) : array();
-                        $subtract       = !empty($payload["subtract"]) ? filter_var($payload["subtract"], FILTER_SANITIZE_NUMBER_INT) : 0;
+                        $oncore_prop = !empty($payload["oncore_prop"]) ? filter_var($payload["oncore_prop"], FILTER_SANITIZE_STRING) : array();
+                        $subtract = !empty($payload["subtract"]) ? filter_var($payload["subtract"], FILTER_SANITIZE_NUMBER_INT) : 0;
 
-                        $project_oncore_subset  = $this->getMapping()->getProjectOncoreSubset();
+                        $project_oncore_subset = $this->getMapping()->getProjectOncoreSubset();
 
-                        if($subtract){
+                        if ($subtract) {
                             $unset_idx = array_search($oncore_prop, $project_oncore_subset);
                             unset($project_oncore_subset[$unset_idx]);
-                        }else{
-                            if(!in_array($oncore_prop,$project_oncore_subset)) {
+                        } else {
+                            if (!in_array($oncore_prop, $project_oncore_subset)) {
                                 array_push($project_oncore_subset, $oncore_prop);
                             }
                         }
@@ -1614,18 +1630,18 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             $excluded = $this->getMapping()->makeOncoreTableHTML($sync_diff["oncore"]["excluded"], false, "disabled", true);
                         }
 
-                        $result["included"]         = $included["html"] ?: "";
-                        $result["excluded"]         = $excluded["html"] ?: "";
-                        $result["footer_action"]    = $included["footer_action"] ?: "";
-                        $result["show_all"]         = $included["show_all"] ?: "";
+                        $result["included"] = $included["html"] ?: "";
+                        $result["excluded"] = $excluded["html"] ?: "";
+                        $result["footer_action"] = $included["footer_action"] ?: "";
+                        $result["show_all"] = $included["show_all"] ?: "";
                         break;
                     case "approveSync":
                         $temp = !empty($payload["record"]) ? filter_var_array($payload["record"], FILTER_SANITIZE_STRING) : null;
                         $mrn = $temp['mrn'];
                         unset($temp["mrn"]);
-                        $id     = $temp["oncore"];
-                        $res    = $this->getProtocols()->pullOnCoreRecordsIntoREDCap($temp);
-                        if(is_array($res)){
+                        $id = $temp["oncore"];
+                        $res = $this->getProtocols()->pullOnCoreRecordsIntoREDCap($temp);
+                        if (is_array($res)) {
                             $result = array("mrn" => $mrn, "id" => $res["id"], 'message' => 'Record synced successfully!');
                         }
                         break;
@@ -1637,8 +1653,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             throw new \Exception('REDCap Record ID is missing.');
                         }
 
-                        $rc_id  = $id = $record["value"];
-                        $temp   = $this->getProtocols()->pushREDCapRecordToOnCore($rc_id, $this->getMapping()->getOnCoreFieldDefinitions());
+                        $rc_id = $id = $record["value"];
+                        $temp = $this->getProtocols()->pushREDCapRecordToOnCore($rc_id, $this->getMapping()->getOnCoreFieldDefinitions());
                         if (is_array($temp)) {
                             $result = array('id' => $rc_id, 'status' => 'success', 'message' => $temp['message']);
                         }
@@ -1662,22 +1678,22 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
                     case "approveIntegrateOncore":
                         //integrate oncore project(s)!!
-                        $entity_record_id   = !empty($payload["entity_record_id"]) ? filter_var($payload["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
-                        $integrate          = !empty($payload["integrate"]) ? filter_var($payload["integrate"], FILTER_SANITIZE_NUMBER_INT) : null;
-                        $result             = $this->integrateOnCoreProject($entity_record_id, $integrate);
+                        $entity_record_id = !empty($payload["entity_record_id"]) ? filter_var($payload["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
+                        $integrate = !empty($payload["integrate"]) ? filter_var($payload["integrate"], FILTER_SANITIZE_NUMBER_INT) : null;
+                        $result = $this->integrateOnCoreProject($entity_record_id, $integrate);
                         break;
 
                     case "integrateOnCore":
                         if (isset($payload['irb']) && $payload['irb'] != '' && isset($payload['oncore_protocol_id']) && $payload['oncore_protocol_id'] != '') {
-                            $irb                = htmlspecialchars($payload['irb']);
-                            $oncoreProtocolId   = htmlspecialchars($payload['oncore_protocol_id']);
-                            $new_entity_record  = $this->getProtocols()->processCron($this->getProjectId(), $irb, $oncoreProtocolId, $this->getDefinedLibraries());
-                            $result             = $new_entity_record;
+                            $irb = htmlspecialchars($payload['irb']);
+                            $oncoreProtocolId = htmlspecialchars($payload['oncore_protocol_id']);
+                            $new_entity_record = $this->getProtocols()->processCron($this->getProjectId(), $irb, $oncoreProtocolId, $this->getDefinedLibraries());
+                            $result = $new_entity_record;
                         }
                         break;
                 }
                 $return_o["success"] = 1;
-                $result     = json_encode($result, JSON_THROW_ON_ERROR);
+                $result = json_encode($result, JSON_THROW_ON_ERROR);
             }
         } catch (\LogicException|ClientException|GuzzleException $e) {
             if (method_exists($e, 'getResponse')) {
@@ -1694,15 +1710,86 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             if ($id) {
                 $responseBodyAsString['id'] = $id;
             }
-            $result     = json_encode($responseBodyAsString, JSON_THROW_ON_ERROR);
+            $result = json_encode($responseBodyAsString, JSON_THROW_ON_ERROR);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
-            $result     = json_encode(array('status' => 'error', 'message' => $e->getMessage(), 'id' => $id), JSON_THROW_ON_ERROR);
+            $result = json_encode(array('status' => 'error', 'message' => $e->getMessage(), 'id' => $id), JSON_THROW_ON_ERROR);
         }
 
         $return_o["result"] = $result;
 
         // Return is left as php object, is converted automatically
         return $return_o;
+    }
+
+
+    public static function getActionExceptionText($action){
+        switch ($action) {
+            case "getValueMappingUI":
+            case "getMappingHTML":
+                return 'You do not have Permissions to view Mapping UI.';
+
+            case "saveSiteStudies":
+                return 'You do not have Permissions to save Study sites.';
+
+
+            case "saveFilterLogic":
+                return 'You do not have Permissions to save Filter Logic.';
+
+
+            case "saveMapping":
+                return 'You do not have Permissions to save Mapping. ';
+            case "checkPushPullStatus":
+                return 'You do not have Permissions to check Mapping status. ';
+            case "checkOverallStatus":
+                return 'You do not have Permissions to check Mapping overall status. ';
+            case "deleteMapping":
+                return 'You do not have Permissions to delete mapping. ';
+            case "deletePullField":
+                return 'You do not have Permissions to delete pull field. ';
+
+            case "saveOncoreSubset":
+                return 'You do not have Permissions to save OnCore Subset. ';
+
+            case "savePushPullPref":
+                return 'You do not have Permissions to save Push/Pull preference.';
+
+            case "integrateOnCore":
+                //integrate oncore project(s)!!
+                return 'You do not have Permissions to Link protocol.';
+
+            case "syncDiff":
+            case "pull":
+                return 'You do not have Permissions to Sync REDCap with OnCore protocol.';
+
+            case "getSyncDiff":
+                return 'You do not have Permissions to get sync differences.';
+
+            case "approveSync":
+                return 'You do not have Permissions to approve sync.';
+
+            case "pushToOncore":
+                return 'You do not have Permissions to push to OnCore.';
+
+            case "excludeSubject":
+                //flips excludes flag on entitry record
+                return 'You do not have Permissions to exclude subject.';
+
+            case "includeSubject":
+                //flips excludes flag on entitry record
+                return 'You do not have Permissions to include subject.';
+
+            case "schedulePull":
+                return 'You do not have Permissions to enable auto-pull.';
+
+            case "triggerIRBSweep":
+                return 'You do not have Permissions to trigger IRB sweep.';
+            case "projectLogs":
+                return 'You do not have Permissions to get project logs.';
+            case "projectProtocols":
+                return 'You do not have Permissions to search OnCore Protocol.';
+            default:
+                return 'You do not have Permissions to perform this action.';
+        }
     }
 }

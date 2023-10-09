@@ -124,7 +124,7 @@ class Mapping
             return $this->project_mapping;
         } else {
 //            $this->project_mapping = json_decode(ExternalModules::getProjectSetting($this->module->PREFIX, $this->module->getProjectId(), OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
-            $this->project_mapping = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME), true);
+            $this->project_mapping = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME)?:'', true);
 
             return $this->project_mapping ?: array("pull" => array(), "push" => array());
         }
@@ -641,7 +641,7 @@ class Mapping
                 $trash = $field !== "mrn" ? "<i class='fas fa-trash delete_pull_prop' data-oncore_prop='$field' data-req='$required'></i>" : "";
 
                 $temp = array();
-                $custom_protocolsubjectid_disclaim = $field == "protocolSubjectId" ? "<em style='display: block; font-size: 77%;color: #666;margin: 5px 0 0;'>*Uncommon, for REDCap internal use</em>" : "";
+                $custom_protocolsubjectid_disclaim = $field == "protocolSubjectId" ? "<em style='display: block; font-size: 77%;color: #666;margin: 5px 0 0;'>*Uncommon, Only if OnCore Protocol allows duplicate MRN enrollment.</em>" : "";
                 $temp[] = "<tr class='$field'>";
                 $temp[] = "<td class='oc_field'>$field <i class='fas fa-angle-double-right map_arrow'></i>$custom_protocolsubjectid_disclaim</td>";
                 $temp[] = "<td class='rc_selects'>$pull_rc_map_select</td>";
