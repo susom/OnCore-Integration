@@ -136,7 +136,7 @@ class Users extends Clients
                     }
                 }
             }
-            if($staff['contact'] == $redcapUserEmail){
+            if($staff['contact']['email'] == $redcapUserEmail){
                 Entities::createLog("OnCore Contact found using $redcapUserEmail.");
                 return $staff;
             }
