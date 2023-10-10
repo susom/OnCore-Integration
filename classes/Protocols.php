@@ -173,9 +173,9 @@ class Protocols
                 throw new \Exception(implode(',', $e->errors));
             }
             $record = $entity;
-        }else{
+        } else {
 
-            $entity = $e->update(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE,  $record['id'], $data);
+            $entity = $e->update(OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE, $record['id'], $data);
             if (!$entity) {
                 throw new \Exception(implode(',', $e->errors));
             }
@@ -448,10 +448,14 @@ class Protocols
             // get oncore protocol object test
             $protocol = $this->getOnCoreProtocol();
             // now check if protocol status in statuses allowed to push
-            $status = in_array(strtolower($protocol['protocolStatus']), $this->getUser()->getStatusesAllowedToPush());
-            if (!$status) {
-                Entities::createLog("" . $protocol['protocolNo'] . " status " . $protocol['protocolStatus'] . " is not part of allowed statuses");
+            // Check status after protocol library is loaded.
+            if (!empty($this->getUser()->getStatusesAllowedToPush())) {
+                $status = in_array(strtolower($protocol['protocolStatus']), $this->getUser()->getStatusesAllowedToPush());
+                if (!$status) {
+                    Entities::createLog("" . $protocol['protocolNo'] . " status " . $protocol['protocolStatus'] . " is not part of allowed statuses");
+                }
             }
+
             $linked = $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES;
             if (!$linked) {
                 Entities::createLog("" . $protocol['protocolNo'] . " is not approved. Current status is " . $this->getEntityRecord()['status'] . "");
