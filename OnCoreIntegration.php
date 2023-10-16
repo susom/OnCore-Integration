@@ -350,20 +350,20 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     'type' => 'text',
                     'required' => true,
                 ],
-                'redcap_username' => [
-                    'name' => 'REDCap username',
+                'oncore_additional_identifier' => [
+                    'name' => 'OnCore Contact Staff ID(REDCap username)',
                     'type' => 'text',
-                    'required' => true,
-                ],
-                'redcap_entity_oncore_protocol_id' => [
-                    'name' => 'REDCap Entity OnCore Protocol Record Id(Foreign Key)',
-                    'type' => 'integer',
                     'required' => true,
                 ],
                 'oncore_role' => [
                     'name' => 'OnCore Role',
                     'type' => 'text',
                     'required' => true,
+                ],
+                'oncore_stop_date' => [
+                    'name' => 'OnCore Contact Stop Date',
+                    'type' => 'text',
+                    'required' => false,
                 ],
             ],
             'special_keys' => [
