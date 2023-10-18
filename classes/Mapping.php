@@ -524,7 +524,7 @@ class Mapping
         if (empty($this->oncore_subset)) {
 //            $arr = json_decode(ExternalModules::getProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_ONCORE_SUBSET), true);
             $arr = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_ONCORE_SUBSET), true);
-            $this->oncore_subset = $arr ?: ["mrn"];
+            $this->oncore_subset = $arr ?: ["mrn", "protocolSubjectId"];
         }
         return $this->oncore_subset;
     }
@@ -641,8 +641,8 @@ class Mapping
                 $trash = $field !== "mrn" ? "<i class='fas fa-trash delete_pull_prop' data-oncore_prop='$field' data-req='$required'></i>" : "";
 
                 $temp = array();
-                $custom_protocolsubjectid_disclaim = $field == "protocolSubjectId" ? "<em style='display: block; font-size: 77%;color: #666;margin: 5px 0 0;'>*Uncommon, Only if OnCore Protocol allows duplicate MRN enrollment.</em>" : "";
-                $temp[] = "<tr class='$field'>";
+                $custom_protocolsubjectid_disclaim = $field == "protocolSubjectId" ? "<em style='display: block; font-size: 77%;color: #666;margin: 5px 0 0;'><strong>*By default, it is optional; however, it becomes mandatory if your protocol permits duplicate MRNs.</strong></em>" : "";
+                $temp[] = $field == 'protocolSubjectId' ? "<tr class='$field table-warning'>" : "<tr class='$field'>";
                 $temp[] = "<td class='oc_field'>$field <i class='fas fa-angle-double-right map_arrow'></i>$custom_protocolsubjectid_disclaim</td>";
                 $temp[] = "<td class='rc_selects'>$pull_rc_map_select</td>";
                 $temp[] = "<td class='rc_event centered'>$event_name</td>";

@@ -1321,10 +1321,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     {
         $customErrorMessages = $this->getSubSettings('custom-error-messages', $this->getProjectId());
         foreach ($customErrorMessages as $customErrorMessage) {
-            $aa = $customErrorMessage['oncore-error-message'];
-            $bb = $message;
-            $cc = $customErrorMessage['oncore-error-message'] == $message;
-            $dd = strpos($customErrorMessage['oncore-error-message'], $message) !== false;
             if ($customErrorMessages['oncore-error-message'] == $message or strpos($customErrorMessage['oncore-error-message'], $message) !== false) {
                 return $message . '<br>' . $customErrorMessage['extra-error-message'];
             }
