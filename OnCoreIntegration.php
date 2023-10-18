@@ -202,7 +202,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 $this->setProtocolLibrary();
 
                 // update Subject can push flag.
-                if($this->getProtocols()->getEntityRecord()){
+                if ($this->getProtocols()->getEntityRecord()) {
                     $this->getProtocols()->getSubjects()->setCanPush($this->getProtocols()->canPushToProtocol());
                 }
             }
@@ -229,7 +229,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 }
             }
         } catch (\Exception $e) {
-            \REDCap::logEvent('Exception initiating OnCore Protocol.',$e->getMessage());
+            \REDCap::logEvent('Exception initiating OnCore Protocol.', $e->getMessage());
         }
     }
 
@@ -1129,7 +1129,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         } catch (\Exception $e) {
 //            $this->emError($e->getMessage());
-            \REDCap::logEvent('CRON JOB ERROR: ' , $e->getMessage());
+            \REDCap::logEvent('CRON JOB ERROR: ', $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
         }
@@ -1187,7 +1187,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         } catch (\Exception $e) {
 //            $this->emError($e->getMessage());
-            \REDCap::logEvent('CRON JOB ERROR: ' , $e->getMessage());
+            \REDCap::logEvent('CRON JOB ERROR: ', $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
         }
@@ -1219,7 +1219,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         } catch (\Exception $e) {
 //            $this->emError($e->getMessage());
-            \REDCap::logEvent('CRON JOB ERROR: ' , $e->getMessage());
+            \REDCap::logEvent('CRON JOB ERROR: ', $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
         }
@@ -1675,6 +1675,25 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     case "approveIntegrateOncore":
                         //integrate oncore project(s)!!
                         $entity_record_id = !empty($payload["entity_record_id"]) ? filter_var($payload["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
+                        $protocol_status = !empty($payload["protocol_status"]) ? htmlspecialchars($payload["protocol_status"]) : null;
+                        $protocol_num = !empty($payload["protocol_num"]) ? htmlspecialchars($payload["protocol_num"]) : null;
+                        $oncore_library = !empty($payload["oncore_library"]) ? htmlspecialchars($payload["oncore_library"]) : null;
+
+                        if (empty($this->getUsers()->getStatusesAllowedToPush())) {
+                            // if allowed statuses are not set because protocol is not linked yet.
+                            $libraries = $this->getDefinedLibraries();
+                            foreach ($libraries as $library) {
+                                if ($oncore_library == $library['library-name']) {
+                                    $this->getUsers()->setStatusesAllowedToPush(self::getSubSettingsValuesAsArray($library['library-oncore-protocol-statuses'], 'library-protocol-status'));
+                                }
+                            }
+                        }
+
+                        $status = in_array(strtolower($protocol_status), $this->getUsers()->getStatusesAllowedToPush());
+                        if (!$status) {
+                            throw new \Exception("" . $protocol_num . " status '" . $protocol_status . "' is not part of allowed statuses");
+                        }
+
                         $integrate = !empty($payload["integrate"]) ? filter_var($payload["integrate"], FILTER_SANITIZE_NUMBER_INT) : null;
                         $result = $this->integrateOnCoreProject($entity_record_id, $integrate);
                         break;
@@ -1719,7 +1738,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     }
 
 
-    public static function getActionExceptionText($action){
+    public static function getActionExceptionText($action)
+    {
         switch ($action) {
             case "getValueMappingUI":
             case "getMappingHTML":

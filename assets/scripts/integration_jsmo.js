@@ -15,7 +15,7 @@
             const has_field_mappings        = module.config["has_field_mappings"];
             const last_adjudication         = module.config["last_adjudication"];
             const matching_library          = module.config["matching_library"];
-            const alert_notifications          = module.config["alert_notifications"];
+            const alert_notifications       = module.config["alert_notifications"];
 
             //THIS IS MATCHING ROWS STUFFED IN ENTITY TABLE
             const multiple_protocols        = oncore_protocols.length > 1 ? true : false;
@@ -87,7 +87,10 @@
 
                         var data = {
                             "entity_record_id"  : entity_record_id,
-                            "integrate"         : integrate
+                            "integrate"         : integrate,
+                            "protocol_status"         : oncore_protocols[0]['protocol']['protocolStatus'],
+                            "protocol_num"         : oncore_protocols[0]['protocol']['protocolNo'],
+                            "oncore_library"         : oncore_protocols[0]['protocol']['library'],
                         }
 
                         console.log("approve integration", data)
