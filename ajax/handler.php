@@ -37,6 +37,14 @@ try {
                 break;
 
             case "saveMapping":
+
+                $protocol_status = $module->getProtocols()->getOnCoreProtocol()['protocolStatus'];
+                $protocol_num = $module->getProtocols()->getOnCoreProtocol()['protocolNo'];
+                $status = in_array(strtolower($protocol_status), $module->getUsers()->getStatusesAllowedToPush());
+                if (!$status) {
+                    throw new \Exception("" . $protocol_num . " status '" . $protocol_status . "' is not part of allowed statuses");
+                }
+
                 //Saves to em project settings
                 //MAKE THIS A MORE GRANULAR SAVE.  GET
                 $project_oncore_subset = $module->getMapping()->getProjectOncoreSubset();
