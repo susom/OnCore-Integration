@@ -133,6 +133,12 @@
       "type": "textarea"
     },
     {
+      "key": "redcap-oncore-project-oncore-subset",
+      "name": "Oncore project fields subset ",
+      "required": false,
+      "type": "textarea"
+    },
+    {
       "key": "enable-auto-pull",
       "name": "If checked a daily cronjob will will pull new OnCore Subjects and create REDCap records for these subjects.",
       "required": false,

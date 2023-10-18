@@ -834,6 +834,12 @@ $pull_oncore_prop_dd = implode("\r\n", $bs_dropdown);
             var oncore_prop = $(this).data("oncore_prop");
             var _req = $(this).data("req");
             disableSelects();
+
+            if(oncore_prop == 'protocolSubjectId'){
+                if(!confirm('Are you sure you want to delete Protocol Subject Id Field? Integration will not work without this field if your protocol allows duplicate MRNs.')){
+                    return false;
+                }
+            }
             ajaxQueue.addRequest(function () {
                 // -- your ajax request goes here --
                 return $.ajax({

@@ -294,7 +294,7 @@ try {
                     $(this).addClass('expanded')
                 } else {
                     $(".show_all_matched").html("Show All");
-                    $("tr td.rc_data, tr td.oc_data").hide();
+                    $("tr td.rc_data:not(.showit), tr td.oc_data:not(.showit)").hide();
                     $(this).removeClass('expanded')
                 }
             });

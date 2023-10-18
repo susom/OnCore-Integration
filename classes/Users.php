@@ -78,7 +78,7 @@ class Users extends Clients
         }
 
         // edge case for auto pull we need to skip this.
-        if(defined("CRON")){
+        if (defined("CRON")) {
             return true;
         }
 
@@ -136,7 +136,7 @@ class Users extends Clients
                     }
                 }
             }
-            if($staff['contact'] == $redcapUserEmail){
+            if ($staff['contact']['email'] == $redcapUserEmail) {
                 Entities::createLog("OnCore Contact found using $redcapUserEmail.");
                 return $staff;
             }
@@ -219,7 +219,7 @@ class Users extends Clients
                         if (in_array($staff['contactId'], $this->getOnCoreSkippedStaff())) {
                             continue;
                         }
-                        $contact = $this->getContactDetails($staff['contactId']);
+                        $contact = $this->getContactDetails($staff['contactId'], $staff['role']);
 //                        if (isset($contact['errorType'])) {
 //                            Entities::createLog($contact['message']);
 //                            \REDCap::logEvent($contact['message']);
@@ -228,7 +228,7 @@ class Users extends Clients
                         if (empty($contact)) {
                             $message = 'System did not find demographic information for contact ID: ' . $staff['contactId'];
                             Entities::createLog($message);
-                            \REDCap::logEvent('OnCore API Error.',$message);
+                            \REDCap::logEvent('OnCore API Error.', $message);
                         } elseif (isset($contact['errorType'])) {
 //                            Entities::createLog($contact['message']);
 //                            \REDCap::logEvent($contact['message']);
@@ -247,24 +247,59 @@ class Users extends Clients
         }
     }
 
+    public function getEntityContactRecord($contactId)
+    {
+
+        $sql = sprintf("SELECT * from %s WHERE oncore_contact_id = %s ", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_ADMINS), db_escape($contactId));
+        $q = db_query($sql);
+        if (db_num_rows($q) == 0) {
+            return [];
+        } else {
+            $record = db_fetch_assoc($q);
+            $contact = array(
+                'role' => $record['oncore_role'],
+                'stopDate' => $record['oncore_stop_date'],
+                'additionalIdentifiers' => array(
+                    array(
+                        'id' => $record['oncore_additional_identifier'],
+                        'idType' => 'Staff ID'
+                    )
+                ),
+            );
+            return $contact;
+        }
+    }
+
     /**
      * @param $contactId
      * @return array|mixed|void
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    private function getContactDetails($contactId)
+    private function getContactDetails($contactId, $oncoreRole)
     {
         try {
-            $response = $this->get('contacts/' . $contactId);
+            $contact = $this->getEntityContactRecord($contactId);
+            if (empty($contact)) {
+                $response = $this->get('contacts/' . $contactId);
 
-            if ($response->getStatusCode() < 300) {
-                $data = json_decode($response->getBody(), true);
-                if (empty($data)) {
-                    return [];
-                } else {
-                    return $data;
+                if ($response->getStatusCode() < 300) {
+                    $data = json_decode($response->getBody(), true);
+                    if (empty($data)) {
+                        return [];
+                    } else {
+                        $temp = array(
+                            'oncore_contact_id' => $contactId,
+                            'oncore_additional_identifier' => isset($data['additionalIdentifiers']) ? $data['additionalIdentifiers'][0]['id'] : '',
+                            'oncore_role' => $oncoreRole,
+                            'oncore_stop_date' => $data['stopDate']
+                        );
+                        (new Entities())->create(OnCoreIntegration::ONCORE_ADMINS, $temp);
+                        return $data;
+                    }
                 }
             }
+            return $contact;
+
         } catch (\Exception $e) {
             $data['errorType'] = 'exception';
             $data['message'] = $e->getMessage();

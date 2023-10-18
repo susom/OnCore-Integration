@@ -101,6 +101,9 @@ class Entities
             case OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE:
                 $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE;
                 break;
+            case OnCoreIntegration::ONCORE_ADMINS:
+                $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_ADMINS;
+                break;
             default:
                 throw new \Exception($table . ' is not recognized!');
         }
@@ -148,6 +151,8 @@ class Entities
             case OnCoreIntegration::ONCORE_REDCAP_RECORD_LINKAGE:
                 $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE;
                 break;
+            case OnCoreIntegration::ONCORE_ADMINS:
+                $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_ADMINS;
             default:
                 throw new \Exception($table . ' is not recognized!');
         }
