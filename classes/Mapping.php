@@ -694,10 +694,10 @@ class Mapping
             $required = $field_details["required"];
 
             //CUSTOM TEXT INFO INJECTION FOR this FIELD ONLY
-            $custom_protocolsubjectid_disclaim = $field == "protocolSubjectId" ? "<em style='display: block; font-size: 77%;color: #666;margin: 5px 0 0;'>*Uncommon, for REDCap internal use</em>" : "";
-            if ($required === "true") {
+            $custom_protocolsubjectid_disclaim = $field == "protocolSubjectId" ? "<em style='display: block; font-size: 77%;color: #666;margin: 5px 0 0;'><strong>*By default, it is optional; however, it becomes mandatory if your protocol permits duplicate MRNs.</strong></em>" : "";
+            if ($required === "true" || $field == 'protocolSubjectId') {
                 $use_default = filter_var($has_default, FILTER_VALIDATE_BOOLEAN) ? "<label><input class='use_default' data-oncore_field='$field' type='checkbox' name='use_default' $default_checked value='1'/> Use Default</label>" : "";
-                $push_html .= "<tr class='$field'>\r\n";
+                $push_html .= $field == 'protocolSubjectId' ? "<tr class='$field table-warning'>" : "<tr class='$field'>";
                 $push_html .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></i>$custom_protocolsubjectid_disclaim</td>";
                 $push_html .= "<td class='rc_selects'>$push_rc_map_select $use_default</td>";
                 $push_html .= "<td class='rc_event centered'>$event_name</td>";
@@ -707,7 +707,7 @@ class Mapping
                     $push_html .= $push_value_map_html["html"];
                 }
             } else {
-                $push_html_opt .= "<tr class='$field'>\r\n";
+                $push_html_opt .= "<tr class='$field'>";
                 $push_html_opt .= "<td class='oc_field'>$field <i class='fas fa-angle-double-left map_arrow'></i>$custom_protocolsubjectid_disclaim</td>";
                 $push_html_opt .= "<td class='rc_selects'>$push_rc_map_select</td>";
                 $push_html_opt .= "<td class='rc_event centered'>$event_name</td>";
