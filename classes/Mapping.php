@@ -420,6 +420,10 @@ class Mapping
             } elseif ($rc_type == "text") {
                 //if redcap field type is text, then it can accept anything always
                 $pull_status = true;
+            } elseif ($rc_type !== "text") {
+                //if redcap field type is not text it isnt as open ended
+                //but it is still mapping. so it should be ok to show green
+                $pull_status = true;
             }
         }
 
@@ -455,7 +459,16 @@ class Mapping
                         //if redcap field is text, but oncore only has fixed value set, then push is not always true
                         $push_status = true;
                     }
+                } elseif ($rc_type !== "text") {
+                    //if redcap field type is not text, then it can accept anything always
+                    //it is not as versatile, but it should still pass if it is mapped right?
+
+                    if (empty($oncore_vset)) {
+                        //if redcap field is text, but oncore only has fixed value set, then push is not always true
+                        $push_status = true;
+                    }
                 }
+
             }
         }
 

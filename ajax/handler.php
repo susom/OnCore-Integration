@@ -130,7 +130,7 @@ try {
                         );
                     }
                 }
-                $module->emDebug("current mapping", $current_mapping[$pull_mapping]);
+//                $module->emDebug("current mapping", $current_mapping[$pull_mapping]);
                 $module->getMapping()->setProjectFieldMappings($current_mapping);
             case "checkPushPullStatus":
                 if (!isset($oncore_field)) {
