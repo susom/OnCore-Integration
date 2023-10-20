@@ -19,7 +19,7 @@ class notifModal{
 
         var modal   = $(notif_modal_tpl);
 
-        var bigicon = $('<i class="fas fa-skull-crossbones"></i>');
+        var bigicon = $('<i class="fas fa-exclamation-triangle"></i>');
 
         modal.find(".notif_hdr").html(bigicon);
         modal.find(".notif_bdy .headline").html(this._headline);
