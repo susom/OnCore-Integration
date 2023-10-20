@@ -143,7 +143,8 @@ class adjudicationModal{
 
         //UNCHECK AND DISABLE IF OK, TO AVOID DUPE IMPORT
         if(status_txt == "ok"){
-            $(".pushDATA td.import input.accept_diff[value='" + id + "']").prop('checked', false).prop('disabled', true);
+            //remove the input so that it cannot be duped
+            $(".pushDATA td.import input.accept_diff[value='" + id + "']").remove();
         }
     }
 
