@@ -126,13 +126,9 @@ class Users extends Clients
      */
     public function searchProtocolStaff($redcapUsername, $redcapUserEmail)
     {
-        Entities::createLog(__LINE__ . ' --' . $redcapUsername);
-        Entities::createLog(__LINE__ . ' --' . $redcapUserEmail);
         foreach ($this->getProtocolStaff() as $staff) {
-            Entities::createLog(__LINE__ . ' --' . implode(',' , $staff));
             if (!empty($staff['contact']['additionalIdentifiers'])) {
                 foreach ($staff['contact']['additionalIdentifiers'] as $identifier) {
-                    Entities::createLog(__LINE__ . ' --' . implode(',' , $identifier));
                     if ($redcapUsername == $identifier['id']) {
 //                        Entities::createLog('REDCap Username: ' . $redcapUsername);
 //                        Entities::createLog(implode(',', $staff));
@@ -140,7 +136,6 @@ class Users extends Clients
                     }
                 }
             }
-            Entities::createLog(__LINE__ . ' --' . implode(',' , $staff['contact']));
             if ($staff['contact']['email'] == $redcapUserEmail) {
                 Entities::createLog("OnCore Contact found using $redcapUserEmail.");
                 return $staff;
