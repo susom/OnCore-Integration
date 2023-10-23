@@ -5,6 +5,7 @@ namespace Stanford\OnCoreIntegration;
 use \Exception;
 use \GuzzleHttp;
 use GuzzleHttp\Exception\GuzzleException;
+
 require_once 'classes/SubjectDemographics.php';
 
 class Subjects extends SubjectDemographics
@@ -723,7 +724,7 @@ class Subjects extends SubjectDemographics
         }
     }
 
-        public function searchOnCoreProtocolSubjectViaProtocolSubjectId($protocolId, $protocolSubjectId)
+    public function searchOnCoreProtocolSubjectViaProtocolSubjectId($protocolId, $protocolSubjectId)
     {
         // reset oncore protocol subjects to get latest subjects
         $this->setOnCoreProtocolSubjects(null, true);
@@ -847,7 +848,7 @@ class Subjects extends SubjectDemographics
                 if (isset($field['value_mapping'])) {
                     $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
                     $onCoreRecord[$key] = $map['oc'];
-                }else{
+                } else {
                     $onCoreRecord[$key] = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
                 }
             }
@@ -981,7 +982,7 @@ class Subjects extends SubjectDemographics
                             // if checkboxes is check in oncore then skip
                             if (in_array($item['oc'], $parsed)) {
                                 continue;
-                            }else{
+                            } else {
                                 $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
                                 $data[$field['event']][$field['redcap_field'] . '___' . $item['rc']] = false;
                             }
@@ -995,6 +996,23 @@ class Subjects extends SubjectDemographics
             }
         }
         return $data;
+    }
+
+    public function updateREDCapWithProtocolSubjectId($linkage, $fields, $protocolSubjectId)
+    {
+        $data = array(
+            \REDCap::getRecordIdField() => $linkage['redcap_record_id'],
+            $fields['pull']['protocolSubjectId']['redcap_field'] => $protocolSubjectId,
+            'redcap_event_name' => $fields['pull']['protocolSubjectId']['event']
+        );
+        $response = \REDCap::saveData($linkage['redcap_project_id'], 'json', json_encode(array($data)), 'overwrite');
+        if (!empty($response['errors'])) {
+            if (is_array($response['errors'])) {
+                throw new \Exception(implode(",", $response['errors']));
+            } else {
+                throw new \Exception($response['errors']);
+            }
+        }
     }
 
     /**

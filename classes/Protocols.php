@@ -362,6 +362,10 @@ class Protocols
         $subject = $this->getSubjects()->searchOnCoreProtocolSubjectViaProtocolSubjectId($this->getEntityRecord()['oncore_protocol_id'], $result['protocol_subject_id']);
         $this->matchREDCapRecordWithOnCoreSubject($record, $subject, $fields);
 
+        // if protocol Subject id is mapped
+        if(isset($fields['pull']['protocolSubjectId']) && is_array($fields['pull']['protocolSubjectId'])){
+            $this->getSubjects()->updateREDCapWithProtocolSubjectId($linkage, $fields, $result['protocol_subject_id']);
+        }
 
         Entities::createLog("REDCap Record Id#$redcapRecordId was pushed succesfully to OnCore Protocol .");
         return $result;
