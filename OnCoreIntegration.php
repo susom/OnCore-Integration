@@ -355,6 +355,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     'type' => 'text',
                     'required' => true,
                 ],
+                'oncore_email' => [
+                    'name' => 'OnCore Contact Staff Email',
+                    'type' => 'text',
+                    'required' => true,
+                ],
                 'oncore_role' => [
                     'name' => 'OnCore Role',
                     'type' => 'text',

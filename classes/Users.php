@@ -126,9 +126,13 @@ class Users extends Clients
      */
     public function searchProtocolStaff($redcapUsername, $redcapUserEmail)
     {
+        Entities::createLog(__LINE__ . ' --' . $redcapUsername);
+        Entities::createLog(__LINE__ . ' --' . $redcapUserEmail);
         foreach ($this->getProtocolStaff() as $staff) {
+            Entities::createLog(__LINE__ . ' --' . implode(',' , $staff));
             if (!empty($staff['contact']['additionalIdentifiers'])) {
                 foreach ($staff['contact']['additionalIdentifiers'] as $identifier) {
+                    Entities::createLog(__LINE__ . ' --' . implode(',' , $identifier));
                     if ($redcapUsername == $identifier['id']) {
 //                        Entities::createLog('REDCap Username: ' . $redcapUsername);
 //                        Entities::createLog(implode(',', $staff));
@@ -136,12 +140,13 @@ class Users extends Clients
                     }
                 }
             }
+            Entities::createLog(__LINE__ . ' --' . implode(',' , $staff['contact']));
             if ($staff['contact']['email'] == $redcapUserEmail) {
                 Entities::createLog("OnCore Contact found using $redcapUserEmail.");
                 return $staff;
             }
         }
-        Entities::createLog('EM could not find a Protocol Staff for ' . $redcapUsername . '. User must confirm "Staff ID" is configured for his OnCore Contact.  ');
+        Entities::createLog('EM could not find a Protocol Staff for ' . $redcapUsername . '. User must confirm "Staff ID" is configured for his/her OnCore Contact.  ');
         return [];
     }
 
@@ -257,6 +262,7 @@ class Users extends Clients
         } else {
             $record = db_fetch_assoc($q);
             $contact = array(
+                'email' => $record['oncore_email'],
                 'role' => $record['oncore_role'],
                 'stopDate' => $record['oncore_stop_date'],
                 'additionalIdentifiers' => array(
@@ -289,6 +295,7 @@ class Users extends Clients
                     } else {
                         $temp = array(
                             'oncore_contact_id' => $contactId,
+                            'oncore_email' => $data['email'],
                             'oncore_additional_identifier' => isset($data['additionalIdentifiers']) ? $data['additionalIdentifiers'][0]['id'] : '',
                             'oncore_role' => $oncoreRole,
                             'oncore_stop_date' => $data['stopDate']
