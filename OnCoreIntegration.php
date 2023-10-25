@@ -137,7 +137,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function __construct()
     {
         parent::__construct();
-        $this->updateOnCoreSubjectsDemographics();
+        //$this->updateOnCoreSubjectsDemographics();
         // Other code to run when object is instantiated
     }
 
