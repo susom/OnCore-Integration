@@ -137,6 +137,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     public function __construct()
     {
         parent::__construct();
+        $this->updateOnCoreSubjectsDemographics();
         // Other code to run when object is instantiated
     }
 
@@ -1811,6 +1812,41 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 return 'You do not have Permissions to search OnCore Protocol.';
             default:
                 return 'You do not have Permissions to perform this action.';
+        }
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function updateOnCoreSubjectsDemographics()
+    {
+        $sql = sprintf("SELECT * from %s ", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS));
+
+        // manually set users to make guzzle calls.
+        if (!$this->users) {
+            $this->setUsers(new Users(null, $this->PREFIX, null, $this->getCSRFToken()));
+        }
+        $records = db_query($sql);
+        if (db_num_rows($records) == 0) {
+            return false;
+        } else {
+            while ($record = db_fetch_assoc($records)) {
+                try {
+                    $response = $this->getUsers()->get('subjectDemographics/' . $record['subjectDemographicsId']);
+                    if ($response->getStatusCode() < 300) {
+                        $data = json_decode($response->getBody(), true);
+                        if (empty($data)) {
+                            continue;
+                        } else {
+                            $entity = (new Entities)->update(OnCoreIntegration::ONCORE_SUBJECTS, $record['id'], $data);
+                        }
+                    }
+                } catch (\LogicException|\GuzzleHttp\Exception\ClientException|\GuzzleHttp\Exception\GuzzleException $e) {
+                    $response = $e->getResponse();
+                    $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+                    Entities::createLog('Cant update Subject. ' . $responseBodyAsString['message']);
+                }
+            }
         }
     }
 }
