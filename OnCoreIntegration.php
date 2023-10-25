@@ -643,7 +643,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             "oncore_protocols" => $protocols,
             "oncore_integrations" => $integrations,
             "has_oncore_integration" => $this->hasOnCoreIntegration(),
-            "has_field_mappings" => !empty($this->getMapping()->getProjectFieldMappings()['pull']) && !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false,
+            "has_field_mappings" => !empty($this->getMapping()->getProjectFieldMappings()['pull']) || !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false,
             "last_adjudication" => $last_adjudication,
             "matching_library" => $matching_library,
             "alert_notifications" => $this->getSystemSetting('display-alert-notification') ? $this->getSystemSetting('alert-notification') : ""

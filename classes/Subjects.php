@@ -553,7 +553,7 @@ class Subjects extends SubjectDemographics
         }
         $result = array();
         $q = db_query($sql);
-        $fields = $this->getMapping()->getProjectMapping()['push'];
+        $fields = $this->getMapping()->getProjectMapping()['push']?:$this->getMapping()->getProjectMapping()['pull'];
         if (db_num_rows($q) > 0) {
             while ($row = db_fetch_assoc($q)) {
                 $record = array();
