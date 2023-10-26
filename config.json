@@ -342,7 +342,7 @@
       "cron_name": "oncore_subjects_update_demographics",
       "cron_description": "This cron will run every two hours to scan OnCore API to update subjects demographics.",
       "method": "updateOnCoreSubjectsDemographics",
-      "cron_frequency": "7200",
+      "cron_frequency": "3600",
       "cron_max_run_time": "3600"
     },
     {
