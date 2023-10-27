@@ -621,7 +621,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         //if no integrations, and only one protocol, pre-pull the protocol into the entity table
         $matching_library = false;
-        if (count($protocols) == 1 && empty($integrations)) {
+        if (is_array($protocols) && count($protocols) == 1 && empty($integrations)) {
             $protocol = current($protocols);
             $protocolId = $protocol["protocolId"];
             $library = $protocol["protocol"]["library"];
@@ -650,7 +650,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             "alert_notifications" => $this->getSystemSetting('display-alert-notification') ? $this->getSystemSetting('alert-notification') : ""
         );
 
-        $aa = ($this->escape(json_encode($notifs_config)));
         //Initialize JSMO
         $this->initializeJavascriptModuleObject();
         ?>
