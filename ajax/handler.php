@@ -362,7 +362,7 @@ try {
     if (method_exists($e, 'getResponse')) {
         $response = $e->getResponse();
         $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-        $responseBodyAsString['message'] = $responseBodyAsString['field'] ? $responseBodyAsString['field'] . ': ' : '' . $responseBodyAsString['message'];
+        $responseBodyAsString['message'] = ($responseBodyAsString['field'] ? $responseBodyAsString['field'] . ': ' : '') . $responseBodyAsString['message'];
     } else {
         $responseBodyAsString = array();
         $responseBodyAsString['message'] = $e->getMessage();
