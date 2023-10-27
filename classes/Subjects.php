@@ -969,9 +969,7 @@ class Subjects extends SubjectDemographics
                 if (is_array($parsed)) {
                     foreach ($parsed as $item) {
                         $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
-                        if ($field['field_type'] == 'checkbox') {
-                            $data[$field['event']][$field['redcap_field'] . '___' . $map['rc']] = true;
-                        } else {
+                        if ($field['field_type'] != 'checkbox') {
                             $data[$field['event']][$field['redcap_field']] = $map['rc'];
                         }
                     }
@@ -980,8 +978,9 @@ class Subjects extends SubjectDemographics
                         // set other checkboxes to false.
                         foreach ($field['value_mapping'] as $item) {
                             // if checkboxes is check in oncore then skip
+                            $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
                             if (in_array($item['oc'], $parsed)) {
-                                continue;
+                                $data[$field['event']][$field['redcap_field'] . '___' . $item['rc']] = true;
                             } else {
                                 $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
                                 $data[$field['event']][$field['redcap_field'] . '___' . $item['rc']] = false;
