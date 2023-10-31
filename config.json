@@ -331,13 +331,6 @@
       "method": "onCoreProtocolsScanCron",
       "cron_frequency": "86400",
       "cron_max_run_time": "3600"
-    },
-    {
-      "cron_name": "oncore_protocols_subjects_scan",
-      "cron_description": "This cron will run every two hours to scan OnCore API to pull and sync exiting protocols subjects.",
-      "method": "onCoreProtocolsSubjectsScanCron",
-      "cron_frequency": "7200",
-      "cron_max_run_time": "3600"
     },{
       "cron_name": "oncore_subjects_update_demographics",
       "cron_description": "This cron will run every two hours to scan OnCore API to update subjects demographics.",
