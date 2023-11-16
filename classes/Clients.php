@@ -186,6 +186,9 @@ abstract class Clients
             $options = array_merge($options, $customOptions);
         }
         $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . $path, $options);
+        if(!$response->getBody()){
+            throw new \Exception('No API Response');
+        }
         return $response;
     }
 
@@ -204,6 +207,9 @@ abstract class Clients
             'body' => json_encode($data),
             'headers' => ['Authorization' => "Bearer {$jwt}", 'Content-Type' => 'application/json', 'Accept' => 'application/json'],
         ]);
+        if(!$response->getBody()){
+            throw new \Exception('No API Response');
+        }
         return $response;
     }
 
@@ -231,10 +237,10 @@ abstract class Clients
         ]);
         if ($response->getStatusCode() < 300) {
             $data = json_decode($response->getBody());
-            if (property_exists($data, 'access_token')) {
+            if (!is_null($data) && property_exists($data, 'access_token')) {
                 return $data;
             } else {
-                throw new \Exception("Could not find access token.");
+                throw new \LengthException("Could not find access token.");
             }
         }
 //        } catch (\Exception $e) {

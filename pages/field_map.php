@@ -15,8 +15,10 @@ $icon_ajax = $module->getUrl("assets/images/icon_ajax.gif");
 $ajax_endpoint = $module->getUrl("ajax/handler.php");
 
 //INITIAL SET UP FOR MAPPING PAGE STATE PULL AND PUSH SIDE
-$mapping = $module->getMapping();
-$project_oncore_subset = $mapping->getProjectOncoreSubset();
+try{
+
+    $mapping = $module->getMapping();
+    $project_oncore_subset = $mapping->getProjectOncoreSubset();
 
 $pushpull_pref = $mapping->getProjectPushPullPref();
 $overall_pull_status = $mapping->getOverallPullStatus() ? "ok" : "";
@@ -1259,3 +1261,7 @@ $pull_oncore_prop_dd = implode("\r\n", $bs_dropdown);
             .replace(/&quot;/g, '"');
     }
 </script>
+<?php
+}catch (\Exception $e){
+    echo "<div class='alert-danger alert'>".$e->getMessage()."</div>";
+}

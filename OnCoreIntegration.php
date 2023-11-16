@@ -186,12 +186,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             if (!$this->users) {
                 $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser() ?: null, $this->getCSRFToken()));
             }
-        } catch (\Exception $e) {
+        } catch (\LengthException $e){
+            \REDCap::logEvent('Empty Response', 'OnCore is on maintenance. ' . $e->getMessage());
+        }
+        catch (\Exception $e) {
             // this is a special case for cron no redcap user.
             $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, null, $this->getCSRFToken()));
         }
 
-        if (!$this->protocols) {
+        // When OnCore in maintenance mode Users object will be empty.
+        if ($this->users && !$this->protocols) {
             $this->setProtocols(new Protocols($this->getUsers(), $this->getMapping(), $this->getProjectId()));
 
             global $Proj;
@@ -1021,6 +1025,10 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getMapping(): Mapping
     {
+        if(!$this->users){
+            throw new \Exception("Could not Connect to OnCore API");
+        }
+
         if (!$this->mapping) {
             $this->setMapping(new Mapping($this));
         }
@@ -1050,6 +1058,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getProtocols(): Protocols
     {
+        if(!$this->users){
+            throw new \Exception("Could not Connect to OnCore API");
+        }
         if (!$this->protocols) {
             $this->initiateProtocol();
         }
