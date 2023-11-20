@@ -5,7 +5,7 @@ class notifModal{
     default_headline    = "Error";
 
     constructor(lead, headline,  id){
-        this._lead      = lead ?? this.default_lead;
+        this._lead      = (lead ?? this.default_lead) + ($("#support-url").val() != '' ? '<br><a target="_blank" href="' + $("#support-url").val() + '">For more information check Oncore Support Page</a>' : '');
         this._headline  = headline ?? this.default_headline;
     }
 

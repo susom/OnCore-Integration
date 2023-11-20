@@ -65,16 +65,23 @@ class Users extends Clients
 //        }
     }
 
-    /**
-     * @return bool
-     */
-    public function isOnCoreContactAllowedToPush()
-    {
+    public function canBypassUserRoleRestriction(){
         // debug option for redcap super users.
         if (ExternalModules::getSystemSetting($this->getPrefix(), 'remove-super-users-roles-restriction')) {
             if (!is_null($this->getRedcapUser()) && $this->getRedcapUser()->isSuperUser()) {
                 return true;
             }
+        }
+        return false;
+    }
+    /**
+     * @return bool
+     */
+    public function isOnCoreContactAllowedToPush()
+    {
+
+        if($this->canBypassUserRoleRestriction()){
+            return true;
         }
 
         // edge case for auto pull we need to skip this.
@@ -141,7 +148,11 @@ class Users extends Clients
                 return $staff;
             }
         }
-        Entities::createLog('EM could not find a Protocol Staff for ' . $redcapUsername . '. User must confirm "Staff ID" is configured for his/her OnCore Contact.  ');
+        // when role bypass is not acticated and user
+        if(!$this->canBypassUserRoleRestriction()){
+            Entities::createLog('EM could not find a Protocol Staff for ' . $redcapUsername . '. User must confirm "Staff ID" is configured for his/her OnCore Contact.');
+            throw new \Exception('EM could not find a Protocol Staff for ' . $redcapUsername . '. User must confirm "Staff ID" is configured for his/her OnCore Contact.');
+        }
         return [];
     }
 

@@ -44,7 +44,7 @@ try {
           href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
     <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
     <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
-
+    <input type="hidden" name="support-url" id="support-url" value="<?php echo $module->getSystemSetting('oncore-support-page-url') ?>">
     <link rel="stylesheet" href="<?= $oncore_css ?>">
     <link rel="stylesheet" href="<?= $batch_css ?>">
     <link rel="stylesheet" href="<?= $notif_css ?>">
@@ -782,6 +782,6 @@ try {
     <?php
 } catch (\Exception $e) {
     ?>
-    <div class="alert alert-danger"><?php echo $e->getMessage() ?></div>
+    <div class="alert alert-danger"><?php echo $e->getMessage() .  ($module->getProjectSetting('oncore-support-page-url') != '' ? ' <a target="_blank" href="'.$module->getProjectSetting('oncore-support-page-url').'">For more information check Oncore Support Page</a>' : '') ?></div>
     <?php
 }

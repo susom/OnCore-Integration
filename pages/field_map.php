@@ -4,6 +4,11 @@ namespace Stanford\OnCoreIntegration;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
 
+?>
+    <input type="hidden" name="support-url" id="support-url" value="<?php echo $module->getSystemSetting('oncore-support-page-url') ?>">
+
+    <?php
+
 //URLS FOR SUPPORT ASSETS
 $oncore_css = $module->getUrl("assets/styles/field_mapping.css");
 $notif_css = $module->getUrl("assets/styles/notif_modal.css");
@@ -1263,5 +1268,7 @@ $pull_oncore_prop_dd = implode("\r\n", $bs_dropdown);
 </script>
 <?php
 }catch (\Exception $e){
-    echo "<div class='alert-danger alert'>".$e->getMessage()."</div>";
+    ?>
+    <div class="alert alert-danger"><?php echo $e->getMessage() .  ($module->getProjectSetting('oncore-support-page-url') != '' ? ' <a target="_blank" href="'.$module->getProjectSetting('oncore-support-page-url').'">For more information check Oncore Support Page</a>' : '') ?></div>
+<?php
 }

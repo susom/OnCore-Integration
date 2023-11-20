@@ -80,7 +80,7 @@
         "name": "Manual Sync With Oncore",
         "icon": "fas fa-not-equal",
         "url": "pages/sync_diff.php",
-        "show-header-and-footer": false
+        "show-header-and-footer": true
       },
       {
         "name": "OnCore Logs",
@@ -322,6 +322,12 @@
       "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
       "required": false,
       "type": "checkbox"
+    },
+    {
+      "key": "oncore-support-page-url",
+      "name": "Following Support Page link will be attached to Exception Modal. ",
+      "required": false,
+      "type": "text"
     }
   ],
   "crons": [
