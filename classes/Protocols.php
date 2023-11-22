@@ -461,9 +461,9 @@ class Protocols
             }
 
             $linked = $this->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES;
-            if (!$linked) {
-                Entities::createLog("" . $protocol['protocolNo'] . " is not approved. Current status is " . $this->getEntityRecord()['status'] . "");
-            }
+//            if (!$linked) {
+//                Entities::createLog("" . $protocol['protocolNo'] . " is not approved. Current status is " . $this->getEntityRecord()['status'] . "");
+//            }
             $contactRole = $this->getUser()->isOnCoreContactAllowedToPush();
             if (!$contactRole) {
                 if ($this->getUser()->getOnCoreContact()) {
