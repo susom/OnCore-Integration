@@ -52,7 +52,7 @@
                     if (has_field_mappings) {
                         var lead_class = "oncore_results";
                         if(alert_notifications != ""){
-                            var lead_text = "<div class='alert alert-danger'>"+alert_notifications+"</div>"
+                            var lead_text = "<div class='alert alert-danger'>"+decode_string(alert_notifications)+"</div>"
                             lead_text += "Results summary from last adjudication : ";
                         }else{
                             var lead_text = "Results summary from last adjudication : ";
