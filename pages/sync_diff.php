@@ -44,7 +44,8 @@ try {
           href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
     <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
     <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
-    <input type="hidden" name="support-url" id="support-url" value="<?php echo $module->getSystemSetting('oncore-support-page-url') ?>">
+    <input type="hidden" name="support-url" id="support-url"
+           value="<?php echo $module->getSystemSetting('oncore-support-page-url') ?>">
     <link rel="stylesheet" href="<?= $oncore_css ?>">
     <link rel="stylesheet" href="<?= $batch_css ?>">
     <link rel="stylesheet" href="<?= $notif_css ?>">
@@ -84,105 +85,112 @@ try {
             <?php
         }
 
-        if (empty($module->getUsers()->getOnCoreContact()) && !$module->isSuperUser()) {
-            throw new \Exception("No OnCore Contact found for " . $module->getUser()->getUsername());
-        }
-        ?>
+        if ($module->getSystemSetting('disable-functionality') == '') {
+            
+            if (empty($module->getUsers()->getOnCoreContact()) && !$module->isSuperUser()) {
+                throw new \Exception("No OnCore Contact found for " . $module->getUser()->getUsername());
+            }
+            ?>
 
-        <?= $linked_protocol ?>
+            <?= $linked_protocol ?>
 
-        <div id="overview" class="container">
-            <div id="filters">
-                <div class="d-inline-block text-center stat-group oncore_summ">
-                    <div class="stat d-inline-block">
-                        <p class='h1 mt-2 mb-0 p-0 oncore_only_count'><?php echo $sync_summ['oncore_only_count'] ?></p>
-                        <i class="d-block">Not in REDCap</i>
-                        <?php if (empty($module->getMapping()->getProjectFieldMappings()['pull'])) { ?>
-                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
-                               title="You can`t pull OnCore Data because Pull Mapping is not defined. Please define Pull Mapping from the mapping page"></i>
-                            <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
-                        <?php } else { ?>
-                            <i class="d-block">
-                                <button class='btn btn-primary getadjudication' data-bin='oncore' id='pull_data'>See
-                                    Unlinked Subjects
-                                </button>
-                            </i>
-                        <?php } ?>
-                    </div>
+            <div id="overview" class="container">
+                <div id="filters">
+                    <div class="d-inline-block text-center stat-group oncore_summ">
+                        <div class="stat d-inline-block">
+                            <p class='h1 mt-2 mb-0 p-0 oncore_only_count'><?php echo $sync_summ['oncore_only_count'] ?></p>
+                            <i class="d-block">Not in REDCap</i>
+                            <?php if (empty($module->getMapping()->getProjectFieldMappings()['pull'])) { ?>
+                                <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
+                                   title="You can`t pull OnCore Data because Pull Mapping is not defined. Please define Pull Mapping from the mapping page"></i>
+                                <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
+                            <?php } else { ?>
+                                <i class="d-block">
+                                    <button class='btn btn-primary getadjudication' data-bin='oncore' id='pull_data'>See
+                                        Unlinked Subjects
+                                    </button>
+                                </i>
+                            <?php } ?>
+                        </div>
 
-                    <div class="stat-body mt-3">
-                        <b class="stat-title d-block">Total OnCore Subjects</b>
-                        <i class="stat-text d-block total_oncore_count"><?php echo $sync_summ['total_oncore_count'] ?></i>
-                    </div>
-                </div>
-
-                <div class="d-inline-block text-center stat-group all_linked">
-                    <div class="stat d-inline-block">
-                        <p class='h1 mt-2 mb-0 p-0 full_match_count'><?php echo $full_match_count ?></p>
-                        <i class="d-block">Fully Matched</i>
-                        <?php
-                        $vis = $missing_status_count > 0 ? "" : "make_invis";
-                        ?>
-                        <div class="<?= $vis ?>">
-                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
-                               title="<?= $missing_status_count ?> OnCore Subject<?= $missing_status_count > 1 ? "s are" : " is" ?> missing Protocol Subject Status. Please update manually from OnCore UI."></i>
-                            (<span class="missing_status_count"><?= $missing_status_count ?></span>)
+                        <div class="stat-body mt-3">
+                            <b class="stat-title d-block">Total OnCore Subjects</b>
+                            <i class="stat-text d-block total_oncore_count"><?php echo $sync_summ['total_oncore_count'] ?></i>
                         </div>
                     </div>
 
-                    <div class="stat d-inline-block">
-                        <p class='h1 mt-2 mb-0 p-0 partial_match_count'><?php echo $partial_match_count ?></p>
-                        <i class="d-block">Partially Matched</i>
-                        <?php if (empty($module->getMapping()->getProjectFieldMappings()['pull'])) { ?>
-                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
-                               title="You can`t pull OnCore Data because Pull Mapping is not defined. Please define Pull Mapping from the mapping page"></i>
-                            <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
-                        <?php } else { ?>
-                            <button class='btn btn-warning getadjudication' data-bin='partial' id='adjudicate_partials'>
-                                Adjudicate Diff
-                            </button>
-                        <?php } ?>
-                    </div>
+                    <div class="d-inline-block text-center stat-group all_linked">
+                        <div class="stat d-inline-block">
+                            <p class='h1 mt-2 mb-0 p-0 full_match_count'><?php echo $full_match_count ?></p>
+                            <i class="d-block">Fully Matched</i>
+                            <?php
+                            $vis = $missing_status_count > 0 ? "" : "make_invis";
+                            ?>
+                            <div class="<?= $vis ?>">
+                                <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
+                                   title="<?= $missing_status_count ?> OnCore Subject<?= $missing_status_count > 1 ? "s are" : " is" ?> missing Protocol Subject Status. Please update manually from OnCore UI."></i>
+                                (<span class="missing_status_count"><?= $missing_status_count ?></span>)
+                            </div>
+                        </div>
 
-                    <div class="stat-body mt-3">
-
-                        <b class="stat-title d-block">Total Subjects/Records : <span
-                                    class="match_count"><?php echo $total_subjects ?></span></b>
-                        <ul class="adjudication">
-                            <li>Records Excluded: <span class="excluded_count"><?php echo $excluded_count ?></span></li>
-                            <li>Records for adjudication: <span
-                                        class="for_adjudication"><?php echo $total_subjects - $excluded_count ?></span>
-                            </li>
-                        </ul>
-
-                        <button class='btn btn-success' id='refresh_sync_diff'>Refresh Synced Data</button>
-                    </div>
-                </div>
-
-                <div class="d-inline-block text-center stat-group redcap_summ">
-                    <div class="stat d-inline-block">
-                        <p class='h1 mt-2 mb-0 p-0 redcap_only_count'><?php echo $sync_summ['redcap_only_count'] ?></p>
-                        <i class="d-block">Not in OnCore</i>
-                        <?php if (empty($module->getMapping()->getProjectFieldMappings()['push'])) { ?>
-                            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
-                               title="You can't push REDCap Records because Push Mapping is not defined. Please define Push Mapping from the mapping page"></i>
-                            <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
-                        <?php } else { ?>
-                            <i class="d-block">
-                                <button class='btn btn-danger getadjudication' data-bin='redcap' id='push_data'>See
-                                    Unlinked Records
+                        <div class="stat d-inline-block">
+                            <p class='h1 mt-2 mb-0 p-0 partial_match_count'><?php echo $partial_match_count ?></p>
+                            <i class="d-block">Partially Matched</i>
+                            <?php if (empty($module->getMapping()->getProjectFieldMappings()['pull'])) { ?>
+                                <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
+                                   title="You can`t pull OnCore Data because Pull Mapping is not defined. Please define Pull Mapping from the mapping page"></i>
+                                <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
+                            <?php } else { ?>
+                                <button class='btn btn-warning getadjudication' data-bin='partial'
+                                        id='adjudicate_partials'>
+                                    Adjudicate Diff
                                 </button>
-                            </i>
-                        <?php } ?>
+                            <?php } ?>
+                        </div>
+
+                        <div class="stat-body mt-3">
+
+                            <b class="stat-title d-block">Total Subjects/Records : <span
+                                        class="match_count"><?php echo $total_subjects ?></span></b>
+                            <ul class="adjudication">
+                                <li>Records Excluded: <span class="excluded_count"><?php echo $excluded_count ?></span>
+                                </li>
+                                <li>Records for adjudication: <span
+                                            class="for_adjudication"><?php echo $total_subjects - $excluded_count ?></span>
+                                </li>
+                            </ul>
+
+                            <button class='btn btn-success' id='refresh_sync_diff'>Refresh Synced Data</button>
+                        </div>
                     </div>
 
-                    <div class="stat-body mt-3">
-                        <b class="stat-title d-block">Total REDCap Records</b>
-                        <i class="stat-text d-block total_redcap_count"><?php echo $sync_summ['total_redcap_count'] ?></i>
+                    <div class="d-inline-block text-center stat-group redcap_summ">
+                        <div class="stat d-inline-block">
+                            <p class='h1 mt-2 mb-0 p-0 redcap_only_count'><?php echo $sync_summ['redcap_only_count'] ?></p>
+                            <i class="d-block">Not in OnCore</i>
+                            <?php if (empty($module->getMapping()->getProjectFieldMappings()['push'])) { ?>
+                                <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom"
+                                   title="You can't push REDCap Records because Push Mapping is not defined. Please define Push Mapping from the mapping page"></i>
+                                <a href="<?php echo $module->getUrl('pages/field_map.php') ?>">Go to Field Mapping</a>
+                            <?php } else { ?>
+                                <i class="d-block">
+                                    <button class='btn btn-danger getadjudication' data-bin='redcap' id='push_data'>See
+                                        Unlinked Records
+                                    </button>
+                                </i>
+                            <?php } ?>
+                        </div>
+
+                        <div class="stat-body mt-3">
+                            <b class="stat-title d-block">Total REDCap Records</b>
+                            <i class="stat-text d-block total_redcap_count"><?php echo $sync_summ['total_redcap_count'] ?></i>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+            <?php
+        } // end of disable functionality
+        ?>
     </div>
 
     <!-- THIS WILL REMAIN HIDDEN -->
@@ -313,9 +321,9 @@ try {
                 if (!$(this).is(":checked")) {
                     //uncheck "check_all"
                     $(this).closest("table").find(".check_all").prop("checked", false);
-                }else{
+                } else {
                     //if checked then re-enable the submit button (if it disabled)
-                    $("#pushModal .footer_action button[disabled='disabled']").attr("disabled",false);
+                    $("#pushModal .footer_action button[disabled='disabled']").attr("disabled", false);
                 }
             });
 
@@ -782,6 +790,6 @@ try {
     <?php
 } catch (\Exception $e) {
     ?>
-    <div class="alert alert-danger"><?php echo $e->getMessage() .  ($module->getProjectSetting('oncore-support-page-url') != '' ? ' <a target="_blank" href="'.$module->getProjectSetting('oncore-support-page-url').'">For more information check Oncore Support Page</a>' : '') ?></div>
+    <div class="alert alert-danger"><?php echo $e->getMessage() . ($module->getProjectSetting('oncore-support-page-url') != '' ? ' <a target="_blank" href="' . $module->getProjectSetting('oncore-support-page-url') . '">For more information check Oncore Support Page</a>' : '') ?></div>
     <?php
 }

@@ -147,6 +147,11 @@
   ],
   "system-settings": [
     {
+      "key": "disable-functionality",
+      "name": "<b>Hide EM functionalities except alert messages.</b>",
+      "type": "checkbox"
+    },
+    {
       "key": "display-alert-notification",
       "name": "<b>Display a notification on top of All EM pages.  </b>",
       "type": "checkbox"

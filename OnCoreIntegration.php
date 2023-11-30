@@ -651,7 +651,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             "has_field_mappings" => !empty($this->getMapping()->getProjectFieldMappings()['pull']) || !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false,
             "last_adjudication" => $last_adjudication,
             "matching_library" => $matching_library,
-            "alert_notifications" => $this->getSystemSetting('display-alert-notification') ? htmlspecialchars($this->getSystemSetting('alert-notification')) : ""
+            "alert_notifications" => $this->getSystemSetting('display-alert-notification') ? htmlspecialchars($this->getSystemSetting('alert-notification')) : "",
+            "disable_functionality" => $this->getSystemSetting('disable-functionality')
         );
 
         //Initialize JSMO

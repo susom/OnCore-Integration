@@ -109,6 +109,8 @@ $pull_oncore_prop_dd = implode("\r\n", $bs_dropdown);
         <div class="alert alert-danger"><?= $module->getSystemSetting('alert-notification') ?></div>
         <?php
     }
+    if ($module->getSystemSetting('disable-functionality') == '') {
+
     if (empty($module->getUsers()->getOnCoreContact()) && !$module->isSuperUser()) {
         throw new \Exception("No OnCore Contact found for " . $module->getUser()->getUsername());
     }
@@ -409,6 +411,9 @@ $pull_oncore_prop_dd = implode("\r\n", $bs_dropdown);
             </form>
         </div>
     </div>
+    <?php
+    } // end of disable functionality
+    ?>
 </div>
 <style>
     #field_mapping .loading::after {

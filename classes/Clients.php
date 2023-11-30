@@ -5,7 +5,8 @@ namespace Stanford\OnCoreIntegration;
 use ExternalModules\ExternalModules;
 use GuzzleHttp\Exception\GuzzleException;
 use stdClass;
-
+use GuzzleHttp\Psr7;
+use GuzzleHttp\Psr7\Response;
 /**
  * Abstract class can be accessed only via Users class
  * Class Clients
@@ -105,6 +106,8 @@ abstract class Clients
      */
     private $disableVerification = false;
 
+    private $disableFunctionlity = false;
+
     /**
      * @param $PREFIX
      */
@@ -115,6 +118,7 @@ abstract class Clients
 
         $this->setDisableVerification(ExternalModules::getSystemSetting($this->getPrefix(), 'disable-ssl-verify') ? false : true);
 
+        $this->setDisableFunctionlity(ExternalModules::getSystemSetting($this->getPrefix(), 'disable-functionality') ? true : false);
 
         $this->setGuzzleClient(new \GuzzleHttp\Client([
                 'timeout' => 30,
@@ -173,23 +177,27 @@ abstract class Clients
      */
     public function get($path, $customOptions = [])
     {
+        if (!$this->isDisableFunctionlity()) {
+            $jwt = $this->getAccessToken();
+            $options = [
+                'debug' => false,
+                'headers' => [
+                    'Authorization' => "Bearer {$jwt}",
+                ]
+            ];
 
-        $jwt = $this->getAccessToken();
-        $options = [
-            'debug' => false,
-            'headers' => [
-                'Authorization' => "Bearer {$jwt}",
-            ]
-        ];
-
-        if (!empty($customOptions)) {
-            $options = array_merge($options, $customOptions);
+            if (!empty($customOptions)) {
+                $options = array_merge($options, $customOptions);
+            }
+            $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . $path, $options);
+            if (!$response->getBody()) {
+                throw new \Exception('No API Response');
+            }
+            return $response;
+        }else{
+            $string = json_encode(['data' => 'test']);
+            return new Response(400, ['Content-Type' => 'application/json'], $string);
         }
-        $response = $this->getGuzzleClient()->get($this->getApiURL() . $this->getApiURN() . $path, $options);
-        if(!$response->getBody()){
-            throw new \Exception('No API Response');
-        }
-        return $response;
     }
 
     /**
@@ -201,16 +209,21 @@ abstract class Clients
      */
     public function post(string $path, array $data)
     {
-        $jwt = $this->getAccessToken();
-        $response = $this->getGuzzleClient()->post($this->getApiURL() . $this->getApiURN() . $path, [
-            'debug' => false,
-            'body' => json_encode($data),
-            'headers' => ['Authorization' => "Bearer {$jwt}", 'Content-Type' => 'application/json', 'Accept' => 'application/json'],
-        ]);
-        if(!$response->getBody()){
-            throw new \Exception('No API Response');
+        if (!$this->isDisableFunctionlity()) {
+            $jwt = $this->getAccessToken();
+            $response = $this->getGuzzleClient()->post($this->getApiURL() . $this->getApiURN() . $path, [
+                'debug' => false,
+                'body' => json_encode($data),
+                'headers' => ['Authorization' => "Bearer {$jwt}", 'Content-Type' => 'application/json', 'Accept' => 'application/json'],
+            ]);
+            if (!$response->getBody()) {
+                throw new \Exception('No API Response');
+            }
+            return $response;
+        }else{
+            $string = json_encode(['data' => 'test']);
+            return new Response(400, ['Content-Type' => 'application/json'], $string);
         }
-        return $response;
     }
 
     /**
@@ -223,26 +236,33 @@ abstract class Clients
     {
         // disable try/catch to let exception trickle back to client.
 //        try {
-        $response = $this->getGuzzleClient()->post($this->getApiURL() . $this->getApiAuthURN(), [
-            'debug' => false,
-            'form_params' => [
-                'grant_type' => 'client_credentials',
-                'client_id' => $clientId,
-                'client_secret' => $clientSecret,
-            ],
-            'headers' => [
-                'Content-Type' => 'application/x-www-form-urlencoded',
-                'Accept' => 'application/json'
-            ]
-        ]);
-        if ($response->getStatusCode() < 300) {
-            $data = json_decode($response->getBody());
-            if (!is_null($data) && property_exists($data, 'access_token')) {
-                return $data;
-            } else {
-                throw new \LengthException("Could not find access token.");
+        if (!$this->isDisableFunctionlity()) {
+            $response = $this->getGuzzleClient()->post($this->getApiURL() . $this->getApiAuthURN(), [
+                'debug' => false,
+                'form_params' => [
+                    'grant_type' => 'client_credentials',
+                    'client_id' => $clientId,
+                    'client_secret' => $clientSecret,
+                ],
+                'headers' => [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                    'Accept' => 'application/json'
+                ]
+            ]);
+            if ($response->getStatusCode() < 300) {
+                $data = json_decode($response->getBody());
+                if (!is_null($data) && property_exists($data, 'access_token')) {
+                    return $data;
+                } else {
+                    throw new \LengthException("Could not find access token.");
+                }
             }
+        }else{
+            $string = json_encode(['data' => 'test']);
+            $response = new Response(400, ['Content-Type' => 'application/json'], $string);
+            return json_decode($response->getBody());
         }
+
 //        } catch (\Exception $e) {
 //            Entities::createException($e->getMessage());
 //            echo $e->getMessage();
@@ -529,6 +549,16 @@ abstract class Clients
     public function setFieldsDefinition(array $fieldsDefinition): void
     {
         $this->fieldsDefinition = $fieldsDefinition;
+    }
+
+    public function isDisableFunctionlity(): bool
+    {
+        return $this->disableFunctionlity;
+    }
+
+    public function setDisableFunctionlity(bool $disableFunctionlity): void
+    {
+        $this->disableFunctionlity = $disableFunctionlity;
     }
 
 

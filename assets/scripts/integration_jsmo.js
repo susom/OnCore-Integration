@@ -16,6 +16,7 @@
             const last_adjudication         = module.config["last_adjudication"];
             const matching_library          = module.config["matching_library"];
             const alert_notifications       = module.config["alert_notifications"];
+            const disable_functionality       = module.config["disable_functionality"];
 
             //THIS IS MATCHING ROWS STUFFED IN ENTITY TABLE
             const multiple_protocols        = oncore_protocols.length > 1 ? true : false;
@@ -246,7 +247,11 @@
                                         var btn_text            = has_oncore_link ? "Unlink Project&nbsp;" : "Link Project&nbsp;";
                                         var integrated_class    = has_oncore_link ? "integrated" : "not_integrated";
 
-                                        var button              = $("<a>").data("irb", irb).data("protocolId", protocolId).data("entity_record_id",entity_record_id).addClass("integrate_oncore").addClass("btn btn-defaultrc btn-xs fs11").html(btn_text);
+                                        if(disable_functionality == ''){
+                                            var button              = $("<a>").data("irb", irb).data("protocolId", protocolId).data("entity_record_id",entity_record_id).addClass("integrate_oncore").addClass("btn btn-defaultrc btn-xs fs11").html(btn_text);
+                                        }else{
+                                            var button              = $("<a>").data("irb", irb).addClass('disabled').addClass("integrate_oncore").addClass("btn btn-defaultrc btn-xs fs11").html(btn_text);
+                                        }
                                         button.prepend($("<i class=\"fa fa-cog fa-spin\"/>"));
                                         var asstrick            = "";
                                         if(!matching_library){
