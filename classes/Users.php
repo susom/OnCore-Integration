@@ -150,8 +150,8 @@ class Users extends Clients
         }
         // when role bypass is not acticated and user
         if(!$this->canBypassUserRoleRestriction()){
-            Entities::createLog('EM could not find a Protocol Staff for ' . $redcapUsername . '. User must confirm "Staff ID" is configured for his/her OnCore Contact.');
-            throw new \Exception('EM could not find a Protocol Staff for ' . $redcapUsername . '. User must confirm "Staff ID" is configured for his/her OnCore Contact.');
+            Entities::createDebugLog('EM could not find a Protocol Staff for ' . $redcapUsername . '. User must confirm "Staff ID" is configured for his/her OnCore Contact.', true);
+            #throw new \Exception('EM could not find a Protocol Staff for ' . $redcapUsername . '. User must confirm "Staff ID" is configured for his/her OnCore Contact.');
         }
         return [];
     }

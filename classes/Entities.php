@@ -56,6 +56,16 @@ class Entities
 
     }
 
+    public static function createDebugLog($message, $triggerException = false)
+    {
+        $e = (new OnCoreIntegration());
+        if($e->emLoggerInstance() && $e->emLoggerDebugMode()){
+            self::createLog($message);
+            if($triggerException){
+                throw new \Exception($message);
+            }
+        }
+    }
 
     public static function getTypeText($type)
     {
