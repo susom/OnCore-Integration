@@ -189,9 +189,19 @@ Until the status update is manually performed in OnCore, those participants will
 
 ```json
 {
+    "protocolSubjectId": {
+        "alias": "",
+		"allow_default": "false",
+        "description": "Protocol subject Id(Unique to Protocol and Subject)",
+        "oncore_field_type": [
+            "string"
+        ],
+        "oncore_valid_values": [],
+        "required": "false"
+    },
     "subjectDemographicsId": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "subject Demographics Id",
         "oncore_field_type": [
             "string"
@@ -201,7 +211,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "subjectSource": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "subject Source",
         "oncore_field_type": [
             "string"
@@ -211,7 +221,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "mrn": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "MRN",
         "oncore_field_type": [
             "string"
@@ -221,7 +231,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "lastName": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "last Name",
         "oncore_field_type": [
             "string"
@@ -231,7 +241,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "firstName": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "first Name",
         "oncore_field_type": [
             "string"
@@ -241,7 +251,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "middleName": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "middle Name",
         "oncore_field_type": [
             "string"
@@ -251,7 +261,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "suffix": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "suffix",
         "oncore_field_type": [
             "string"
@@ -261,7 +271,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "birthDate": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "true",
         "description": "Date of Birth",
         "oncore_field_type": [
             "string"
@@ -271,7 +281,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "approximateBirthDate": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "approximate Birth Date",
         "oncore_field_type": [
             "bool"
@@ -281,7 +291,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "birthDateNotAvailable": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "birth Date Not Available",
         "oncore_field_type": [
             "bool"
@@ -291,7 +301,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "expiredDate": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "expired Date",
         "oncore_field_type": [
             "string"
@@ -301,7 +311,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "approximateExpiredDate": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "approximate Expired Date",
         "oncore_field_type": [
             "bool"
@@ -311,7 +321,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "lastDateKnownAlive": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "last Date Known Alive",
         "oncore_field_type": [
             "string"
@@ -321,7 +331,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "ssn": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "Social Security Number",
         "oncore_field_type": [
             "string"
@@ -331,7 +341,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "gender": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "true",
         "description": "Gender",
         "oncore_field_type": [
             "string"
@@ -339,13 +349,15 @@ Until the status update is manually performed in OnCore, those participants will
         "oncore_valid_values": [
             "Male",
             "Female",
-            "Unknown"
+            "Unknown",
+            "Unspecified",
+             "Undifferentiated"
         ],
         "required": "true"
     },
     "ethnicity": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "true",
         "description": "Ethnicity",
         "oncore_field_type": [
             "string"
@@ -360,7 +372,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "race": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "true",
         "description": "Race",
         "oncore_field_type": [
             "array"
@@ -376,9 +388,19 @@ Until the status update is manually performed in OnCore, those participants will
         ],
         "required": "true"
     },
+    "studySites": {
+        "alias": "",
+		"allow_default": "true",
+        "description": "Study Site",
+        "oncore_field_type": [
+            "text"
+        ],
+        "oncore_valid_values": [],
+        "required": "true"
+    },
     "subjectComments": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "subject Comments",
         "oncore_field_type": [
             "string"
@@ -388,7 +410,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "additionalSubjectIds": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "additional Subject Ids",
         "oncore_field_type": [
             "array"
@@ -398,7 +420,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "streetAddress": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "street Address",
         "oncore_field_type": [
             "string"
@@ -408,7 +430,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "addressLine2": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "address Line 2",
         "oncore_field_type": [
             "string"
@@ -418,7 +440,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "city": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "City",
         "oncore_field_type": [
             "string"
@@ -428,7 +450,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "state": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "State",
         "oncore_field_type": [
             "string"
@@ -438,7 +460,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "zip": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "ZIP",
         "oncore_field_type": [
             "string"
@@ -448,7 +470,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "county": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "County",
         "oncore_field_type": [
             "string"
@@ -458,7 +480,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "country": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "Country",
         "oncore_field_type": [
             "string"
@@ -468,7 +490,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "phoneNo": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "Phone",
         "oncore_field_type": [
             "string"
@@ -478,7 +500,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "alternatePhoneNo": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "alternate Phone",
         "oncore_field_type": [
             "string"
@@ -488,7 +510,7 @@ Until the status update is manually performed in OnCore, those participants will
     },
     "email": {
         "alias": "",
-        "allow_default": "false",
+		"allow_default": "false",
         "description": "Email",
         "oncore_field_type": [
             "string"
