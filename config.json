@@ -25,14 +25,7 @@
       "institution": "Stanford University"
     }
   ],
-  "framework-version": 9,
-  "permissions": [
-    "redcap_save_record",
-    "redcap_every_page_top",
-    "redcap_module_link_check_display",
-    "redcap_module_system_enable",
-    "redcap_module_project_enable"
-  ],
+  "framework-version": 12,
   "enable-every-page-hooks-on-system-pages": false,
   "links": {
     "control-center": [
@@ -367,7 +360,7 @@
   "compatibility": {
     "php-version-min": "8.0.0",
     "php-version-max": "8.99.99",
-    "redcap-version-min": "13.1.2",
+    "redcap-version-min": "13.1.0",
     "redcap-version-max": ""
   }
 }
