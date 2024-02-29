@@ -134,12 +134,6 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     private $oncore_integrations;
     private $has_oncore_integrations;
 
-    public function __construct()
-    {
-        parent::__construct();
-        //$this->updateOnCoreSubjectsDemographics();
-        // Other code to run when object is instantiated
-    }
 
     public function redcap_save_record($project_id, $record, $instrument, $event_id, $group_id, $survey_hash, $response_id, $repeat_instance)
     {
