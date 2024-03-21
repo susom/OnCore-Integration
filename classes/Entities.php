@@ -27,41 +27,53 @@ class Entities
      * @param $type
      * @return void
      */
-    public static function createLog($message, $type = 0, $url = '', $response = '')
+    public static function createLog($message, $skip = false)
     {
         $data = array(
             'message' => $message,
-            'url' => $url,
-            'response' => $response,
-            'type' => $type
+            'url' => '',
+            'response' => '',
+            'type' => 0
         );
-        // use this to reduce Mysql Server Gone error.
-        if (defined('PROJECT_ID')) {
-            $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated, redcap_project_id) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()), db_escape(PROJECT_ID));
-        } else {
-            $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()));
-        }
 
-        //$entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_API_ACTIONS_LOG, $data);
-        $entity = db_query($sql);
-        if (!$entity) {
-            \REDCap::logEvent('Could not create log');
-            $e = (new Entities);
-            $e->emError('Could not create log');
-            $e->emLog($data);
+        if (!$skip) {
+            // use this to reduce Mysql Server Gone error.
+            if (defined('PROJECT_ID')) {
+                $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated, redcap_project_id) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()), db_escape(PROJECT_ID));
+            } else {
+                $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()));
+            }
+
+
+            //$entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_API_ACTIONS_LOG, $data);
+            $entity = db_query($sql);
+            if (!$entity) {
+                \REDCap::logEvent('Could not create log');
+
+
+                $e = (new Entities);
+                $e->emError('Could not create log');
+                $e->emLog($data);
+            }
         }
-//        else {
-//            (new Entities)->emLog($data);
-//        }
 
     }
 
-    public static function createDebugLog($message, $triggerException = false)
+    public static function wasLogReportedToday($message)
     {
+        // check if message was reported in last 24 hours.
+        $sql = sprintf("SELECT * FROM redcap_entity_oncore_redcap_api_actions_log WHERE message = '%s' and created >  (UNIX_TIMESTAMP() - 86400)", db_escape($message));
+        $q = db_query($sql);
+        return db_num_rows($q) > 0 ? true : false;
+    }
+
+    public static function createDebugLog($message, $triggerException = false, $onceDaily = false)
+    {
+        $skip = $onceDaily && self::wasLogReportedToday($message);
         $e = (new OnCoreIntegration());
-        if($e->emLoggerInstance() && $e->emLoggerDebugMode()){
-            self::createLog($message);
-            if($triggerException){
+        if ($e->emLoggerInstance() && $e->emLoggerDebugMode()) {
+            self::createLog($message, $skip);
+            if ($triggerException && !$skip) {
                 throw new \Exception($message);
             }
         }
