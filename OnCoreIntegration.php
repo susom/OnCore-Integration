@@ -227,7 +227,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 }
             }
         } catch (\Exception $e) {
-            \REDCap::logEvent('Exception initiating OnCore Protocol.', $e->getMessage());
+            $this->emError('Exception initiating OnCore Protocol.', $e->getMessage());
         }
     }
 
@@ -1139,7 +1139,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         } catch (\Exception $e) {
 //            $this->emError($e->getMessage());
-            \REDCap::logEvent('CRON JOB ERROR: ', $e->getMessage());
+            $this->emError('CRON JOB ERROR: ', $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
         }
@@ -1197,7 +1197,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         } catch (\Exception $e) {
 //            $this->emError($e->getMessage());
-            \REDCap::logEvent('CRON JOB ERROR: ', $e->getMessage());
+            $this->emError('CRON JOB ERROR: ', $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
         }
@@ -1229,7 +1229,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         } catch (\Exception $e) {
 //            $this->emError($e->getMessage());
-            \REDCap::logEvent('CRON JOB ERROR: ', $e->getMessage());
+            $this->emError('CRON JOB ERROR: ', $e->getMessage());
             Entities::createException('CRON JOB ERROR: ' . $e->getMessage());
 
         }

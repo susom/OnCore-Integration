@@ -240,7 +240,9 @@ class Users extends Clients
                         if (empty($contact)) {
                             $message = 'System did not find demographic information for contact ID: ' . $staff['contactId'];
                             Entities::createLog($message);
-                            \REDCap::logEvent('OnCore API Error.', $message);
+                            $e = (new Entities);
+                            $e->emError('OnCore API Error.', $message);
+                            //\REDCap::logEvent('OnCore API Error.', $message);
                         } elseif (isset($contact['errorType'])) {
 //                            Entities::createLog($contact['message']);
 //                            \REDCap::logEvent($contact['message']);

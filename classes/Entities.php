@@ -48,12 +48,12 @@ class Entities
             //$entity = (new Entities)->create(OnCoreIntegration::ONCORE_REDCAP_API_ACTIONS_LOG, $data);
             $entity = db_query($sql);
             if (!$entity) {
-                \REDCap::logEvent('Could not create log');
+                //\REDCap::logEvent('Could not create log');
 
 
                 $e = (new Entities);
                 $e->emError('Could not create log');
-                $e->emLog($data);
+                //$e->emLog($data);
             }
         }
 
@@ -69,11 +69,10 @@ class Entities
 
     public static function createDebugLog($message, $triggerException = false, $onceDaily = false)
     {
-        $skip = $onceDaily && self::wasLogReportedToday($message);
         $e = (new OnCoreIntegration());
         if ($e->emLoggerInstance() && $e->emLoggerDebugMode()) {
-            self::createLog($message, $skip);
-            if ($triggerException && !$skip) {
+            self::createLog($message);
+            if ($triggerException) {
                 throw new \Exception($message);
             }
         }
@@ -142,10 +141,10 @@ class Entities
         $sql = vsprintf('INSERT INTO %s (' . $keys_text . ') VALUES (' . $fmt . ')', $temp);
         $result = db_query(str_replace("\\", '', db_escape($sql)));
         if (!$result) {
-            \REDCap::logEvent('Could not create log');
+            //\REDCap::logEvent('Could not create log');
             $e = (new Entities);
             $e->emError('Could not create log');
-            $e->emLog($data);
+            //$e->emLog($data);
             $this->errors = db_error();
         } else {
             $id = db_insert_id();
