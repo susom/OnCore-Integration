@@ -1158,7 +1158,7 @@ class Mapping
                     if (!is_array($oc)) {
                         $oc = json_decode($oc, 1);
                     }
-                    $oc = implode(", ", array_filter($oc));
+                    $oc = implode(", ", array_filter($oc?:[]));
                 }
 
                 if (is_array($rc)) {
