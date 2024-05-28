@@ -874,8 +874,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         // set the keys for redcap array
                         $arr = $record["redcap"];
 
-                        $mrn_event_id = $fields_event[$this->getMapping()->getProjectFieldMappings()['pull']['mrn']['redcap_field']];
-                        $mrn = $arr[$mrn_event_id][$this->getMapping()->getProjectFieldMappings()['pull']['mrn']['redcap_field']];
+                        $mrn_event_id = $fields_event[$this->getMapping()->getProjectFieldMappings()['push']['mrn']['redcap_field']];
+                        $mrn = $arr[$mrn_event_id][$this->getMapping()->getProjectFieldMappings()['push']['mrn']['redcap_field']];
 
                         $primary_field_event_id = $fields_event[\REDCap::getRecordIdField()];
                         $rc_id = $arr[$primary_field_event_id][\REDCap::getRecordIdField()];
