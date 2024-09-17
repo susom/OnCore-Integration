@@ -179,10 +179,9 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             if (!$this->users) {
                 $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser() ?: null, $this->getCSRFToken()));
             }
-        } catch (\LengthException $e){
+        } catch (\LengthException $e) {
             \REDCap::logEvent('Empty Response', 'OnCore is on maintenance. ' . $e->getMessage());
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             // this is a special case for cron no redcap user.
             $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, null, $this->getCSRFToken()));
         }
@@ -613,58 +612,75 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         $oncore_css = $this->getUrl("assets/styles/oncore.css");
 
         $protocols = $this->getProtocols()->getOnCoreProtocolsViaIRB($project_irb);
-        $integrations = $this->getOnCoreIntegrations();
-        $last_adjudication = $this->getSyncDiffSummary();
 
-        //if no integrations, and only one protocol, pre-pull the protocol into the entity table
-        $matching_library = false;
-        if (is_array($protocols) && count($protocols) == 1 && empty($integrations)) {
-            $protocol = current($protocols);
-            $protocolId = $protocol["protocolId"];
-            $library = $protocol["protocol"]["library"];
+        $displaySummary = true;
+        // edge case if redcap project irb number is changed. we need to check entity record to confirm.
+        if (empty($protocols)) {
+            $entity = $this->getProtocols()->getEntityRecord();
+            // entity number has changed.
+            if (!empty($entity) && $entity['irb_number'] != $project_irb) {
+                // delete all linkage and protocol records
+                $this->deleteLinkageRecords($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
+                $this->deleteProtocolRecord($this->getProtocols()->getEntityRecord()['redcap_project_id'], $this->getProtocols()->getEntityRecord()['oncore_protocol_id']);
 
-            $lib_names = array();
-            foreach ($this->getDefinedLibraries() as $lib) {
-                array_push($lib_names, $lib["library-name"]);
-            }
-//            $this->emDebug($protocol);
-            if (in_array($library, $lib_names)) {
-                $matching_library = true;
-                $new_entity_record = $this->getProtocols()->processCron($this->getProjectId(), $project_irb, $protocolId, $this->getDefinedLibraries());
-                $integrations[$protocolId] = $new_entity_record;
+                // prevent summary from being displayed
+                $displaySummary = false;
             }
         }
+        if ($displaySummary) {
+            $integrations = $this->getOnCoreIntegrations();
+            $last_adjudication = $this->getSyncDiffSummary();
 
-        //DATA TO INIT JSMO module
-        $notifs_config = array(
-            "field_map_url" => $field_map_url,
-            "oncore_protocols" => $protocols,
-            "oncore_integrations" => $integrations,
-            "has_oncore_integration" => $this->hasOnCoreIntegration(),
-            "has_field_mappings" => !empty($this->getMapping()->getProjectFieldMappings()['pull']) || !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false,
-            "last_adjudication" => $last_adjudication,
-            "matching_library" => $matching_library,
-            "alert_notifications" => $this->getSystemSetting('display-alert-notification') ? htmlspecialchars($this->getSystemSetting('alert-notification')) : "",
-            "disable_functionality" => $this->getSystemSetting('disable-functionality')
-        );
+            //if no integrations, and only one protocol, pre-pull the protocol into the entity table
+            $matching_library = false;
+            if (is_array($protocols) && count($protocols) == 1 && empty($integrations)) {
+                $protocol = current($protocols);
+                $protocolId = $protocol["protocolId"];
+                $library = $protocol["protocol"]["library"];
 
-        //Initialize JSMO
-        $this->initializeJavascriptModuleObject();
-        ?>
-        <script src="<?= $oncore_js ?>" type="text/javascript"></script>
-        <script src="<?= $notif_js ?>" type="text/javascript"></script>
-        <script src="<?= $integration_jsmo ?>" type="text/javascript"></script>
-        <script>
-            $(function () {
-                const module = <?=$this->getJavascriptModuleObjectName()?>;
-                module.config = decode_object("<?=$this->escape(json_encode($notifs_config))?>");
-                console.log(module.config)
-                module.afterRender(<?=$this->getJavascriptModuleObjectName()?>.InitFunction);
-            })
-        </script>
-        <link rel="stylesheet" href="<?= $oncore_css ?>">
-        <link rel="stylesheet" href="<?= $notif_css ?>">
-        <?php
+                $lib_names = array();
+                foreach ($this->getDefinedLibraries() as $lib) {
+                    array_push($lib_names, $lib["library-name"]);
+                }
+                //            $this->emDebug($protocol);
+                if (in_array($library, $lib_names)) {
+                    $matching_library = true;
+                    $new_entity_record = $this->getProtocols()->processCron($this->getProjectId(), $project_irb, $protocolId, $this->getDefinedLibraries());
+                    $integrations[$protocolId] = $new_entity_record;
+                }
+            }
+
+            //DATA TO INIT JSMO module
+            $notifs_config = array(
+                "field_map_url" => $field_map_url,
+                "oncore_protocols" => $protocols,
+                "oncore_integrations" => $integrations,
+                "has_oncore_integration" => $this->hasOnCoreIntegration(),
+                "has_field_mappings" => !empty($this->getMapping()->getProjectFieldMappings()['pull']) || !empty($this->getMapping()->getProjectFieldMappings()['push']) ? true : false,
+                "last_adjudication" => $last_adjudication,
+                "matching_library" => $matching_library,
+                "alert_notifications" => $this->getSystemSetting('display-alert-notification') ? htmlspecialchars($this->getSystemSetting('alert-notification')) : "",
+                "disable_functionality" => $this->getSystemSetting('disable-functionality')
+            );
+
+            //Initialize JSMO
+            $this->initializeJavascriptModuleObject();
+            ?>
+            <script src="<?= $oncore_js ?>" type="text/javascript"></script>
+            <script src="<?= $notif_js ?>" type="text/javascript"></script>
+            <script src="<?= $integration_jsmo ?>" type="text/javascript"></script>
+            <script>
+                $(function () {
+                    const module = <?=$this->getJavascriptModuleObjectName()?>;
+                    module.config = decode_object("<?=$this->escape(json_encode($notifs_config))?>");
+                    console.log(module.config)
+                    module.afterRender(<?=$this->getJavascriptModuleObjectName()?>.InitFunction);
+                })
+            </script>
+            <link rel="stylesheet" href="<?= $oncore_css ?>">
+            <link rel="stylesheet" href="<?= $notif_css ?>">
+            <?php
+        }
     }
 
     /**
@@ -898,7 +914,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
 
                         // we are using pull fields to map redcap data
-                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($rc_id, $this->getMapping()->getProjectFieldMappings()['push']?:$this->getMapping()->getProjectFieldMappings()['pull'], $this->getMapping()->getOnCoreFieldDefinitions());
+                        $temp = $this->getProtocols()->getSubjects()->prepareREDCapRecordForSync($rc_id, $this->getMapping()->getProjectFieldMappings()['push'] ?: $this->getMapping()->getProjectFieldMappings()['pull'], $this->getMapping()->getOnCoreFieldDefinitions());
 
                         // handle data scattered over multiple events
                         $redcap = [];
@@ -1019,7 +1035,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getMapping(): Mapping
     {
-        if(!$this->users){
+        if (!$this->users) {
             throw new \Exception("Could not Connect to OnCore API");
         }
 
@@ -1052,7 +1068,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function getProtocols(): Protocols
     {
-        if(!$this->users){
+        if (!$this->users) {
             throw new \Exception("Could not Connect to OnCore API");
         }
         if (!$this->protocols) {
@@ -1339,6 +1355,13 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     }
 
 
+    /**
+     * when protocol is unlinked or IRB number is changed
+     * @param $redcapProjectId
+     * @param $onCoreProtocolId
+     * @return bool|\mysqli_result|\Vanderbilt\REDCap\Classes\StatementResult
+     * @throws \Exception
+     */
     public function deleteLinkageRecords($redcapProjectId, $onCoreProtocolId)
     {
         if (!$redcapProjectId) {
@@ -1350,6 +1373,32 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         }
 
         $sql = sprintf("DELETE FROM %s WHERE redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
+        $result = db_query($sql);
+        if (!$result) {
+            throw new \Exception(db_error());
+        }
+        return $result;
+    }
+
+
+    /**
+     * this will be called when IRB number is changed
+     * @param $redcapProjectId
+     * @param $onCoreProtocolId
+     * @return bool|\mysqli_result|\Vanderbilt\REDCap\Classes\StatementResult
+     * @throws \Exception
+     */
+    public function deleteProtocolRecord($redcapProjectId, $onCoreProtocolId)
+    {
+        if (!$redcapProjectId) {
+            throw new \Exception('REDCap Project Id is missing');
+        }
+
+        if (!$onCoreProtocolId) {
+            throw new \Exception('Oncore Protocol Id is missing');
+        }
+
+        $sql = sprintf("DELETE FROM %s WHERE redcap_project_id = %s AND oncore_protocol_id = %s", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS), db_escape($redcapProjectId), db_escape($onCoreProtocolId));
         $result = db_query($sql);
         if (!$result) {
             throw new \Exception(db_error());
