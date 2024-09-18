@@ -631,6 +631,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             $integrations = $this->getOnCoreIntegrations();
             $last_adjudication = $this->getSyncDiffSummary();
 
+            // test github SSO
             //if no integrations, and only one protocol, pre-pull the protocol into the entity table
             $matching_library = false;
             if (is_array($protocols) && count($protocols) == 1 && empty($integrations)) {
