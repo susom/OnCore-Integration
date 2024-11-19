@@ -39,9 +39,9 @@ class Entities
         if (!$skip) {
             // use this to reduce Mysql Server Gone error.
             if (defined('PROJECT_ID')) {
-                $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated, redcap_project_id) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()), db_escape(PROJECT_ID));
+                $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated, redcap_project_id) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($data['url']), db_escape($data['response']), db_escape($data['type']), db_escape(time()), db_escape(time()), db_escape(PROJECT_ID));
             } else {
-                $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($url), db_escape($response), db_escape($type), db_escape(time()), db_escape(time()));
+                $sql = sprintf("INSERT INTO %s (message, url, response, type, created, updated) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_REDCAP_API_ACTIONS_LOG), db_escape($message), db_escape($data['url']), db_escape($data['response']), db_escape($data['type']), db_escape(time()), db_escape(time()));
             }
 
 
