@@ -282,6 +282,7 @@ class Subjects extends SubjectDemographics
      * @param $redcapEventId
      * @param $redcapMRNField
      * @return array|false
+     * @throws Exception
      */
     public function getREDCapRecordIdViaMRN($mrn, $redcapEventId, $redcapMRNField, $protocolSubjectIdField = null, $protocolSubjectId = null)
     {
@@ -295,6 +296,29 @@ class Subjects extends SubjectDemographics
                         //if ($record[$redcapEventId][$protocolSubjectIdField] == $protocolSubjectId || $record[$redcapEventId][$protocolSubjectIdField] == '' || !$record[$redcapEventId][$protocolSubjectIdField]) {
                         if ($record[$redcapEventId][$protocolSubjectIdField] == $protocolSubjectId) {
                             $result[] = array('id' => $id, 'record' => $record);
+                        }
+                        elseif($record[$redcapEventId][$protocolSubjectIdField] == '' ){
+                            // if protocolSubjectId is empty for current record then try to use getData to get different record with same mrn and projectSubjectId
+                            $param = [
+                                'filterLogic' => "[$protocolSubjectIdField] = $protocolSubjectId && [$redcapMRNField] = $mrn",
+                                'events' => $redcapEventId,
+                                'return_format' => 'array'
+                            ];
+                            $data = \REDCap::getData($param);
+                            // if you find more than one record then throw an exception. project needs cleanup.
+                            if(count($data) > 1){
+                                throw new \Exception("More than one record found for $mrn and $protocolSubjectId");
+                            }
+                            // if one record found then add it to the result
+                            if($data){
+                                $id = array_key_first($data);
+                                $record = $data[$id];
+                                $result[] = array('id' => $id, 'record' => $record);
+                            }
+                            // finally if no record found then add the first record that matched the MRN
+                            else{
+                                $result[] = array('id' => $id, 'record' => $record);
+                            }
                         }
                     } else {
                         $result[] = array('id' => $id, 'record' => $record);
