@@ -296,8 +296,7 @@ class Subjects extends SubjectDemographics
                         //if ($record[$redcapEventId][$protocolSubjectIdField] == $protocolSubjectId || $record[$redcapEventId][$protocolSubjectIdField] == '' || !$record[$redcapEventId][$protocolSubjectIdField]) {
                         if ($record[$redcapEventId][$protocolSubjectIdField] == $protocolSubjectId) {
                             $result[] = array('id' => $id, 'record' => $record);
-                        }
-                        elseif($record[$redcapEventId][$protocolSubjectIdField] == '' ){
+                        } elseif ($record[$redcapEventId][$protocolSubjectIdField] == '') {
                             // if protocolSubjectId is empty for current record then try to use getData to get different record with same mrn and projectSubjectId
                             $param = [
                                 'filterLogic' => "[$protocolSubjectIdField] = $protocolSubjectId && [$redcapMRNField] = $mrn",
@@ -306,17 +305,20 @@ class Subjects extends SubjectDemographics
                             ];
                             $data = \REDCap::getData($param);
                             // if you find more than one record then throw an exception. project needs cleanup.
-                            if(count($data) > 1){
+                            if (count($data) > 1) {
                                 throw new \Exception("More than one record found for $mrn and $protocolSubjectId");
                             }
                             // if one record found then add it to the result
-                            if($data){
+                            if ($data) {
                                 $id = array_key_first($data);
-                                $record = $data[$id];
-                                $result[] = array('id' => $id, 'record' => $record);
-                            }
-                            // finally if no record found then add the first record that matched the MRN
-                            else{
+                                // make sure the record is not already added to the result
+                                if (array_search($id, array_column($result, 'id')) === FALSE) {
+                                    $record = $data[$id];
+                                    $result[] = array('id' => $id, 'record' => $record);
+                                }
+
+                            } // finally if no record found then add the first record that matched the MRN
+                            else {
                                 $result[] = array('id' => $id, 'record' => $record);
                             }
                         }
@@ -577,7 +579,7 @@ class Subjects extends SubjectDemographics
         }
         $result = array();
         $q = db_query($sql);
-        $fields = $this->getMapping()->getProjectMapping()['push']?:$this->getMapping()->getProjectMapping()['pull'];
+        $fields = $this->getMapping()->getProjectMapping()['push'] ?: $this->getMapping()->getProjectMapping()['pull'];
         if (db_num_rows($q) > 0) {
             while ($row = db_fetch_assoc($q)) {
                 $record = array();
@@ -894,7 +896,7 @@ class Subjects extends SubjectDemographics
         foreach ($fields as $key => $field) {
             unset($map);
             // check if default values are allowed for the field and a default value already defined on current redcap project.
-            if ($this->getMapping()->canUseDefaultValue($key, $oncoreFieldsDef[$key]['allow_default'], $field['default_value']?:'') && empty($field["redcap_field"])) {
+            if ($this->getMapping()->canUseDefaultValue($key, $oncoreFieldsDef[$key]['allow_default'], $field['default_value'] ?: '') && empty($field["redcap_field"])) {
                 // special case only for birthdate to allow empty default value
                 if ($key == OnCoreIntegration::ONCORE_BIRTHDATE_FIELD) {
                     $data[OnCoreIntegration::ONCORE_BIRTHDATE_NOT_REQUIRED_FIELD] = true;
