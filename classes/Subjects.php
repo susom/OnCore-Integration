@@ -4,6 +4,7 @@ namespace Stanford\OnCoreIntegration;
 
 use \Exception;
 use \GuzzleHttp;
+use GuzzleHttp\Promise\Utils as GuzzleUtils;
 use GuzzleHttp\Exception\GuzzleException;
 
 require_once 'classes/SubjectDemographics.php';
@@ -401,17 +402,20 @@ class Subjects extends SubjectDemographics
                     if (empty($subjects)) {
                         $this->onCoreProtocolSubjects = [];
                     } else {
-
+                        $client = $this->getUser()->getGuzzleClient();
                         foreach ($subjects as $key => $subject) {
-                            try {
-                                // pull protocol subject demographics. If subject demographics saved in oncore_subjects entity table it will be pulled from there. otherwise will be pulled via API then saved in entity table.
-                                $subjects[$key]['demographics'] = $this->getOnCoreSubjectDemographics($subject['subjectDemographicsId'], $this->forceDemographicsPull);
-                                // make it easy to prepare for push/pull
-                                $subjects[$key]['demographics']['studySites'] = $subject['studySite'];
-                            } catch (\Exception $e) {
-                                Entities::createException($e->getMessage());
-                            }
+                            $promises[$key] = $this->getOnCoreSubjectDemographicsAsync($client, $subject['subjectDemographicsId'], $this->forceDemographicsPull)
+                                ->then(function ($demographics) use ($key, &$subjects, $subject) {
+                                    $subjects[$key]['demographics'] = $demographics;
+                                    $subjects[$key]['demographics']['studySites'] = $subject['studySite'];
+                                })
+                                ->otherwise(function ($e) {
+                                    Entities::createException($e->getMessage());
+                                });
                         }
+
+                        GuzzleUtils::settle($promises)->wait();
+
                         $this->onCoreProtocolSubjects = $subjects;
                     }
                 } else {

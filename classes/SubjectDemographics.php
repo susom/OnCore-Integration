@@ -1,9 +1,8 @@
 <?php
 
 namespace Stanford\OnCoreIntegration;
-use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
-
+use GuzzleHttp\Promise;
 /**
  * This class can be used as a helper class when trying to verify if the SubjectDemographics values
  * are valid to send to OnCore.  This class performs checking for each field based on the format
@@ -89,53 +88,50 @@ class SubjectDemographics
 
 
     /**
+     * @param Guzzle\Client $client
      * @param $mrn
      * @param $subjectSource
      * @return array|mixed|void
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function getOnCoreSubjectDemographics($subjectDemographicsId, $forceDemographicsPull = false)
+    public function getOnCoreSubjectDemographicsAsync($client, $subjectDemographicsId, $forceDemographicsPull = false)
     {
-        try {
-            // check if entity table already has that subject otherwise go to API to get info
-            $demo = $this->getAllSubjects()[$subjectDemographicsId];
-            if (empty($demo) || $forceDemographicsPull) {
-                $response = $this->getUser()->get('subjectDemographics/' . $subjectDemographicsId);
+        return new Promise\Promise(function () use ($client, $subjectDemographicsId, $forceDemographicsPull, &$promise) {
+            try {
+                $demo = $this->getAllSubjects()[$subjectDemographicsId] ?? null;
+                if (empty($demo) || $forceDemographicsPull) {
 
-                if ($response->getStatusCode() < 300) {
-                    $data = json_decode($response->getBody(), true);
-                    if (empty($data)) {
-                        return [];
-                    } else {
-                        // create entity table record before return.
-                        #$entity = (new Entities)->getFactory()->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
-                        if($demo){
-                            $entity = (new Entities)->update(OnCoreIntegration::ONCORE_SUBJECTS, $demo['id'], $data);
-                        }
-                        else{
-                            $entity = (new Entities)->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
-                        }
-                        if ($entity) {
-                            return $data;
-                        } else {
-                            Entities::createLog('cant create subject record for ' . $data['subjectDemographicsId']);
-                            Entities::createLog(implode('<br>', $data));
-                        }
-
-                    }
+                    $client->getAsync('subjectDemographics/' . $subjectDemographicsId)
+                        ->then(function ($response) use (&$promise, $demo) {
+                            if ($response->getStatusCode() < 300) {
+                                $data = json_decode($response->getBody(), true);
+                                if (empty($data)) {
+                                    $promise->resolve([]);
+                                } else {
+                                    if ($demo) {
+                                        (new Entities)->update(OnCoreIntegration::ONCORE_SUBJECTS, $demo['id'], $data);
+                                    } else {
+                                        (new Entities)->create(OnCoreIntegration::ONCORE_SUBJECTS, $data);
+                                    }
+                                    $promise->resolve($data);
+                                }
+                            }
+                        })
+                        ->otherwise(function ($e) use (&$promise) {
+                            $promise->reject($e);
+                        });
+                } else {
+                    $promise->resolve($demo);
                 }
-            } else {
-                return $demo;
+            } catch (GuzzleException $e) {
+                $promise->reject(new \Exception(json_decode($e->getResponse()->getBody()->getContents(), true)['message']));
+            } catch (\Exception $e) {
+                Entities::createException($e->getMessage());
+                $promise->reject($e);
             }
-        } catch (GuzzleException $e) {
-            $response = $e->getResponse();
-            $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-            throw new \Exception($responseBodyAsString['message']);
-        } catch (\Exception $e) {
-            Entities::createException($e->getMessage());
-            echo $e->getMessage();
-        }
+        });
     }
+
 
     /**
      * @param $mrn
