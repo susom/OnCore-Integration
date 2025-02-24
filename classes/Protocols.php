@@ -67,7 +67,7 @@ class Protocols
         $record = array('id' => $redcapId, 'record' => $this->getSubjects()->getRedcapProjectRecords()[$redcapId]);;
 
         // force pulling and updating demographics data
-        $this->getSubjects()->forceDemographicsPull = true;
+        //$this->getSubjects()->forceDemographicsPull = true;
         $redcapMRN = $record['record'][OnCoreIntegration::getEventNameUniqueId($fields['pull']['mrn']['event'])][$fields['pull']['mrn']['redcap_field']];
 
         // TODO what to do if no MRN
@@ -76,6 +76,16 @@ class Protocols
             $this->getSubjects()->setOnCoreProtocolSubjects(null, true);
 
             $subject = $this->getSubjects()->searchOnCoreProtocolSubjectViaMRN($this->getEntityRecord()['oncore_protocol_id'], $redcapMRN);
+
+            // make sure to pull subject demographics from API to ensure up to date data.
+            $temp = $this->getSubjects()->searchOnCoreSubjectUsingMRN($redcapMRN);
+            //get some fields from saved demographics record.
+            $temp['studySites'] = $subject['studySite'];
+            $race = json_encode($temp['race']);
+            $temp['race'] = $race;
+            $temp['id'] = $subject['demographics']['id'];
+            $subject['demographics'] = $temp;
+
 
             if (!empty($subject)) {
 
