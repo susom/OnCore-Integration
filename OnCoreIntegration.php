@@ -890,6 +890,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         // set the keys for redcap array
                         $arr = $record["redcap"];
 
+                        # if status redcap only but no record this mean record was filter using the filterLogic so ignore this record.
+                        if(empty($arr)){
+                            break;
+                        }
+
+
                         $mrn_event_id = $fields_event[$this->getMapping()->getProjectFieldMappings()['push']['mrn']['redcap_field']];
                         $mrn = $arr[$mrn_event_id][$this->getMapping()->getProjectFieldMappings()['push']['mrn']['redcap_field']];
 
