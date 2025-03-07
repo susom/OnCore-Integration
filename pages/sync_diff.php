@@ -32,18 +32,20 @@ try {
     }
     $linked_protocol = implode("\r\n", $linked_protocol);
 
-
     require_once APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
+
+    $stanford_uit_css = $module->getUrl("assets/styles/stanford_uit.css");
+    $stanford_uit_custom_css = $module->getUrl("assets/styles/stanford_uit_custom.css");
+    echo '<link rel="stylesheet" href="'.APP_PATH_CSS.'bootstrap.min.css">';
     ?>
-    <link rel="stylesheet"
-          href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:600i,700,700i">
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
-    <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
-    <link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
+    <link rel="stylesheet" href="<?=$stanford_uit_css?>">
+    <link rel="stylesheet" href="<?=$stanford_uit_custom_css?>">
+
     <input type="hidden" name="support-url" id="support-url"
            value="<?php echo $module->getSystemSetting('oncore-support-page-url') ?>">
     <link rel="stylesheet" href="<?= $oncore_css ?>">

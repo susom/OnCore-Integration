@@ -1,4 +1,17 @@
+#oncore_config,
+#consent_logic,
+#oncore_mapping,
+#redcap_mapping{
+    margin:3rem 0 3rem;
+}
 
+#consent_logic h2,
+#oncore_mapping h2, 
+#redcap_mapping h2, 
+#oncore_config h2,
+#study_sites h2{
+    font-size:160%;
+}
 
 #oncore_mapping th {
     position:relative;

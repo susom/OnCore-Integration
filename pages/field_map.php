@@ -54,11 +54,23 @@ $study_sites = $module->getUsers()->getOnCoreStudySites();
 $project_study_sites = $mapping->getProjectSiteStudies();
 $site_selection = array();
 $site_selection[] = "<ul>\r\n";
+
 foreach ($study_sites as $site) {
     $checked = in_array($site, $project_study_sites) ? "checked" : "";
     $site_selection[] = "<li><label><input type='checkbox' $checked name='site_study_subset' value='$site'><span>$site</span></label></li>\r\n";
 }
+
+// Ensure total items are a multiple of 3
+$remainder = count($study_sites) % 3;
+if ($remainder > 0) {
+    $missing = 3 - $remainder;
+    for ($i = 0; $i < $missing; $i++) {
+        $site_selection[] = "<li class='dummy'><label><span></span></label></li>\r\n";
+    }
+}
+
 $site_selection[] = "</ul>\r\n";
+
 
 //ONCORE PROPERTY DROP DOWN PICKER FOR PULL SIDE
 $oncore_props = $mapping->getOnCoreFieldDefinitions();
@@ -87,15 +99,18 @@ $bs_dropdown[] = '<h6 class="dropdown-header no_req_hdr">Optional</h6>';
 $bs_dropdown[] = implode("\r\n", $opt_field);
 $bs_dropdown[] = '</div>';
 $pull_oncore_prop_dd = implode("\r\n", $bs_dropdown);
+
+$stanford_uit_css = $module->getUrl("assets/styles/stanford_uit.css");
+$stanford_uit_custom_css = $module->getUrl("assets/styles/stanford_uit_custom.css");
+echo '<link rel="stylesheet" href="'.APP_PATH_CSS.'bootstrap.min.css">';
 ?>
-<link rel="stylesheet"
-      href="https://uit.stanford.edu/sites/all/themes/open_framework/packages/bootstrap-2.3.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:600i,700,700i">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
-<link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit.css">
-<link rel="stylesheet" href="https://uit.stanford.edu/sites/all/themes/stanford_uit/css/stanford_uit_custom.css">
+<link rel="stylesheet" href="<?=$stanford_uit_css?>">
+<link rel="stylesheet" href="<?=$stanford_uit_custom_css?>">
 <link rel="stylesheet" href="<?= $oncore_css ?>">
 <link rel="stylesheet" href="<?= $notif_css ?>">
 
@@ -116,7 +131,7 @@ $pull_oncore_prop_dd = implode("\r\n", $bs_dropdown);
     }
     ?>
     <ul class="nav nav-tabs">
-        <li class="active"><a data-toggle="tab" href="#oncore_config" class="oncore_config">Configurations</a></li>
+        <li class="active"><a data-toggle="tab" href="#oncore_configuration" class="oncore_config">Configurations</a></li>
         <li class=""><a data-toggle="tab" href="#pull_mapping"
                         class="optional pull_mapping <?= $overall_pull_status ?>">Pull Data From OnCore <i
                         class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
@@ -125,7 +140,7 @@ $pull_oncore_prop_dd = implode("\r\n", $bs_dropdown);
                         class='fa fa-times-circle'></i><i class='fa fa-check-circle'></i></a></li>
     </ul>
     <div class="tab-content pull-left">
-        <div class="tab-pane active" id="oncore_config">
+        <div class="tab-pane active" id="oncore_configuration">
             <form id="oncore_config" class="container">
                 <h2>Oncore Project Linked</h2>
 
@@ -486,7 +501,7 @@ $pull_oncore_prop_dd = implode("\r\n", $bs_dropdown);
 
         //TAB BEHAVIOR
         $("#field_mapping ul.nav-tabs a").on("click", function () {
-            $(".nav-tabs .active, .tab-pane.active").removeClass("active");
+            $(".nav-tabs .active, .tab-pane.active").removeClass("active").removeClass("show");
             $(this).parent("li").addClass("active");
             $($(this).attr("href")).addClass("active");
         });

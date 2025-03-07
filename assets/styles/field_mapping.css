@@ -180,8 +180,9 @@ table.value_map th {
 
 
 .map_dir{
-    font-size:120%;
+    font-size:112%;
     margin-bottom:20px;
+    display: block;
 }
 
 #field_mapping .optional{
@@ -228,58 +229,106 @@ table.value_map th {
     display: inline-block;
     width: auto;
     max-width: 80%;
+    font-size: 1.5rem;
 }
 
-#study_sites{
-    margin-bottom:50px;
+#study_sites {
+    margin-bottom: 50px;
 }
+
 #study_sites ul {
-    margin:0;
-    padding:10px;
-    list-style:none;
+    margin: 0;
+    padding: 10px;
+    list-style: none;
     box-shadow: 0 0 3px 1px #ccc;
     border-radius: 3px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px; /* Adds spacing between items */
+    justify-content: space-between; /* Ensures even row distribution */
 }
 
 #study_sites li {
-    display:inline-block;
-    width:33%;
-    position:relative;
-    padding:0;
-    margin:0 0 10px 0;
-    vertical-align: top;
-}
-
-#study_sites li label{}
-
-#study_sites li input{
-    position:absolute;
-    top:50%; left:15px;
-    transform: translateY(-30%)
-}
-
-#study_sites li span{
+    flex: 1 1 calc(33.33% - 10px); /* 3 columns */
+    max-width: 33.33%; /* Prevents stretching wider */
+    min-width: 200px; /* Prevents shrinking too much */
     display: flex;
-    justify-content:center;
-    flex-direction: column;
-
-    width:95%;
-    min-height:54px;
-    line-height:100%;
-    border-radius: 3px;
-    padding:10px 40px 10px 35px;
-    font-size:120%;
-    color:#aaa;
-    background:#F7F7FA;
+    align-items: stretch; /* Ensures all items match height */
 }
 
-#study_sites input:checked + span{
-    background:#E9F4F4;
-    color:#1B2E2E;
+#study_sites li label {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%; /* Ensures stretching */
+    cursor: pointer;
+}
+
+#study_sites li input {
+    position: absolute;
+    opacity: 0; /* Hide actual checkbox */
+}
+
+#study_sites li span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    flex-grow: 1;
+    width: 100%;
+    min-height: 60px;
+    padding: 5px 10px;
+    font-size: 1.1em;
+    line-height:100%;
+    color: #aaa;
+    background: #F7F7FA;
+    border-radius: 3px;
+    transition: background 0.2s, color 0.2s;
+}
+
+#study_sites li input:checked + span {
+    background: #E9F4F4;
+    color: #1B2E2E;
+    font-weight: bold;
+}
+
+#study_sites li.dummy span {
+    background:none;
+}
+
+/* Ensure all items in a row match the tallest item */
+#study_sites ul {
+    align-items: stretch; /* Makes all items the same height */
+}
+
+/* Responsive Fix */
+@media (max-width: 768px) {
+    #study_sites li {
+        flex: 1 1 50%; /* Switches to 2 columns on smaller screens */
+        max-width: 50%;
+    }
+}
+
+@media (max-width: 480px) {
+    #study_sites li {
+        flex: 1 1 100%; /* Switches to single column for mobile */
+        max-width: 100%;
+    }
 }
 
 .linked_protocol {
     border-radius: 5px;
     padding: 10px;
     margin: 0 0 5px;
+}
+
+button.oncore_pull_prop,
+#dropdownMenu2,
+#show_optional,
+#saveFilterLogic {
+    font-size:1.5rem;
+}
+
+#oncore_prop_selector .dropdown-header{
+    font-size:2rem;
 }
