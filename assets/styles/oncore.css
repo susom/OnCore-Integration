@@ -211,6 +211,9 @@ table.excludes .import *{
 #blockingOverlay .show_all_matched,
 #blockingOverlay .submit_pushToOnCore, 
 #blockingOverlay .submit_pullFromOnCore,
+#blockingOverlay .submit_adjudicatePartial,
+#blockingOverlay .exclude_subject, 
+#adjudicate_partials, 
 #refresh_sync_diff, 
 #push_data,
 #pull_data {
