@@ -6,7 +6,8 @@
 }
 
 #consent_logic h2,
-#oncore_mapping h2, 
+#oncore_mapping h2,
+#oncore_mapping h3, 
 #redcap_mapping h2, 
 #oncore_config h2,
 #study_sites h2{
@@ -206,3 +207,12 @@ table.excludes .import *{
 }
 
 
+
+#blockingOverlay .show_all_matched,
+#blockingOverlay .submit_pushToOnCore, 
+#blockingOverlay .submit_pullFromOnCore,
+#refresh_sync_diff, 
+#push_data,
+#pull_data {
+    font-size:1.5rem;
+}
