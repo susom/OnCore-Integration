@@ -100,7 +100,6 @@ $bs_dropdown[] = implode("\r\n", $opt_field);
 $bs_dropdown[] = '</div>';
 $pull_oncore_prop_dd = implode("\r\n", $bs_dropdown);
 
-$stanford_uit_css = $module->getUrl("assets/styles/stanford_uit.css");
 $stanford_uit_custom_css = $module->getUrl("assets/styles/stanford_uit_custom.css");
 echo '<link rel="stylesheet" href="'.APP_PATH_CSS.'bootstrap.min.css">';
 ?>
@@ -109,7 +108,6 @@ echo '<link rel="stylesheet" href="'.APP_PATH_CSS.'bootstrap.min.css">';
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oswald">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:600i,700,700i">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,300,300italic,400italic">
-<link rel="stylesheet" href="<?=$stanford_uit_css?>">
 <link rel="stylesheet" href="<?=$stanford_uit_custom_css?>">
 <link rel="stylesheet" href="<?= $oncore_css ?>">
 <link rel="stylesheet" href="<?= $notif_css ?>">
