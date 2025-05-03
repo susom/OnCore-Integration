@@ -1742,19 +1742,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $entity_record_id = !empty($payload["entity_record_id"]) ? filter_var($payload["entity_record_id"], FILTER_SANITIZE_NUMBER_INT) : null;
                         $protocol_status = !empty($payload["protocol_status"]) ? htmlspecialchars($payload["protocol_status"]) : null;
                         $protocol_num = !empty($payload["protocol_num"]) ? htmlspecialchars($payload["protocol_num"]) : null;
-                        $oncore_library = !empty($payload["oncore_library"]) ? htmlspecialchars($payload["oncore_library"]) : null;
+                        $oncore_protocol_id = !empty($payload["oncore_protocol_id"]) ? htmlspecialchars($payload["oncore_protocol_id"]) : null;
 
-                        if (empty($this->getUsers()->getStatusesAllowedToPush())) {
-                            // if allowed statuses are not set because protocol is not linked yet.
-                            $libraries = $this->getDefinedLibraries();
-                            foreach ($libraries as $library) {
-                                if ($oncore_library == $library['library-name']) {
-                                    $this->getUsers()->setStatusesAllowedToPush(self::getSubSettingsValuesAsArray($library['library-oncore-protocol-statuses'], 'library-protocol-status'));
-                                }
-                            }
-                        }
+                        $protocol = $this->getProtocols()->getOnCoreProtocolsViaID($oncore_protocol_id);
 
-                        $status = in_array(strtolower($protocol_status), $this->getUsers()->getStatusesAllowedToPush());
+                        $status = $this->verifyProtocolStatusAllowedToPush($protocol);
                         if (!$status) {
                             throw new \Exception("" . $protocol_num . " status '" . $protocol_status . "' is not part of allowed statuses");
                         }
@@ -1767,6 +1759,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         if (isset($payload['irb']) && $payload['irb'] != '' && isset($payload['oncore_protocol_id']) && $payload['oncore_protocol_id'] != '') {
                             $irb = htmlspecialchars($payload['irb']);
                             $oncoreProtocolId = htmlspecialchars($payload['oncore_protocol_id']);
+                            $protocol = $this->getProtocols()->getOnCoreProtocolsViaID($oncoreProtocolId);
+                            $status = $this->verifyProtocolStatusAllowedToPush($protocol);
+                            if (!$status) {
+                                throw new \Exception("" . $protocol['protocolNo'] . " status '" . $protocol['protocolStatus'] . "' is not part of allowed statuses");
+                            }
                             $new_entity_record = $this->getProtocols()->processCron($this->getProjectId(), $irb, $oncoreProtocolId, $this->getDefinedLibraries());
                             $result = $new_entity_record;
                         }
@@ -1802,6 +1799,21 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $return_o;
     }
 
+    public function verifyProtocolStatusAllowedToPush($protocol)
+    {
+        if (empty($this->getUsers()->getStatusesAllowedToPush())) {
+            // if allowed statuses are not set because protocol is not linked yet.
+            $libraries = $this->getDefinedLibraries();
+            foreach ($libraries as $library) {
+                if ($protocol['library'] == $library['library-name']) {
+                    $this->getUsers()->setStatusesAllowedToPush(self::getSubSettingsValuesAsArray($library['library-oncore-protocol-statuses'], 'library-protocol-status'));
+                }
+            }
+        }
+
+        $status = in_array(strtolower($protocol['protocolStatus']), $this->getUsers()->getStatusesAllowedToPush());
+        return $status;
+    }
 
     public static function getActionExceptionText($action)
     {

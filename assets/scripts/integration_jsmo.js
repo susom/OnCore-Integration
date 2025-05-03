@@ -76,7 +76,7 @@
                 }
             };
 
-            var make_check_approve_integration = function(entity_record_id, integrate){
+            var make_check_approve_integration = function(entity_record_id, integrate, protocol_index){
                 var check_label         = $("<label>").addClass("confirm_link").text(" Confirm Link to Protocol");
                 var check_ui            = $("<input type='checkbox'/>").addClass("confirm_check").val(1);
                 check_label.prepend(check_ui);
@@ -89,9 +89,10 @@
                         var data = {
                             "entity_record_id"  : entity_record_id,
                             "integrate"         : integrate,
-                            "protocol_status"         : oncore_protocols[0]['protocol']['protocolStatus'],
-                            "protocol_num"         : oncore_protocols[0]['protocol']['protocolNo'],
-                            "oncore_library"         : oncore_protocols[0]['protocol']['library'],
+                            "protocol_status"         : oncore_protocols[protocol_index]['protocol']['protocolStatus'],
+                            "protocol_num"         : oncore_protocols[protocol_index]['protocol']['protocolNo'],
+                            "oncore_library"         : oncore_protocols[protocol_index]['protocol']['library'],
+                            "oncore_protocol_id"         : oncore_protocols[protocol_index]['protocol']['protocolId'],
                         }
 
                         console.log("approve integration", data)
@@ -180,7 +181,7 @@
                     //BORROW UI FROM OTHER ELEMENT TO ADD A NEW MODULE TO PROJECT SETUP
                     make_oncore_module();
                 }
-
+                var index = 0;
                 //INJECT LINE TO MAIN PROJECT SETTINGS MODULE IF THERE IS POSSIBLE ONCORE INTEGRATION
                 if (oncore_protocols.length) {
                     if ($("#setupChklist-modify_project button:contains('Modify project title, purpose, etc.')").length) {
@@ -214,7 +215,7 @@
 
                                     integrate_protocol(protocolId, irb, function(rt){
                                         var result  = decode_object(rt);
-                                        make_check_approve_integration(result.id, 1);
+                                        make_check_approve_integration(result.id, 1, i);
                                     });
                                 });
 
@@ -234,8 +235,10 @@
                                 for (var i in oncore_protocols) {
                                     var pr = oncore_protocols[i];
 
-                                    if (pr["protocolId"] == protocolId || !matching_library) {
+                                    if (pr["protocolId"] == protocolId && !matching_library) {
                                         // console.log(protocolId, entity_record_id, integration_status, pr["protocol"]);
+                                        // if we have multiple protocols make sure to select the right one so we unlink it does not throw errors.
+                                        index = i
                                         var integration     = oncore_integrations[protocolId];
                                         var protocol        = pr["protocol"];
 
@@ -304,7 +307,7 @@
 
                     if(!$(".confirm_link").length && entity_record_id ){
                         // console.log("if multiple (with no existing integrations), just dropdown, if single, then jump straight to showing checkbox", entity_record_id, need_to_integrate);
-                        make_check_approve_integration(entity_record_id, need_to_integrate);
+                        make_check_approve_integration(entity_record_id, need_to_integrate, index);
                     }
 
                     return;
