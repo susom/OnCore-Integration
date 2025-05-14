@@ -73,7 +73,7 @@ class SubjectDemographics
      */
     public function setAllSubjects(): void
     {
-        $sql = sprintf("SELECT * from %s ", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS));
+        $sql = sprintf("SELECT * from %s where excluded = 0", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS));
 
         $records = db_query($sql);
         if (db_num_rows($records) == 0) {
@@ -130,6 +130,15 @@ class SubjectDemographics
         } catch (GuzzleException $e) {
             $response = $e->getResponse();
             $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
+            // if subject was deleted on OnCore side we need to delete the record and remove any linkage record
+            if(self::isExceptionMessageSubjectDeleted($responseBodyAsString['message'])) {
+                $data['excluded'] = 1;
+                $entity = (new Entities)->update(OnCoreIntegration::ONCORE_SUBJECTS, $demo['id'], $data);
+                if(!$entity) {
+                    Entities::createLog('Cant exclude subjectDemographicsId: '.$demo['subjectDemographicsId']);
+                    Entities::createLog(implode('<br>', $data));
+                }
+            }
             throw new \Exception($responseBodyAsString['message']);
         } catch (\Exception $e) {
             Entities::createException($e->getMessage());
