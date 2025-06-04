@@ -585,7 +585,12 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     'name' => 'OnCore Email',
                     'type' => 'text',
                     'required' => false,
-                ]
+                ],
+                'excluded' => [
+                    'name' => 'Subject excluded (usually its deleted from OnCore)',
+                    'type' => 'boolean',
+                    'required' => false,
+                ],
             ],
             'special_keys' => [
                 'label' => 'subject_demographics_id', // "name" represents the entity label.
@@ -1891,7 +1896,8 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function updateOnCoreSubjectsDemographics()
     {
-        $sql = sprintf("SELECT * from %s ", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS));
+        // only update not excluded subjects
+        $sql = sprintf("SELECT * from %s where excluded = 0", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS));
 
         // manually set users to make guzzle calls.
         if (!$this->users) {
@@ -1916,8 +1922,27 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     $response = $e->getResponse();
                     $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
                     Entities::createLog('Cant update Subject. ' . $responseBodyAsString['message']);
+
+
+                    // if subject was deleted on OnCore side we need to delete the record and remove any linkage record
+                    if(self::isExceptionMessageSubjectDeleted($responseBodyAsString['message'])) {
+                        $data['excluded'] = 1;
+                        $entity = (new Entities)->update(OnCoreIntegration::ONCORE_SUBJECTS, $record['id'], $data);
+                        if(!$entity) {
+                            Entities::createLog('Cant exclude subjectDemographicsId: '.$record['subjectDemographicsId']);
+                            Entities::createLog(implode('<br>', $data));
+                        }
+                    }
                 }
             }
         }
+    }
+
+    public static function isExceptionMessageSubjectDeleted($message){
+        $re = '/^SubjectDemographics\s\d*\sdoes\snot\sexist\.$/m';
+
+        preg_match_all($re, $message, $matches, PREG_SET_ORDER, 0);
+
+        return !empty($matches);
     }
 }
