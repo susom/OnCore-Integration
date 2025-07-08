@@ -399,6 +399,7 @@ class Subjects extends SubjectDemographics
             // if we want to reset subject
             if ($resetSubjects) {
                 $this->onCoreProtocolSubjects = [];
+                $this->oncoreProtocolSubjectsLoaded = false;
             } else {
                 if (!$protocolId || $protocolId == '') {
                     throw new \Exception("No Protocol Provided");
