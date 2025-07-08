@@ -31,6 +31,12 @@ class Subjects extends SubjectDemographics
     private $onCoreProtocolSubjects;
 
     /**
+     * @var bool
+     * this flag to prevent re-loading protocol subjects ($onCoreProtocolSubjects) if the array is empty.
+     */
+    private $oncoreProtocolSubjectsLoaded = false;
+
+    /**
      * @var
      */
     private $redcapProjectRecords;
@@ -372,9 +378,13 @@ class Subjects extends SubjectDemographics
      */
     public function getOnCoreProtocolSubjects($protocolId)
     {
-        if (!$this->onCoreProtocolSubjects) {
+        if (!$this->onCoreProtocolSubjects && !$this->oncoreProtocolSubjectsLoaded) {
             $this->setOnCoreProtocolSubjects($protocolId);
         }
+        /**
+         * this flag will prevent re-loading onCoreProtocolSubjects if the array is empty.
+         */
+        $this->oncoreProtocolSubjectsLoaded = true;
         return $this->onCoreProtocolSubjects;
     }
 
