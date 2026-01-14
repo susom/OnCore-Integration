@@ -9,8 +9,9 @@ try {
 
     $protocols = $module->getProtocolsSummary();
     $logs = $module->getLogsSummary();
-    ?>
 
+    ob_start();
+    ?>
     <div id="accordion">
     <div class="card">
         <div class="card-header" id="headingOne">
@@ -73,8 +74,29 @@ try {
     </div>
 
     <?php
-} catch (\Exception $e){
+    $page_html = ob_get_clean();
     ?>
-    <div class="alert-danger alert"><?php echo $e->getMessage(); ?></div>
+    <div id="app"></div>
+    <script>
+        window.oncoreBootHtml = <?php echo json_encode(
+            $page_html,
+            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+        ); ?>;
+    </script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="<?php echo $module->getUrl('frontend_3/public/js/bundle.js'); ?>"></script>
+    <?php
+} catch (\Exception $e){
+    $page_html = '<div class="alert-danger alert">' . $module->escape($e->getMessage()) . '</div>';
+    ?>
+    <div id="app"></div>
+    <script>
+        window.oncoreBootHtml = <?php echo json_encode(
+            $page_html,
+            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+        ); ?>;
+    </script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="<?php echo $module->getUrl('frontend_3/public/js/bundle.js'); ?>"></script>
 <?php
 }

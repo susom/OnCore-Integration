@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * Clients.php
+ * ---------------------
+ * Abstract base class providing OnCore API connectivity.
+ * Manages authentication tokens, Guzzle client, and SSL settings.
+ * Serves as parent for GET/POST requests to OnCore endpoints.
+ */
+
 namespace Stanford\OnCoreIntegration;
 
 use ExternalModules\ExternalModules;

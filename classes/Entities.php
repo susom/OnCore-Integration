@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * Entities.php
+ * ---------------------
+ * Utility class for interacting with REDCap Entities related to OnCore/REDCap integration.
+ * Provides methods to create and update records in Entity tables for protocols, subjects, and logs.
+ * Offers helpful logging features for error handling and debugging.
+ */
+
 namespace Stanford\OnCoreIntegration;
 
 class Entities

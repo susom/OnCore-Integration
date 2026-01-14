@@ -1,11 +1,108 @@
 <?php
 
+/**
+ * handler.php
+ * ---------------------
+ * Processes AJAX requests from the module’s user interface.
+ * Delegates actions like saving mapping settings, pulling/syncing records, or toggling subject flags.
+ * Interacts with OnCoreIntegration for core CRUD and synchronization logic.
+ */
+
 namespace Stanford\OnCoreIntegration;
 
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
 
 /** @var \Stanford\OnCoreIntegration\OnCoreIntegration $module */
+
+function format_sync_diff_records(OnCoreIntegration $module, array $records): array
+{
+    $mapping = $module->getMapping();
+    $subjects = [];
+
+    foreach ($records as $mrn_key => $rows) {
+        $parts = explode('_', (string) $mrn_key);
+        $mrn = $parts[0] ?? '';
+        if ($mrn === '') {
+            continue;
+        }
+        $first_row = $rows[0] ?? [];
+
+        $subject = [
+            'mrn' => $mrn,
+            'entity_id' => $first_row['entity_id'] ?? null,
+            'oc_id' => $first_row['oc_id'] ?? null,
+            'oc_pr_id' => $first_row['oc_pr_id'] ?? null,
+            'rc_id' => $first_row['rc_id'] ?? null,
+            'oc_status' => $first_row['oc_status'] ?? null,
+            'ts_last_scan' => $first_row['ts_last_scan'] ?? null,
+            'full' => $first_row['full'] ?? false,
+            'rc_url' => null,
+            'oc_url' => null,
+            'rows' => [],
+        ];
+
+        if (!empty($subject['rc_id'])) {
+            $subject['rc_url'] = $module->getProtocols()->getSubjects()->getREDCapRecordURL($module->getProjectId(), $subject['rc_id']);
+        }
+        if (!empty($subject['oc_pr_id'])) {
+            $subject['oc_url'] = $module->getProtocols()->getSubjects()->getOnCoreSubjectURL($subject['oc_pr_id']);
+        }
+
+        foreach ($rows as $row) {
+            $oc_field = $row['oc_field'] ?? '';
+            $oc_type = $mapping->getOncoreType($oc_field);
+            $oc_alias = $mapping->getOncoreAlias($oc_field);
+            $oc_desc = $mapping->getOncoreDesc($oc_field);
+
+            $oc_data = $row['oc_data'] ?? null;
+            $rc_data = $row['rc_data'] ?? null;
+
+            $diff = false;
+            $oc_display = $oc_data;
+            $rc_display = $rc_data;
+
+            if ($oc_type === 'array') {
+                if (!is_array($oc_display)) {
+                    $oc_display = json_decode((string) $oc_display, true);
+                }
+                if (!is_array($rc_display)) {
+                    $rc_display = json_decode((string) $rc_display, true);
+                }
+                $oc_display = array_filter((array) $oc_display);
+                $rc_display = array_filter((array) $rc_display);
+                $diff = !empty(array_diff($oc_display, $rc_display));
+                $oc_display = implode(', ', $oc_display);
+                $rc_display = implode(', ', $rc_display);
+            } else {
+                $diff = $oc_data != $rc_data;
+            }
+
+            if (is_array($oc_display)) {
+                $oc_display = implode(', ', array_filter($oc_display));
+            }
+            if (is_array($rc_display)) {
+                $rc_display = implode(', ', array_filter($rc_display));
+            }
+
+            $subject['rows'][] = [
+                'oc_field' => $oc_field,
+                'oc_alias' => $oc_alias,
+                'oc_desc' => $oc_desc,
+                'oc_type' => $oc_type,
+                'oc_data' => $oc_display,
+                'rc_field' => $row['rc_field'] ?? null,
+                'rc_data' => $rc_display,
+                'rc_event' => $row['rc_event'] ?? null,
+                'diff' => $diff,
+            ];
+        }
+
+        $subjects[] = $subject;
+    }
+
+    return $subjects;
+}
 
 
 try {
@@ -24,6 +121,45 @@ try {
         switch ($action) {
             case "getMappingHTML":
                 $result = $module->getMapping()->makeFieldMappingUI();
+                break;
+            case "getFieldMapData":
+                $mapping = $module->getMapping();
+                $protocol = $module->getIntegratedProtocol();
+                $linked_protocol = null;
+                if ($protocol) {
+                    $linked_protocol = [
+                        'irbNo' => $protocol['irbNo'],
+                        'title' => $protocol['protocol']['title'],
+                        'protocolId' => $protocol['protocol']['protocolId'],
+                        'library' => $protocol['protocol']['library'],
+                        'status' => $protocol['protocol']['protocolStatus'],
+                    ];
+                }
+                $oncore_fields = $mapping->getOnCoreFieldDefinitions();
+                $field_status = [];
+                foreach (array_keys($oncore_fields) as $field_name) {
+                    $field_status[$field_name] = $mapping->calculatePushPullStatus($field_name);
+                }
+
+                $result = [
+                    'oncoreFields' => $oncore_fields,
+                    'redcapFields' => $mapping->getRedcapFields(),
+                    'mappings' => $mapping->getProjectMapping(),
+                    'oncoreSubset' => $mapping->getProjectOncoreSubset(),
+                    'requiredFields' => $mapping->getOncoreRequiredFields(),
+                    'fieldStatus' => $field_status,
+                    'pushPullPref' => $mapping->getProjectPushPullPref(),
+                    'overallPullStatus' => $mapping->getOverallPullStatus(),
+                    'overallPushStatus' => $mapping->getOverallPushStatus(),
+                    'autoPull' => $module->getProjectSetting('enable-auto-pull') ? true : false,
+                    'studySites' => $module->getUsers()->getOnCoreStudySites(),
+                    'projectStudySites' => $mapping->getProjectSiteStudies(),
+                    'consentFilterLogic' => $mapping->getOncoreConsentFilterLogic(),
+                    'linkedProtocol' => $linked_protocol,
+                    'alertNotification' => $module->getSystemSetting('display-alert-notification') != '' ? $module->getSystemSetting('alert-notification') : '',
+                    'disableFunctionality' => $module->getSystemSetting('disable-functionality') != '',
+                    'supportUrl' => $module->getSystemSetting('oncore-support-page-url'),
+                ];
                 break;
 
             case "saveSiteStudies":
@@ -260,6 +396,41 @@ try {
                 //returns sync summary
                 $result = $module->pullSync();
                 break;
+            case "getSyncDiffSummary":
+                $result = $module->getSyncDiffSummary();
+                break;
+            case "getSyncDiffMeta":
+                $protocol = $module->getIntegratedProtocol();
+                $linked_protocol = null;
+                if ($protocol) {
+                    $linked_protocol = [
+                        'irbNo' => $protocol['irbNo'],
+                        'title' => $protocol['protocol']['title'],
+                        'protocolId' => $protocol['protocol']['protocolId'],
+                        'library' => $protocol['protocol']['library'],
+                        'status' => $protocol['protocol']['protocolStatus'],
+                    ];
+                }
+                $filter_logic = $module->getMapping()->getOncoreConsentFilterLogic();
+                $mapping = $module->getMapping()->getProjectFieldMappings();
+                $overall_pull = $module->getMapping()->getOverallPullStatus();
+                $overall_push = $module->getMapping()->getOverallPushStatus();
+                $study_sites = $module->getMapping()->getProjectSiteStudies();
+                $can_push = $module->getProtocols()->getSubjects()->isCanPush();
+                $result = [
+                    'linkedProtocol' => $linked_protocol,
+                    'hasPullMapping' => !empty($mapping['pull']),
+                    'hasPushMapping' => !empty($mapping['push']),
+                    'hasFilterLogic' => !empty($filter_logic),
+                    'overallPullStatus' => $overall_pull,
+                    'overallPushStatus' => $overall_push,
+                    'canPush' => $can_push,
+                    'projectStudySitesEmpty' => empty($study_sites),
+                    'alertNotification' => $module->getSystemSetting('display-alert-notification') != '' ? $module->getSystemSetting('alert-notification') : '',
+                    'disableFunctionality' => $module->getSystemSetting('disable-functionality') != '',
+                    'supportUrl' => $module->getSystemSetting('oncore-support-page-url'),
+                ];
+                break;
 
             case "getSyncDiff":
                 $bin = htmlspecialchars($_POST["bin"]);
@@ -284,6 +455,20 @@ try {
                 $result["excluded"] = $excluded["html"] ?: "";
                 $result["footer_action"] = $included["footer_action"] ?: "";
                 $result["show_all"] = $included["show_all"] ?: "";
+                break;
+            case "getSyncDiffData":
+                $bin = htmlspecialchars($_POST["bin"]);
+                $use_filter = htmlspecialchars($_POST["filter"]);
+                $bin = $bin ?: null;
+                $sync_diff = $module->getSyncDiff($use_filter);
+
+                $included_records = $sync_diff[$bin]["included"] ?? [];
+                $excluded_records = $sync_diff[$bin]["excluded"] ?? [];
+
+                $result = [
+                    'included' => format_sync_diff_records($module, $included_records),
+                    'excluded' => format_sync_diff_records($module, $excluded_records),
+                ];
                 break;
 
             case "approveSync":
@@ -387,5 +572,3 @@ try {
 //    echo(json_encode($result, JSON_THROW_ON_ERROR));
     echo htmlentities($result, ENT_QUOTES);;
 }
-
-

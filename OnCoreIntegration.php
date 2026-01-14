@@ -1,5 +1,15 @@
 <?php
 
+/**
+ * OnCoreIntegration.php
+ * ---------------------
+ * Main external module class implementing the OnCore ↔ REDCap integration.
+ * - Defines constants for OnCore subject status matching (ONCORE_ONLY, REDCAP_ONLY, etc.).
+ * - Provides methods to initialize protocols, push and pull data between OnCore and REDCap.
+ * - Implements hooks for saving records, cron tasks, and system/node-level events.
+ * - Manages REDCap Entities for logging, subject linkage, and protocol definitions.
+ */
+
 namespace Stanford\OnCoreIntegration;
 
 require_once "emLoggerTrait.php";

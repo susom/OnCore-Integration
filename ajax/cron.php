@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * cron.php
+ * ---------------------
+ * Handles cron-based actions (e.g. scanning protocols, syncing subjects) triggered via dedicated URLs.
+ * Dispatches requests to module logic in OnCoreIntegration.
+ * Supports auto-pull of subjects, OnCore protocol configuration, and cleanup routines.
+ */
+
 namespace Stanford\OnCoreIntegration;
 
 use GuzzleHttp\Exception\ClientException;
