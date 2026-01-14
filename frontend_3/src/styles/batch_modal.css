@@ -1,0 +1,193 @@
+#blockingOverlay{
+    position: fixed; /* Sit on top of the page content */
+    width: 100%; /* Full width (cover the whole page) */
+    height: 100%; /* Full height (cover the whole page) */
+    top: 0; left: 0; right: 0; bottom: 0;
+    border:1px transparent #fff;
+}
+#blockingOverlay:before{
+    content:"";
+    border:1px transparent #fff;
+    background-color: #000;
+    position: absolute; /* Sit on top of the page content */
+    width: 100%; /* Full width (cover the whole page) */
+    height: 100%; /* Full height (cover the whole page) */
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-repeat:no-repeat;
+    background-position:50% 40%;
+    background-size:10%;
+    background-color: rgba(0,0,0,0.5); /* Black background with opacity */
+    z-index: 20; /* Specify a stack order in case you're using a different order for other elements */
+    cursor: pointer; /* Add a pointer on hover */
+}
+#pushModal{
+    position: absolute;
+    width: 850px;
+    height: 520px;
+    border: 1px solid #999;
+    border-radius: 5px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    z-index: 21;
+}
+
+#pushModal .lead{
+    margin-bottom:initial;
+}
+
+.pushFTR label{
+    margin:0 15px;
+}
+#modal_msg {
+    margin:0 15px;
+    width:calc(100% - 30px);
+    height:88px;
+}
+
+.batch_counter{
+    text-align:right;
+    padding:45px 15px 0;
+}
+.batch_counter i{
+    font-style:normal;
+}
+.batch_counter em{
+    color: green;
+    font-style: normal;
+    font-weight: bold;
+}
+.pushHDR{
+    padding:15px;
+    box-shadow: 0px 0px 5px 0px #ccc;
+}
+
+.pushBDY .lead{
+    padding:5px 15px;
+}
+
+#pbar_box{
+    border:1px solid #666;
+    border-radius:5px;
+    margin:0 15px;
+    background: #fffccc;
+}
+
+#pbar{
+    background:#63A4FC;
+    height:20px; width:0;
+    display:block;
+    border-radius:3px;
+}
+
+.pushDATA {
+    height: 230px;
+    max-height: 230px;
+    overflow-y: scroll;
+    margin:10px 0;
+}
+
+.pushDATA td.ok{
+    color:forestgreen;
+}
+.pushDATA td.failed{
+    color:indianred;
+}
+
+.pushTBL {
+    width: calc(100% - 30px);
+    margin: 15px;
+}
+.pushTBL th{
+    color:#666;
+    border-bottom:1px solid #ccc;
+}
+.pushTBL td {
+    padding:5px;
+}
+
+
+
+
+
+/*new combined  modal*/
+
+#pushModal{
+    width:90vw;
+    max-width: 1024px;
+    height:90vh;
+    max-height:1180px;
+    display: flex;
+    flex-flow: column;
+}
+
+#pushModal .tab-pane{
+    margin:20px;
+}
+
+.show_all{
+    padding:0 15px;
+}
+
+
+.pushDATA{
+    max-height:1180px;
+    flex: 1 1 auto;
+}
+.pushFTR{
+    flex: 0 1 40px;
+    padding:15px 15px;
+    box-shadow:0px -1px 5px #eee;
+}
+.pushBDY{
+    padding:0 15px;
+}
+.pushBDY .lead{
+    width:75%;
+}
+.show_all{
+    width:25%;
+    text-align:right;
+}
+.show_all button:last-child {
+    margin-left:5px;
+}
+.modal_progress {
+    display:none;
+}
+.modal_progress label{
+    margin:0 15px 0;
+}
+
+.tab-pane .table{
+    border-right:1px solid #B7B7B7;
+    border-bottom:1px solid #B7B7B7;
+}
+
+
+#ajaxq_buttons {
+    margin:3px  15px 0 ;
+    text-align:right;
+}
+
+#ajaxq_buttons i {
+    color:red;
+    font-style:italic;
+}
+#ajaxq_buttons em{
+    font-size:77%;
+    display:inline-block;
+}
+
+
+::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: 7px;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, .5);
+    box-shadow: 0 0 1px rgba(255, 255, 255, .5);
+}

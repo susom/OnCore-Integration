@@ -1,0 +1,120 @@
+/* ----- General ----- */
+body {
+    font-family: "Source Sans Pro", sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.5em;
+    background-color: #f4f4f4; }
+  
+  dt,
+  dd,
+  li {
+    line-height: 1.5em; }
+  
+  /*doc
+  ---
+  title: Typography
+  name: headings
+  category: Basics
+  ---
+  
+  <h2 class="styleguide">Headings</h2>
+  All HTML headings, `<h1>` through `<h6>`, are available. Start with `<h2>` for content headings.
+  
+  ```html_example
+  <h1>h1. Heading One</h1>
+  <h2>h2. Heading Two</h2>
+  <h3>h3. Heading Three</h3>
+  <h4>h4. Heading Four</h4>
+  <h5>h5. Heading Five</h5>
+  <h6>h6. Heading Six</h6>
+  ```
+  */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Source Sans Pro", sans-serif;
+    font-weight: 400;
+    color: #2e2d29; }
+  
+  h1 {
+    font-weight: 300;
+    letter-spacing: -0.04em;
+    font-size: 3em;
+    line-height: 1.3em; }
+  
+  @media (max-width: 480px) {
+    h1 {
+      font-size: 2.5em; } }
+  
+  .front .main {
+    padding-top: 20px; }
+  
+  /* ----- Content ----- */
+  h1 {
+    margin-top: 0; }
+  
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: #820000; }
+  
+  h2 {
+    font-size: 18px;
+    margin: 0 0 12px 0;
+    padding: 0;
+    text-transform: none;
+    line-height: 1em;
+    font-weight: normal;
+    letter-spacing: 0.02em; }
+  
+  h2,
+  h2 a,
+  h2 a:hover,
+  h2 a:focus {
+    color: #820000; }
+  
+  .content-head {
+    margin-bottom: 0; }
+  
+  .content .sidebar h2 {
+    text-transform: none; }
+  
+  em {
+    font-weight: 400; }
+  
+  .center {
+    text-align: center; }
+  
+  
+  
+  /* ----- Bootstrap Tabs ----- */
+  #main ul.nav > li > a {
+    color: #8C1515; }
+  
+  #main ul.nav-tabs > li > a {
+    padding: 5px 15px; }
+  
+  #main .nav-tabs > .active > a,
+  #main .nav-tabs > .active > a:hover,
+  #main .nav-tabs > .active > a:focus {
+    background-color: #fff; }
+  
+  ul.nav li,
+  ul.nav li.leaf {
+    list-style-image: none;
+    list-style-type: none; }
+  
+  .content-body .nav-tabs > li {
+    margin-bottom: -1px; }
+  
+  /* ----- Breadcrumb ----- */
+  .node-type-service-information #block-menu-block-5 ul.nav > li > a {
+    font-weight: 300; }
+  
+  

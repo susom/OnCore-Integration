@@ -18,3 +18,4 @@
 
 # Emacs backup files
 *~
+*/node_modules/
