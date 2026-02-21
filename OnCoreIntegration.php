@@ -1183,7 +1183,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         // manually set users to make guzzle calls.
         if (!$this->users) {
-            $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, $this->framework->getUser(), $this->getCSRFToken()));
+            $this->setUsers(new Users($this->getProjectId(), $this->PREFIX, USERID, $this->getCSRFToken()));
         }
 
         while ($project = $projects->fetch_assoc()) {
