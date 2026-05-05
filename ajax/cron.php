@@ -28,9 +28,13 @@ try {
         header('Content-Type: application/json');
         $result = json_encode(array('status' => 'success', 'message' => 'Subjects Cron completed for pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
     } elseif ($action == 'auto_pull') {
-        $module->getProtocols()->autoPullFromOnCore();
         header('Content-Type: application/json');
-        $result = json_encode(array('status' => 'success', 'message' => 'OnCore Subjects auto pulled into pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
+        if ($module->getProtocols()->getEntityRecord()['status'] == OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES) {
+            $module->getProtocols()->autoPullFromOnCore();
+            $result = json_encode(array('status' => 'success', 'message' => 'OnCore Subjects auto pulled into pid' . $module->getProjectId()), JSON_THROW_ON_ERROR);
+        }else{
+            $result = json_encode(array('status' => 'success', 'message' => 'OnCore Subjects were not synced because the protocol is not approved'), JSON_THROW_ON_ERROR);
+        }
     } elseif ($action == 'redcap_only') {
         $module->getProtocols()->syncREDCapRecords();
         header('Content-Type: application/json');
