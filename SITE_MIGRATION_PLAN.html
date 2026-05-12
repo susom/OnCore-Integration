@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OnCore Study Site Migration — Implementation Plan</title>
+<style>
+  :root {
+    --blue:    #2563eb;
+    --blue-lt: #dbeafe;
+    --blue-dk: #1e40af;
+    --purple:  #7c3aed;
+    --purple-lt: #ede9fe;
+    --green:   #059669;
+    --green-lt:#d1fae5;
+    --amber:   #d97706;
+    --amber-lt:#fef3c7;
+    --red:     #dc2626;
+    --red-lt:  #fee2e2;
+    --slate:   #475569;
+    --slate-lt:#f1f5f9;
+    --dark:    #0f172a;
+    --mid:     #334155;
+    --body-bg: #f8fafc;
+    --card-bg: #ffffff;
+    --border:  #e2e8f0;
+    --radius:  12px;
+    --shadow:  0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--body-bg);
+    color: var(--dark);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  /* ── Layout ── */
+  .layout { display: flex; min-height: 100vh; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 240px; min-width: 240px; background: var(--dark);
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    padding: 28px 0; display: flex; flex-direction: column;
+  }
+  .sidebar-brand {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  .sidebar-brand .logo {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: rgba(255,255,255,.4);
+  }
+  .sidebar-brand h2 {
+    font-size: 14px; font-weight: 600; color: #fff; margin-top: 6px; line-height: 1.4;
+  }
+  .sidebar-nav { padding: 16px 0; flex: 1; }
+  .nav-section {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: rgba(255,255,255,.3);
+    padding: 12px 20px 6px;
+  }
+  .nav-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 20px; color: rgba(255,255,255,.6);
+    text-decoration: none; font-size: 13px; font-weight: 500;
+    transition: all .15s;
+    border-left: 3px solid transparent;
+  }
+  .nav-link:hover, .nav-link.active {
+    color: #fff; background: rgba(255,255,255,.06);
+    border-left-color: var(--blue);
+  }
+  .nav-link .dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+  .sidebar-meta {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,.1);
+    font-size: 11px; color: rgba(255,255,255,.3);
+    line-height: 1.8;
+  }
+
+  /* ── Main content ── */
+  .main { flex: 1; min-width: 0; padding: 40px 48px; max-width: 1100px; }
+
+  /* ── Section ── */
+  section { margin-bottom: 64px; scroll-margin-top: 24px; }
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--blue);
+    margin-bottom: 8px;
+  }
+  h1 { font-size: 32px; font-weight: 800; color: var(--dark); line-height: 1.2; }
+  h2 { font-size: 22px; font-weight: 700; color: var(--dark); margin-bottom: 20px; }
+  h3 { font-size: 16px; font-weight: 700; color: var(--mid); margin-bottom: 12px; }
+  p  { color: var(--slate); margin-bottom: 12px; }
+
+  /* ── Hero ── */
+  .hero { margin-bottom: 56px; }
+  .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  }
+  .badge-blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+  .badge-purple { background: var(--purple-lt);  color: var(--purple); }
+  .badge-green  { background: var(--green-lt);  color: var(--green); }
+  .badge-amber  { background: var(--amber-lt);  color: var(--amber); }
+  .hero p { font-size: 16px; max-width: 680px; }
+
+  /* ── Stat cards ── */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 40px; }
+  .stat-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+  .stat-card .num {
+    font-size: 32px; font-weight: 800; color: var(--dark); line-height: 1;
+  }
+  .stat-card .num.blue   { color: var(--blue); }
+  .stat-card .num.green  { color: var(--green); }
+  .stat-card .num.amber  { color: var(--amber); }
+  .stat-card .num.purple { color: var(--purple); }
+  .stat-card .label { font-size: 13px; color: var(--slate); margin-top: 6px; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px;
+    box-shadow: var(--shadow); margin-bottom: 20px;
+  }
+  .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .card-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .icon-blue   { background: var(--blue-lt); }
+  .icon-green  { background: var(--green-lt); }
+  .icon-amber  { background: var(--amber-lt); }
+  .icon-purple { background: var(--purple-lt); }
+  .icon-red    { background: var(--red-lt); }
+
+  /* ── Table ── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .tbl th {
+    text-align: left; padding: 10px 14px; background: var(--slate-lt);
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--slate); border-bottom: 2px solid var(--border);
+  }
+  .tbl td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: var(--slate-lt); }
+  .tbl code {
+    background: var(--slate-lt); padding: 2px 6px; border-radius: 4px;
+    font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: var(--purple);
+  }
+
+  /* ── Rule cards ── */
+  .rule-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .rule-card {
+    border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  .rule-card-header {
+    padding: 14px 18px; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .rule-rename .rule-card-header { background: var(--blue-lt); color: var(--blue-dk); }
+  .rule-merge  .rule-card-header { background: var(--purple-lt); color: var(--purple); }
+  .rule-keep   .rule-card-header { background: var(--green-lt); color: var(--green); }
+  .rule-card-body { padding: 18px; background: var(--card-bg); }
+  .change-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    margin-bottom: 10px; font-size: 13px;
+  }
+  .change-row:last-child { margin-bottom: 0; }
+  .change-layer {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--slate); min-width: 80px;
+    padding-top: 2px; flex-shrink: 0;
+  }
+  .change-detail { color: var(--mid); line-height: 1.5; }
+  .arrow { color: var(--slate); margin: 0 4px; }
+  .old  { text-decoration: line-through; color: var(--red);   font-weight: 600; }
+  .new  { color: var(--green); font-weight: 600; }
+  .suffix { color: var(--amber); font-weight: 600; font-style: italic; }
+  .plus { color: var(--green); font-weight: 700; margin-right: 2px; }
+
+  /* ── Flow diagram ── */
+  .flow-diagram { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); overflow-x: auto; }
+
+  /* ── Phase timeline ── */
+  .phases { display: flex; flex-direction: column; gap: 0; }
+  .phase-row { display: flex; gap: 0; align-items: stretch; }
+  .phase-num {
+    width: 48px; min-width: 48px; display: flex; flex-direction: column; align-items: center;
+  }
+  .phase-circle {
+    width: 36px; height: 36px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 14px;
+    color: #fff; flex-shrink: 0; z-index: 1;
+  }
+  .phase-line { width: 2px; flex: 1; margin: 0 auto; min-height: 24px; }
+  .phase-row:last-child .phase-line { display: none; }
+  .phase-content {
+    flex: 1; padding: 0 0 32px 20px; padding-top: 4px;
+  }
+  .phase-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .phase-tasks { list-style: none; }
+  .phase-tasks li {
+    font-size: 13px; color: var(--slate); padding: 3px 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .phase-tasks li::before { content: '→'; color: var(--blue); font-weight: 700; }
+
+  /* ── Decision boxes ── */
+  .decision-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .decision-box {
+    border-radius: var(--radius); padding: 22px;
+    border: 2px solid; position: relative;
+  }
+  .decision-box.open   { border-color: var(--amber); background: var(--amber-lt); }
+  .decision-box.decided { border-color: var(--green); background: var(--green-lt); }
+  .decision-tag {
+    display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 1px;
+    text-transform: uppercase; padding: 2px 8px; border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .decision-box.open   .decision-tag { background: var(--amber); color: #fff; }
+  .decision-box.decided .decision-tag { background: var(--green); color: #fff; }
+  .decision-box h3 { font-size: 14px; margin-bottom: 8px; }
+  .decision-box p { font-size: 13px; margin: 0; }
+
+  /* ── Entity diagram ── */
+  .entity-diagram { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  .entity-box {
+    border: 2px solid var(--blue); border-radius: var(--radius);
+    background: var(--card-bg); min-width: 220px; flex: 1;
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .entity-box .entity-name {
+    background: var(--blue); color: #fff; padding: 10px 14px;
+    font-size: 12px; font-weight: 700; font-family: monospace;
+  }
+  .entity-box .entity-fields { padding: 10px 0; }
+  .entity-field {
+    padding: 5px 14px; font-size: 12px; font-family: monospace;
+    color: var(--mid); display: flex; justify-content: space-between; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .entity-field:last-child { border-bottom: none; }
+  .entity-field .type { color: var(--slate); font-size: 11px; }
+  .entity-field.pk { background: var(--blue-lt); }
+  .entity-field.pk .name { color: var(--blue-dk); font-weight: 700; }
+
+  /* ── Layer diagram ── */
+  .layers { display: flex; flex-direction: column; gap: 0; }
+  .layer {
+    display: flex; align-items: stretch; border: 1px solid var(--border);
+    margin-bottom: -1px; background: var(--card-bg);
+  }
+  .layer:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+  .layer:last-child  { border-radius: 0 0 var(--radius) var(--radius); }
+  .layer-icon { width: 56px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: var(--slate-lt); flex-shrink: 0; }
+  .layer-body { padding: 14px 18px; flex: 1; }
+  .layer-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .layer-detail { font-size: 12px; color: var(--slate); }
+  .layer-badge { margin-left: auto; padding: 14px 18px; display: flex; align-items: center; }
+  .tag {
+    font-size: 11px; font-weight: 700; padding: 3px 8px;
+    border-radius: 4px; white-space: nowrap;
+  }
+  .tag-red    { background: var(--red-lt);    color: var(--red); }
+  .tag-green  { background: var(--green-lt);  color: var(--green); }
+  .tag-blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+  .tag-amber  { background: var(--amber-lt);  color: var(--amber); }
+
+  /* ── Code block ── */
+  pre {
+    background: #0f172a; color: #e2e8f0; padding: 20px 24px;
+    border-radius: var(--radius); font-family: 'SF Mono', Consolas, monospace;
+    font-size: 12.5px; line-height: 1.7; overflow-x: auto; margin-bottom: 16px;
+  }
+  .kw  { color: #93c5fd; }
+  .fn  { color: #a5f3fc; }
+  .str { color: #86efac; }
+  .cm  { color: #64748b; }
+  .var { color: #fcd34d; }
+  .num { color: #f9a8d4; }
+
+  /* ── Callout ── */
+  .callout {
+    border-left: 4px solid; border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 16px 20px; margin-bottom: 20px;
+  }
+  .callout-blue   { border-color: var(--blue);   background: var(--blue-lt); }
+  .callout-amber  { border-color: var(--amber);  background: var(--amber-lt); }
+  .callout-green  { border-color: var(--green);  background: var(--green-lt); }
+  .callout p { margin: 0; font-size: 13.5px; }
+  .callout strong { color: var(--dark); }
+
+  /* ── UI mockup ── */
+  .mockup {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; box-shadow: var(--shadow-lg); background: #fff;
+  }
+  .mockup-bar {
+    background: #f1f5f9; padding: 10px 16px; display: flex; align-items: center;
+    gap: 6px; border-bottom: 1px solid var(--border);
+  }
+  .mockup-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .mockup-title { font-size: 12px; color: var(--slate); margin-left: 8px; font-weight: 500; }
+  .mockup-tabs {
+    display: flex; background: var(--dark);
+  }
+  .mockup-tab {
+    padding: 10px 18px; font-size: 12px; color: rgba(255,255,255,.5);
+    cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500;
+  }
+  .mockup-tab.active {
+    color: #fff; border-bottom-color: var(--blue);
+    background: rgba(255,255,255,.05);
+  }
+  .mockup-body { padding: 24px; font-size: 13px; }
+  .mockup-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+    border-bottom: 1px solid var(--border); border-radius: 6px;
+    margin-bottom: 4px;
+  }
+  .mockup-row:last-child { border-bottom: none; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .s-done    { background: var(--green); }
+  .s-active  { background: var(--blue); animation: pulse 1s infinite; }
+  .s-pending { background: #cbd5e1; }
+  .s-skip    { background: var(--amber); }
+  .s-fail    { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .progress-bar-wrap {
+    background: var(--slate-lt); border-radius: 999px; height: 12px;
+    overflow: hidden; margin: 16px 0;
+  }
+  .progress-bar-fill {
+    height: 100%; background: linear-gradient(90deg, var(--blue) 0%, var(--purple) 100%);
+    border-radius: 999px; transition: width .4s;
+    width: 62%;
+  }
+  .progress-label {
+    display: flex; justify-content: space-between; font-size: 12px; color: var(--slate);
+  }
+
+  /* Responsive */
+  @media(max-width:900px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .rule-grid { grid-template-columns: 1fr; }
+    .decision-grid { grid-template-columns: 1fr; }
+    .main { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ─── Sidebar ─── -->
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <div class="logo">OnCore Integration</div>
+    <h2>Site Migration Plan</h2>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Overview</div>
+    <a class="nav-link" href="#overview"><span class="dot" style="background:#2563eb"></span>Problem &amp; Scope</a>
+    <a class="nav-link" href="#decisions"><span class="dot" style="background:#d97706"></span>Design Decisions</a>
+    <div class="nav-section">Data Model</div>
+    <a class="nav-link" href="#layers"><span class="dot" style="background:#7c3aed"></span>What Changes</a>
+    <a class="nav-link" href="#rules"><span class="dot" style="background:#059669"></span>Rule Types</a>
+    <div class="nav-section">Architecture</div>
+    <a class="nav-link" href="#entities"><span class="dot" style="background:#2563eb"></span>New Entities</a>
+    <a class="nav-link" href="#flow"><span class="dot" style="background:#7c3aed"></span>Execution Flow</a>
+    <a class="nav-link" href="#ajax"><span class="dot" style="background:#059669"></span>AJAX Actions</a>
+    <div class="nav-section">Interface</div>
+    <a class="nav-link" href="#ui"><span class="dot" style="background:#d97706"></span>UI Mockup</a>
+    <a class="nav-link" href="#open"><span class="dot" style="background:#dc2626"></span>Open Questions</a>
+    <a class="nav-link" href="#phases"><span class="dot" style="background:#2563eb"></span>Implementation</a>
+  </div>
+  <div class="sidebar-meta">
+    Module: oncore_integration_v9.9.9<br>
+    Author: ihabz<br>
+    Date: 2026-05-12<br>
+    Status: Planning
+  </div>
+</nav>
+
+<!-- ─── Main ─── -->
+<main class="main">
+
+  <!-- Hero -->
+  <div class="hero" id="overview">
+    <div class="hero-badges">
+      <span class="badge badge-blue">OnCore Integration v9.9.9</span>
+      <span class="badge badge-amber">Planning</span>
+      <span class="badge badge-green">No redcap_data writes</span>
+    </div>
+    <h1>Study Site Rename &amp;<br>Merge Migration</h1>
+    <p style="margin-top:14px">A Control Center tool that applies OnCore study site renaming and merging retroactively across all active REDCap projects — updating settings, value mappings, and field option labels without touching a single row of patient data.</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="num blue">~100</div>
+      <div class="label">Active projects to migrate</div>
+    </div>
+    <div class="stat-card">
+      <div class="num green">0</div>
+      <div class="label">redcap_data rows modified</div>
+    </div>
+    <div class="stat-card">
+      <div class="num purple">5</div>
+      <div class="label">Storage layers updated</div>
+    </div>
+    <div class="stat-card">
+      <div class="num amber">3</div>
+      <div class="label">New entity tables</div>
+    </div>
+  </div>
+
+  <!-- Design decisions summary -->
+  <section id="decisions">
+    <div class="section-label">Design Decisions</div>
+    <h2>Key Constraints &amp; Choices</h2>
+    <table class="tbl" style="background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)">
+      <thead><tr><th>Decision</th><th>Choice</th><th>Rationale</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Migrate redcap_data</strong></td><td><span class="tag tag-red">No</span></td><td>Coded values stay intact. Historical data never touched.</td></tr>
+        <tr><td><strong>Forward-compat with OnCore sync</strong></td><td><span class="tag tag-green">value_mapping dual entries</span></td><td>Both old and new OnCore site name strings map to the same REDCap coded value.</td></tr>
+        <tr><td><strong>Researcher visibility</strong></td><td><span class="tag tag-amber">Label suffix</span></td><td><code>"Old Site (changed to New Site)"</code> — full traceability, no data loss.</td></tr>
+        <tr><td><strong>Execution granularity</strong></td><td><span class="tag tag-blue">Per-project atomic transaction</span></td><td>A failure in project N never affects projects 1…N-1.</td></tr>
+        <tr><td><strong>Cron safety</strong></td><td><span class="tag tag-red">Disable all 4 sync crons</span></td><td>System-level flag checked at start of each cron method.</td></tr>
+        <tr><td><strong>Idempotency</strong></td><td><span class="tag tag-green">Skip-if-migrated check</span></td><td>Rule sets can be re-run safely; already-completed projects are skipped.</td></tr>
+        <tr><td><strong>Live progress</strong></td><td><span class="tag tag-blue">Client-driven AJAX polling</span></td><td>One project per call — no PHP timeout risk. Client polls every ~1.5 s.</td></tr>
+        <tr><td><strong>Audit trail</strong></td><td><span class="tag tag-purple">Entity log + REDCap::logEvent</span></td><td>Research team sees changes in Project Logging. Internal log for admin tooling.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Data layers -->
+  <section id="layers">
+    <div class="section-label">Data Model</div>
+    <h2>What Actually Changes</h2>
+    <p>Study site names live in five independent storage locations. <strong>redcap_data is never written.</strong></p>
+    <div class="layers" style="box-shadow:var(--shadow);border-radius:var(--radius)">
+
+      <div class="layer" style="background:#fef9f0">
+        <div class="layer-icon" style="background:#fef3c7">📚</div>
+        <div class="layer-body">
+          <div class="layer-title">System Settings — Library Site List</div>
+          <div class="layer-detail">Key: <code>library-oncore-study-sites</code> sub_settings inside each library. Loaded once per protocol context. <strong>Updated once at migration start</strong>, not per-project.</div>
+        </div>
+        <div class="layer-badge"><span class="tag tag-amber">System-wide</span></div>
+      </div>
+
+      <div class="layer" style="background:#f0fdf4">
+        <div class="layer-icon" style="background:#d1fae5">📋</div>
+        <div class="layer-body">
+          <div class="layer-title">Project Setting — Site Subset</div>
+          <div class="layer-detail">Key: <code>redcap-oncore-project-site-studies</code>. JSON array of site name strings per project. Drives which sites appear in the field mapping UI.</div>
+        </div>
+        <div class="layer-badge"><span class="tag tag-green">Per-project</span></div>
+      </div>
+
+      <div class="layer" style="background:#f0f4ff">
+        <div class="layer-icon" style="background:#dbeafe">🗺️</div>
+        <div class="layer-body">
+          <div class="layer-title">Project Setting — Field Value Mapping</div>
+          <div class="layer-detail">Key: <code>redcap-oncore-fields-mapping</code>. JSON with <code>{"oc":"Site Name","rc":"coded_value"}</code> entries. New entries added for new site names; old entries <strong>kept</strong> for backward compatibility.</div>
+        </div>
+        <div class="layer-badge"><span class="tag tag-blue">Per-project</span></div>
+      </div>
+
+      <div class="layer" style="background:#fdf4ff">
+        <div class="layer-icon" style="background:#ede9fe">🏷️</div>
+        <div class="layer-body">
+          <div class="layer-title">REDCap Metadata — Field Option Labels</div>
+          <div class="layer-detail">Table: <code>redcap_metadata.element_enum</code>. Pipe-delimited option strings. Old site labels suffixed with <em>"(changed to X)"</em> or <em>"(merged into X)"</em>. Direct parameterized SQL UPDATE — no REDCap::getData round-trip.</div>
+        </div>
+        <div class="layer-badge"><span class="tag tag-purple">Per-project</span></div>
+      </div>
+
+      <div class="layer" style="background:#fff0f0">
+        <div class="layer-icon" style="background:#fee2e2">🚫</div>
+        <div class="layer-body">
+          <div class="layer-title">redcap_data — Patient Records</div>
+          <div class="layer-detail">Coded values (e.g. <code>"1"</code>, <code>"2"</code>) remain exactly as stored. No writes. Historical data integrity is preserved.</div>
+        </div>
+        <div class="layer-badge"><span class="tag tag-red">Untouched</span></div>
+      </div>
+
+    </div>
+
+    <div class="callout callout-blue" style="margin-top:20px">
+      <p><strong>Why no entity table updates?</strong> The <code>redcap_entity_oncore_subjects</code> entity stores <em>person-level demographics</em> (MRN, name, DOB) — it has no <code>studySites</code> column. Study site is a protocol-subject-level concept that flows through the value mapping into a REDCap field. Updating the mapping is sufficient.</p>
+    </div>
+  </section>
+
+  <!-- Rule types -->
+  <section id="rules">
+    <div class="section-label">Rules</div>
+    <h2>Migration Rule Types</h2>
+    <div class="rule-grid">
+
+      <!-- Rename -->
+      <div class="rule-card rule-rename">
+        <div class="rule-card-header">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h8M7 5l3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M13 4v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 2"/></svg>
+          Rename
+        </div>
+        <div class="rule-card-body">
+          <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;font-family:monospace">
+            <div style="color:#94a3b8">old_sites:</div>
+            <div style="color:#dc2626;margin-left:8px">"Stanford Hospital"</div>
+            <div style="color:#94a3b8;margin-top:4px">new_site:</div>
+            <div style="color:#059669;margin-left:8px">"Stanford Medical Center"</div>
+          </div>
+          <div class="change-row"><div class="change-layer">Library</div><div class="change-detail"><span class="old">Stanford Hospital</span> <span class="arrow">→</span> <span class="new">Stanford Medical Center</span></div></div>
+          <div class="change-row"><div class="change-layer">Subset</div><div class="change-detail">Replace in project's site JSON array</div></div>
+          <div class="change-row"><div class="change-layer">Mapping</div><div class="change-detail"><span class="plus">+</span><code>{"oc":"Stanford Medical Center","rc":"1"}</code> (same rc)</div></div>
+          <div class="change-row"><div class="change-layer">Label</div><div class="change-detail">Stanford Hospital <span class="suffix">(changed to Stanford Medical Center)</span></div></div>
+        </div>
+      </div>
+
+      <!-- Merge -->
+      <div class="rule-card rule-merge">
+        <div class="rule-card-header">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l4 4-4 4M8 8h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 12l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Merge
+        </div>
+        <div class="rule-card-body">
+          <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;font-family:monospace">
+            <div style="color:#94a3b8">old_sites:</div>
+            <div style="color:#dc2626;margin-left:8px">"Palo Alto VA"</div>
+            <div style="color:#dc2626;margin-left:8px">"Menlo Park VA"</div>
+            <div style="color:#94a3b8;margin-top:4px">new_site:</div>
+            <div style="color:#059669;margin-left:8px">"VA Palo Alto HCS"</div>
+            <div style="color:#94a3b8;margin-top:4px">primary:</div>
+            <div style="color:#7c3aed;margin-left:8px">"Palo Alto VA" ← admin picks</div>
+          </div>
+          <div class="change-row"><div class="change-layer">Library</div><div class="change-detail">Remove both, <span class="plus">+</span><span class="new">VA Palo Alto HCS</span></div></div>
+          <div class="change-row"><div class="change-layer">Subset</div><div class="change-detail">Remove both, add merged site</div></div>
+          <div class="change-row"><div class="change-layer">Mapping</div><div class="change-detail"><span class="plus">+</span><code>{"oc":"VA Palo Alto HCS","rc":"2"}</code><br><small style="color:#94a3b8">Both old entries kept</small></div></div>
+          <div class="change-row"><div class="change-layer">Labels</div><div class="change-detail">Palo Alto VA <span class="suffix">(merged into VA Palo Alto HCS)</span><br>Menlo Park VA <span class="suffix">(merged into VA Palo Alto HCS)</span></div></div>
+        </div>
+      </div>
+
+      <!-- Keep -->
+      <div class="rule-card rule-keep">
+        <div class="rule-card-header">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/></svg>
+          Keep
+        </div>
+        <div class="rule-card-body">
+          <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;font-family:monospace">
+            <div style="color:#94a3b8">site:</div>
+            <div style="color:#475569;margin-left:8px">"Site C"</div>
+            <div style="color:#94a3b8;margin-top:4px">type: keep</div>
+          </div>
+          <div class="change-row"><div class="change-layer">Library</div><div class="change-detail" style="color:#94a3b8">No change</div></div>
+          <div class="change-row"><div class="change-layer">Subset</div><div class="change-detail" style="color:#94a3b8">No change</div></div>
+          <div class="change-row"><div class="change-layer">Mapping</div><div class="change-detail" style="color:#94a3b8">No change</div></div>
+          <div class="change-row"><div class="change-layer">Label</div><div class="change-detail" style="color:#94a3b8">No change</div></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Entity diagram -->
+  <section id="entities">
+    <div class="section-label">Database</div>
+    <h2>New Entity Tables</h2>
+    <p>Three new entities added to <code>redcap_entity_types()</code>. Tables auto-created by REDCap Entity framework on next system enable.</p>
+    <div class="entity-diagram">
+
+      <div class="entity-box">
+        <div class="entity-name">redcap_entity_oncore_<br>site_migration</div>
+        <div class="entity-fields">
+          <div class="entity-field pk"><span class="name">id</span><span class="type">integer PK</span></div>
+          <div class="entity-field"><span class="name">name</span><span class="type">text</span></div>
+          <div class="entity-field"><span class="name">description</span><span class="type">text</span></div>
+          <div class="entity-field"><span class="name">rules</span><span class="type">json</span></div>
+          <div class="entity-field"><span class="name">library_index</span><span class="type">integer</span></div>
+          <div class="entity-field"><span class="name">status</span><span class="type">draft|active|completed</span></div>
+          <div class="entity-field"><span class="name">created_by</span><span class="type">text</span></div>
+          <div class="entity-field"><span class="name">created_at</span><span class="type">integer</span></div>
+          <div class="entity-field"><span class="name">updated_at</span><span class="type">integer</span></div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:20px;flex:2">
+        <div class="entity-box">
+          <div class="entity-name">redcap_entity_oncore_site_migration_log</div>
+          <div class="entity-fields">
+            <div class="entity-field pk"><span class="name">id</span><span class="type">integer PK</span></div>
+            <div class="entity-field"><span class="name">migration_id</span><span class="type">integer FK</span></div>
+            <div class="entity-field"><span class="name">project_id</span><span class="type">integer</span></div>
+            <div class="entity-field"><span class="name">rule_id</span><span class="type">text</span></div>
+            <div class="entity-field"><span class="name">change_type</span><span class="type">library_setting|project_subset|value_mapping|field_label</span></div>
+            <div class="entity-field"><span class="name">field_name</span><span class="type">text</span></div>
+            <div class="entity-field"><span class="name">old_value</span><span class="type">text</span></div>
+            <div class="entity-field"><span class="name">new_value</span><span class="type">text</span></div>
+            <div class="entity-field"><span class="name">migrated_by</span><span class="type">text</span></div>
+            <div class="entity-field"><span class="name">migrated_at</span><span class="type">integer</span></div>
+          </div>
+        </div>
+        <div class="entity-box">
+          <div class="entity-name">redcap_entity_oncore_migration_project_status</div>
+          <div class="entity-fields">
+            <div class="entity-field pk"><span class="name">id</span><span class="type">integer PK</span></div>
+            <div class="entity-field"><span class="name">migration_id</span><span class="type">integer FK</span></div>
+            <div class="entity-field"><span class="name">project_id</span><span class="type">integer</span></div>
+            <div class="entity-field"><span class="name">status</span><span class="type">pending|in_progress|completed|failed|skipped</span></div>
+            <div class="entity-field"><span class="name">changes_applied</span><span class="type">integer</span></div>
+            <div class="entity-field"><span class="name">completed_at</span><span class="type">integer</span></div>
+            <div class="entity-field"><span class="name">error_message</span><span class="type">text</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Execution flow -->
+  <section id="flow">
+    <div class="section-label">Execution</div>
+    <h2>Migration Execution Flow</h2>
+    <p>Client-driven per-project iteration keeps each AJAX request well under PHP timeout limits. Progress state is persisted in the entity table so a browser refresh safely resumes.</p>
+
+    <div class="flow-diagram">
+      <svg viewBox="0 0 900 540" width="100%" style="display:block">
+        <!-- Swimlane headers -->
+        <rect x="0"   y="0"  width="300" height="44" fill="#1e293b" rx="4"/>
+        <rect x="305" y="0"  width="280" height="44" fill="#1e293b" rx="4"/>
+        <rect x="590" y="0"  width="310" height="44" fill="#1e293b" rx="4"/>
+        <text x="150" y="27" fill="white" font-size="12" font-weight="700" text-anchor="middle" font-family="system-ui">Admin Browser</text>
+        <text x="445" y="27" fill="white" font-size="12" font-weight="700" text-anchor="middle" font-family="system-ui">Server (AJAX)</text>
+        <text x="745" y="27" fill="white" font-size="12" font-weight="700" text-anchor="middle" font-family="system-ui">Database</text>
+
+        <!-- swimlane lines -->
+        <line x1="150" y1="44" x2="150" y2="540" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="445" y1="44" x2="445" y2="540" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="745" y1="44" x2="745" y2="540" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4"/>
+
+        <!-- Step 1: Save rules -->
+        <rect x="30" y="64" width="240" height="34" fill="#dbeafe" rx="6"/>
+        <text x="150" y="86" fill="#1e40af" font-size="12" font-weight="600" text-anchor="middle" font-family="system-ui">Save Rule Set</text>
+        <line x1="270" y1="81" x2="340" y2="81" stroke="#2563eb" stroke-width="2" marker-end="url(#arr)"/>
+        <rect x="340" y="64" width="210" height="34" fill="#e0e7ff" rx="6"/>
+        <text x="445" y="86" fill="#3730a3" font-size="11" text-anchor="middle" font-family="system-ui">saveSiteMigrationRuleSet</text>
+        <line x1="550" y1="81" x2="620" y2="81" stroke="#7c3aed" stroke-width="2" marker-end="url(#arr)"/>
+        <rect x="620" y="64" width="230" height="34" fill="#f3e8ff" rx="6"/>
+        <text x="735" y="86" fill="#6d28d9" font-size="11" text-anchor="middle" font-family="system-ui">INSERT entity_site_migration</text>
+
+        <!-- Step 2: Preview -->
+        <rect x="30" y="120" width="240" height="34" fill="#dbeafe" rx="6"/>
+        <text x="150" y="142" fill="#1e40af" font-size="12" font-weight="600" text-anchor="middle" font-family="system-ui">Generate Preview</text>
+        <line x1="270" y1="137" x2="340" y2="137" stroke="#2563eb" stroke-width="2" marker-end="url(#arr)"/>
+        <rect x="340" y="120" width="210" height="34" fill="#e0e7ff" rx="6"/>
+        <text x="445" y="142" fill="#3730a3" font-size="11" text-anchor="middle" font-family="system-ui">previewSiteMigration (no writes)</text>
+        <line x1="340" y1="137" x2="270" y2="137" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrgray)"/>
+
+        <!-- Step 3: Start -->
+        <rect x="30" y="176" width="240" height="34" fill="#dbeafe" rx="6"/>
+        <text x="150" y="198" fill="#1e40af" font-size="12" font-weight="600" text-anchor="middle" font-family="system-ui">Click Run Migration</text>
+        <line x1="270" y1="193" x2="340" y2="193" stroke="#2563eb" stroke-width="2" marker-end="url(#arr)"/>
+        <rect x="340" y="176" width="210" height="34" fill="#fef3c7" rx="6"/>
+        <text x="445" y="198" fill="#92400e" font-size="11" text-anchor="middle" font-family="system-ui">startSiteMigration → disable crons</text>
+        <line x1="550" y1="193" x2="620" y2="193" stroke="#d97706" stroke-width="2" marker-end="url(#arramber)"/>
+        <rect x="620" y="176" width="230" height="34" fill="#fef3c7" rx="6"/>
+        <text x="735" y="193" fill="#92400e" font-size="11" text-anchor="middle" font-family="system-ui">migration-in-progress = true</text>
+
+        <!-- Step 4: Library update (once) -->
+        <rect x="340" y="232" width="210" height="34" fill="#fef3c7" rx="6"/>
+        <text x="445" y="254" fill="#92400e" font-size="11" text-anchor="middle" font-family="system-ui">updateLibrarySettings (once)</text>
+        <line x1="550" y1="249" x2="620" y2="249" stroke="#d97706" stroke-width="2" marker-end="url(#arramber)"/>
+        <rect x="620" y="232" width="230" height="34" fill="#fef3c7" rx="6"/>
+        <text x="735" y="249" fill="#92400e" font-size="11" text-anchor="middle" font-family="system-ui">UPDATE system lib settings</text>
+
+        <!-- Polling loop box -->
+        <rect x="20" y="286" width="860" height="168" fill="none" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="6,3" rx="8"/>
+        <text x="36" y="303" fill="#7c3aed" font-size="10" font-weight="700" font-family="system-ui">POLLING LOOP — repeats per project until all done</text>
+
+        <!-- Step 5: Poll -->
+        <rect x="30" y="312" width="240" height="34" fill="#ede9fe" rx="6"/>
+        <text x="150" y="334" fill="#5b21b6" font-size="12" font-weight="600" text-anchor="middle" font-family="system-ui">processNextProject (1.5 s)</text>
+        <line x1="270" y1="329" x2="340" y2="329" stroke="#7c3aed" stroke-width="2" marker-end="url(#arrpurple)"/>
+
+        <!-- Transaction box -->
+        <rect x="340" y="305" width="210" height="134" fill="#f5f3ff" rx="8" stroke="#c4b5fd" stroke-width="1.5"/>
+        <text x="445" y="323" fill="#6d28d9" font-size="10" font-weight="700" text-anchor="middle" font-family="system-ui">BEGIN TRANSACTION</text>
+        <text x="360" y="342" fill="#5b21b6" font-size="11" font-family="system-ui">→ updateProjectSiteSubset</text>
+        <text x="360" y="360" fill="#5b21b6" font-size="11" font-family="system-ui">→ updateValueMapping</text>
+        <text x="360" y="378" fill="#5b21b6" font-size="11" font-family="system-ui">→ updateFieldLabels (SQL)</text>
+        <text x="360" y="396" fill="#5b21b6" font-size="11" font-family="system-ui">→ logToEntity</text>
+        <text x="360" y="414" fill="#5b21b6" font-size="11" font-family="system-ui">→ REDCap::logEvent</text>
+        <text x="445" y="432" fill="#6d28d9" font-size="10" font-weight="700" text-anchor="middle" font-family="system-ui">COMMIT</text>
+
+        <line x1="550" y1="370" x2="620" y2="370" stroke="#7c3aed" stroke-width="2" marker-end="url(#arrpurple)"/>
+        <rect x="620" y="352" width="230" height="36" fill="#ede9fe" rx="6"/>
+        <text x="735" y="375" fill="#5b21b6" font-size="11" text-anchor="middle" font-family="system-ui">UPDATE redcap_metadata</text>
+        <rect x="620" y="394" width="230" height="36" fill="#ede9fe" rx="6"/>
+        <text x="735" y="417" fill="#5b21b6" font-size="11" text-anchor="middle" font-family="system-ui">INSERT migration_log entity</text>
+
+        <!-- Return -->
+        <line x1="340" y1="329" x2="270" y2="329" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrgray)"/>
+        <text x="150" y="348" fill="#475569" font-size="10" text-anchor="middle" font-family="system-ui">{current, total, status, errors}</text>
+
+        <!-- Step 6: Finalize -->
+        <rect x="30" y="472" width="240" height="34" fill="#d1fae5" rx="6"/>
+        <text x="150" y="494" fill="#065f46" font-size="12" font-weight="600" text-anchor="middle" font-family="system-ui">All done → finalizeMigration</text>
+        <line x1="270" y1="489" x2="340" y2="489" stroke="#059669" stroke-width="2" marker-end="url(#arrgreen)"/>
+        <rect x="340" y="472" width="210" height="34" fill="#d1fae5" rx="6"/>
+        <text x="445" y="494" fill="#065f46" font-size="11" text-anchor="middle" font-family="system-ui">Re-enable crons, mark complete</text>
+        <line x1="550" y1="489" x2="620" y2="489" stroke="#059669" stroke-width="2" marker-end="url(#arrgreen)"/>
+        <rect x="620" y="472" width="230" height="34" fill="#d1fae5" rx="6"/>
+        <text x="735" y="494" fill="#065f46" font-size="11" text-anchor="middle" font-family="system-ui">migration-in-progress = false</text>
+
+        <!-- Arrow markers -->
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#2563eb"/>
+          </marker>
+          <marker id="arrpurple" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#7c3aed"/>
+          </marker>
+          <marker id="arrgray" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+          </marker>
+          <marker id="arramber" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#d97706"/>
+          </marker>
+          <marker id="arrgreen" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#059669"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+  </section>
+
+  <!-- AJAX actions -->
+  <section id="ajax">
+    <div class="section-label">API</div>
+    <h2>New AJAX Actions</h2>
+    <p>All added to <code>auth-ajax-actions</code> in <code>config.json</code>. Super-user context enforced server-side.</p>
+    <table class="tbl" style="background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)">
+      <thead><tr><th>Action</th><th>Phase</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td><code>listSiteMigrationRuleSets</code></td><td><span class="tag tag-blue">Management</span></td><td>Array of rule set summaries</td></tr>
+        <tr><td><code>getSiteMigrationRuleSet</code></td><td><span class="tag tag-blue">Management</span></td><td>Full rule set with rules JSON</td></tr>
+        <tr><td><code>saveSiteMigrationRuleSet</code></td><td><span class="tag tag-blue">Management</span></td><td><code>{id}</code> of created/updated rule set</td></tr>
+        <tr><td><code>deleteSiteMigrationRuleSet</code></td><td><span class="tag tag-blue">Management</span></td><td><code>{ok: true}</code></td></tr>
+        <tr><td><code>previewSiteMigration</code></td><td><span class="tag tag-amber">Preview</span></td><td>Per-project impact: site hits, label changes, status</td></tr>
+        <tr><td><code>exportMigrationPreview</code></td><td><span class="tag tag-amber">Preview</span></td><td>CSV blob for download</td></tr>
+        <tr><td><code>startSiteMigration</code></td><td><span class="tag tag-green">Execution</span></td><td><code>{sessionId, total, projects}</code></td></tr>
+        <tr><td><code>processNextMigrationProject</code></td><td><span class="tag tag-green">Execution</span></td><td><code>{current, total, projectName, status, errors}</code></td></tr>
+        <tr><td><code>getMigrationStatus</code></td><td><span class="tag tag-green">Execution</span></td><td>Progress snapshot for reconnect</td></tr>
+        <tr><td><code>finalizeMigration</code></td><td><span class="tag tag-green">Execution</span></td><td><code>{ok, summary: {completed, failed, skipped}}</code></td></tr>
+        <tr><td><code>getMigrationHistory</code></td><td><span class="tag tag-purple">History</span></td><td>List of past completed migrations</td></tr>
+        <tr><td><code>getMigrationProjectLog</code></td><td><span class="tag tag-purple">History</span></td><td>Per-change rows for a project + migration</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- UI Mockup -->
+  <section id="ui">
+    <div class="section-label">Interface</div>
+    <h2>Control Center Page — UI Mockup</h2>
+
+    <div class="mockup" style="margin-bottom:28px">
+      <div class="mockup-bar">
+        <div class="mockup-dot" style="background:#ef4444"></div>
+        <div class="mockup-dot" style="background:#f59e0b"></div>
+        <div class="mockup-dot" style="background:#10b981"></div>
+        <div class="mockup-title">REDCap Control Center › OnCore Site Migration</div>
+      </div>
+      <div class="mockup-tabs">
+        <div class="mockup-tab active">Rule Sets</div>
+        <div class="mockup-tab">Rule Editor</div>
+        <div class="mockup-tab">Preview</div>
+        <div class="mockup-tab">Run Migration</div>
+        <div class="mockup-tab">History</div>
+      </div>
+      <div class="mockup-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-weight:700;font-size:15px">Saved Migration Rule Sets</div>
+          <button style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">+ New Rule Set</button>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Name</th><th>Rules</th><th>Status</th><th>Last Run</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Q2 2026 Site Restructuring</strong><br><small style="color:#94a3b8">Rename 3 sites, merge 2</small></td>
+              <td>5 rules</td>
+              <td><span class="tag tag-green">active</span></td>
+              <td>—</td>
+              <td><a href="#" style="color:var(--blue);font-size:12px;margin-right:8px">Edit</a><a href="#" style="color:var(--amber);font-size:12px;margin-right:8px">Preview</a><a href="#" style="color:var(--green);font-size:12px;margin-right:8px">Run</a><a href="#" style="color:var(--red);font-size:12px">Delete</a></td>
+            </tr>
+            <tr>
+              <td><strong>2025 VA Consolidation</strong><br><small style="color:#94a3b8">Merged Palo Alto + Menlo Park VA</small></td>
+              <td>2 rules</td>
+              <td><span class="tag" style="background:#f1f5f9;color:#475569">completed</span></td>
+              <td>2025-11-03</td>
+              <td><a href="#" style="color:var(--purple);font-size:12px">View Log</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Live execution mockup -->
+    <div class="mockup">
+      <div class="mockup-bar">
+        <div class="mockup-dot" style="background:#ef4444"></div>
+        <div class="mockup-dot" style="background:#f59e0b"></div>
+        <div class="mockup-dot" style="background:#10b981"></div>
+        <div class="mockup-title">REDCap Control Center › OnCore Site Migration › Run Migration</div>
+      </div>
+      <div class="mockup-tabs">
+        <div class="mockup-tab">Rule Sets</div>
+        <div class="mockup-tab">Rule Editor</div>
+        <div class="mockup-tab">Preview</div>
+        <div class="mockup-tab active">Run Migration</div>
+        <div class="mockup-tab">History</div>
+      </div>
+      <div class="mockup-body">
+        <div style="background:var(--amber-lt);border:1px solid var(--amber);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#92400e">
+          ⚠ This will disable OnCore sync crons for the duration of the migration. All 4 cron jobs will be paused until finalization.
+          <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:600;cursor:pointer">
+            <input type="checkbox" checked style="width:14px;height:14px"> I understand — disable crons and start migration
+          </label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-weight:700">Rule Set: Q2 2026 Site Restructuring</div>
+          <button style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer">⏸ Pause</button>
+        </div>
+        <div class="progress-label"><span>Overall Progress</span><span><strong>54 / 87</strong> projects</span></div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:62%"></div></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;font-size:12px;text-align:center">
+          <div style="background:var(--green-lt);border-radius:6px;padding:8px"><div style="font-size:20px;font-weight:800;color:var(--green)">52</div>completed</div>
+          <div style="background:var(--blue-lt);border-radius:6px;padding:8px"><div style="font-size:20px;font-weight:800;color:var(--blue)">1</div>in progress</div>
+          <div style="background:var(--amber-lt);border-radius:6px;padding:8px"><div style="font-size:20px;font-weight:800;color:var(--amber)">1</div>skipped</div>
+          <div style="background:var(--red-lt);border-radius:6px;padding:8px"><div style="font-size:20px;font-weight:800;color:var(--red)">0</div>failed</div>
+        </div>
+        <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+          <div class="mockup-row"><span class="status-dot s-done"></span><span style="flex:1">STAR Trial (12345)</span><span style="color:var(--green);font-size:12px">✓ 4 changes</span></div>
+          <div class="mockup-row"><span class="status-dot s-done"></span><span style="flex:1">VA Cohort Study (12346)</span><span style="color:var(--green);font-size:12px">✓ 6 changes</span></div>
+          <div class="mockup-row"><span class="status-dot s-skip"></span><span style="flex:1">Archived Study (12347)</span><span style="color:var(--amber);font-size:12px">⟳ no site mapping</span></div>
+          <div class="mockup-row" style="background:var(--blue-lt)"><span class="status-dot s-active"></span><span style="flex:1"><strong>Alpha Trial (12400)</strong></span><span style="color:var(--blue);font-size:12px">processing…</span></div>
+          <div class="mockup-row" style="opacity:.5"><span class="status-dot s-pending"></span><span style="flex:1">Beta Trial (12401)</span><span style="color:#94a3b8;font-size:12px">pending</span></div>
+          <div class="mockup-row" style="opacity:.5"><span class="status-dot s-pending"></span><span style="flex:1">Gamma Study (12402)</span><span style="color:#94a3b8;font-size:12px">pending</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Open questions -->
+  <section id="open">
+    <div class="section-label">Decisions Needed</div>
+    <h2>Open Questions</h2>
+    <div class="decision-grid">
+      <div class="decision-box open">
+        <div class="decision-tag">Needs Answer</div>
+        <h3>Merge — Primary Code Selection</h3>
+        <p>When "Site X" (rc="1") and "Site Y" (rc="2") merge into "Site Z", future OnCore syncs must map "Site Z" to exactly one existing REDCap coded value.</p>
+        <ul style="margin:10px 0 0 16px;font-size:13px;color:var(--mid)">
+          <li style="margin-bottom:4px"><strong>Option A</strong> — Admin picks via dropdown in rule editor <em>(recommended)</em></li>
+          <li style="margin-bottom:4px"><strong>Option B</strong> — Always default to first listed old site's code</li>
+          <li><strong>Option C</strong> — Create a new dropdown option in REDCap instrument</li>
+        </ul>
+      </div>
+      <div class="decision-box open">
+        <div class="decision-tag">Needs Answer</div>
+        <h3>Number of Libraries</h3>
+        <p>Study sites are scoped to libraries (sub_settings). Each linked project uses one library index.</p>
+        <p style="margin-top:8px">If <strong>one library</strong> → rule editor is simple, no selector needed.<br>
+        If <strong>multiple libraries</strong> → rule editor needs a library dropdown to know which site list to show.</p>
+        <p style="margin-top:8px"><em>How many libraries are configured in your system?</em></p>
+      </div>
+      <div class="decision-box decided">
+        <div class="decision-tag">Decided</div>
+        <h3>System Site List — Replace vs. Append</h3>
+        <p>Old site name entries are <strong>replaced</strong> in the library (assumes OnCore has already been updated). Both old and new `oc` keys are kept in value_mapping for backward compat with any cached/historical API responses.</p>
+      </div>
+      <div class="decision-box decided">
+        <div class="decision-tag">Decided</div>
+        <h3>redcap_data — No Migration</h3>
+        <p>REDCap coded values (e.g. "1", "2") are <strong>never written</strong>. The label suffix approach gives researchers full traceability. Future OnCore syncs use value_mapping dual entries to resolve both old and new site names.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Implementation phases -->
+  <section id="phases">
+    <div class="section-label">Implementation</div>
+    <h2>Implementation Sequence</h2>
+    <p>7 phases ordered by dependency. Each phase can be tested independently before the next begins.</p>
+
+    <div class="phases">
+      <!-- Phase 1 -->
+      <div class="phase-row">
+        <div class="phase-num">
+          <div class="phase-circle" style="background:var(--blue)">1</div>
+          <div class="phase-line" style="background:var(--border)"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-title">Foundation — Entity Tables + Config</div>
+          <ul class="phase-tasks">
+            <li>Add 3 new entity types to <code>redcap_entity_types()</code> in <code>OnCoreIntegration.php</code></li>
+            <li>Trigger <code>EntityDB::buildSchema()</code> via system enable to create tables</li>
+            <li>Add <code>migration-in-progress</code> hidden system setting to <code>config.json</code></li>
+            <li>Add Control Center link and 12 AJAX action names to <code>config.json</code></li>
+          </ul>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <span class="tag tag-blue">OnCoreIntegration.php</span>
+            <span class="tag tag-amber">config.json</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 2 -->
+      <div class="phase-row">
+        <div class="phase-num">
+          <div class="phase-circle" style="background:var(--purple)">2</div>
+          <div class="phase-line" style="background:var(--border)"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-title">Core Logic — SiteMigration Class</div>
+          <ul class="phase-tasks">
+            <li>Create <code>classes/SiteMigration.php</code> with rule CRUD methods</li>
+            <li>Implement <code>updateLibrarySettings()</code> — modifies system sub_settings</li>
+            <li>Implement <code>updateProjectSiteSubset()</code> — updates project JSON setting</li>
+            <li>Implement <code>updateValueMapping()</code> — adds dual entries to field mapping JSON</li>
+            <li>Implement <code>updateFieldLabels()</code> — parameterized SQL on <code>redcap_metadata</code></li>
+            <li>Implement <code>logToEntity()</code> and <code>logToREDCap()</code></li>
+          </ul>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <span class="tag tag-purple">classes/SiteMigration.php</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 3 -->
+      <div class="phase-row">
+        <div class="phase-num">
+          <div class="phase-circle" style="background:var(--amber)">3</div>
+          <div class="phase-line" style="background:var(--border)"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-title">Preview — Dry Run + CSV Export</div>
+          <ul class="phase-tasks">
+            <li>Implement <code>previewMigration()</code> — per-project impact counts, no writes</li>
+            <li>Implement <code>exportPreviewCSV()</code> — generates downloadable CSV</li>
+            <li>Wire up <code>previewSiteMigration</code> and <code>exportMigrationPreview</code> AJAX handlers</li>
+            <li>Verify preview output matches expected changes before building execution</li>
+          </ul>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <span class="tag tag-amber">Preview must be complete before Run</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 4 -->
+      <div class="phase-row">
+        <div class="phase-num">
+          <div class="phase-circle" style="background:var(--green)">4</div>
+          <div class="phase-line" style="background:var(--border)"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-title">Execution Engine + Cron Guards</div>
+          <ul class="phase-tasks">
+            <li>Implement <code>startMigration()</code>, <code>processNextProject()</code>, <code>finalizeMigration()</code></li>
+            <li>Implement <code>disableCrons()</code> / <code>enableCrons()</code> system setting toggle</li>
+            <li>Add <code>isMigrationInProgress()</code> guard to all 4 cron methods</li>
+            <li>Wire up all execution AJAX handlers in <code>redcap_module_ajax()</code></li>
+            <li>Test transaction rollback by injecting a deliberate error</li>
+          </ul>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <span class="tag tag-green">OnCoreIntegration.php cron methods</span>
+            <span class="tag tag-green">classes/SiteMigration.php</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 5 -->
+      <div class="phase-row">
+        <div class="phase-num">
+          <div class="phase-circle" style="background:var(--blue)">5</div>
+          <div class="phase-line" style="background:var(--border)"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-title">UI — Control Center Page</div>
+          <ul class="phase-tasks">
+            <li>Create <code>pages/site_migration.php</code> — shell page with tab layout</li>
+            <li>Build Rule Sets tab — list + delete</li>
+            <li>Build Rule Editor tab — per-site keep/rename/merge controls, merge primary picker</li>
+            <li>Build Preview tab — project impact table + CSV export button</li>
+            <li>Build Run Migration tab — cron warning, start button, live progress list</li>
+            <li>Implement AJAX polling loop in <code>frontend_3/site_migration/index.js</code></li>
+          </ul>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <span class="tag tag-blue">pages/site_migration.php</span>
+            <span class="tag tag-blue">frontend_3/site_migration/</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 6 -->
+      <div class="phase-row">
+        <div class="phase-num">
+          <div class="phase-circle" style="background:var(--purple)">6</div>
+          <div class="phase-line" style="background:var(--border)"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-title">History &amp; Audit UI</div>
+          <ul class="phase-tasks">
+            <li>Build History tab — table of past migrations with per-project drill-down</li>
+            <li>Add per-project log modal (entity log rows)</li>
+            <li>Add REDCap audit log link per project (links to Project Logging filtered by action)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Phase 7 -->
+      <div class="phase-row">
+        <div class="phase-num">
+          <div class="phase-circle" style="background:var(--green)">7</div>
+          <div class="phase-line" style="display:none"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-title">Testing &amp; Verification</div>
+          <ul class="phase-tasks">
+            <li>Run preview on real projects — verify counts match manual inspection</li>
+            <li>Execute against 2–3 staging projects — inspect <code>redcap_metadata.element_enum</code> before/after</li>
+            <li>Verify REDCap audit log shows change entries in Project › Logging</li>
+            <li>Re-run migration rule — verify idempotency (no double-suffixing, no duplicate mappings)</li>
+            <li>Confirm sync crons skip while <code>migration-in-progress = true</code></li>
+            <li>Trigger a deliberate failure — verify project-level rollback, preceding projects unaffected</li>
+          </ul>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <span class="tag tag-green">Ready to ship after this phase</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Files summary -->
+  <section>
+    <div class="section-label">Summary</div>
+    <h2>Files to Create / Modify</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon icon-green">✨</div>
+          <h3 style="margin:0">New Files</h3>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>classes/SiteMigration.php</code></td><td>All migration logic</td></tr>
+            <tr><td><code>pages/site_migration.php</code></td><td>Control Center page shell</td></tr>
+            <tr><td><code>frontend_3/site_migration/index.js</code></td><td>Tab SPA + polling loop</td></tr>
+            <tr><td><code>frontend_3/site_migration/style.css</code></td><td>Page styles</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon icon-amber">✏️</div>
+          <h3 style="margin:0">Modified Files</h3>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>File</th><th>Change</th></tr></thead>
+          <tbody>
+            <tr><td><code>OnCoreIntegration.php</code></td><td>+3 entity types, +12 AJAX routes, +4 cron guards</td></tr>
+            <tr><td><code>config.json</code></td><td>+12 AJAX actions, +CC link, +hidden setting</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+// Sidebar active link highlight on scroll
+const sections = document.querySelectorAll('section[id], div[id]');
+const links = document.querySelectorAll('.nav-link');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const link = document.querySelector(`.nav-link[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>
