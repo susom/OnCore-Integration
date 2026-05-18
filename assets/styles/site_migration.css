@@ -1,0 +1,96 @@
+/* OnCore Study Site Migration — Control Center page styles. */
+
+#oncore-site-migration { padding: 16px 4px; }
+#oncore-site-migration h2 { margin-bottom: 4px; }
+#oncore-site-migration > p { margin-bottom: 18px; }
+
+#oncore-site-migration .nav-tabs { margin-bottom: 16px; }
+#oncore-site-migration .nav-tabs .nav-link { cursor: pointer; }
+
+.sm-tab { padding: 8px 4px 24px; }
+
+.sm-toolbar {
+    display: flex; gap: 8px; align-items: center;
+    margin-bottom: 14px; flex-wrap: wrap;
+}
+.sm-toolbar label { white-space: nowrap; margin: 0; }
+.sm-rule-select { width: 360px; }
+
+.sm-rule-sets-table, .sm-preview-table, .sm-run-table, .sm-history-table {
+    background: #fff;
+}
+.sm-rule-sets-table th, .sm-preview-table th,
+.sm-run-table th, .sm-history-table th {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .8px;
+    color: #475569; background: #f1f5f9; font-weight: 700;
+}
+
+/* Status badges */
+.sm-badge {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 999px; line-height: 1.4;
+    background: #f1f5f9; color: #475569;
+}
+.sm-badge-draft    { background: #f1f5f9; color: #475569; }
+.sm-badge-active   { background: #dbeafe; color: #1e40af; }
+.sm-badge-completed{ background: #d1fae5; color: #065f46; }
+.sm-badge-pending  { background: #fef3c7; color: #92400e; }
+.sm-badge-failed   { background: #fee2e2; color: #991b1b; }
+.sm-badge-skipped  { background: #ede9fe; color: #5b21b6; }
+
+/* Rule editor */
+.sm-rules-toolbar { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.sm-rules-textarea {
+    font-family: SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12.5px;
+}
+
+/* Preview summary stat row */
+.sm-summary {
+    display: flex; gap: 18px; flex-wrap: wrap;
+    margin-bottom: 12px; padding: 10px 14px;
+    background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;
+    font-size: 13px;
+}
+.sm-stat { color: #475569; }
+.sm-stat strong { color: #0f172a; font-size: 15px; }
+
+/* Run tab progress */
+.sm-progress { margin: 6px 0 18px; }
+.sm-progress-bar-wrap {
+    background: #f1f5f9; border-radius: 999px; height: 12px;
+    overflow: hidden; margin-bottom: 6px;
+}
+.sm-progress-bar {
+    height: 100%; width: 0;
+    background: linear-gradient(90deg, #2563eb 0%, #7c3aed 100%);
+    transition: width .3s;
+}
+.sm-progress-label { font-size: 12.5px; color: #475569; }
+
+/* Modal (vanilla — no Bootstrap dependency) */
+.sm-modal {
+    position: fixed; inset: 0; background: rgba(15,23,42,.5);
+    display: flex; align-items: center; justify-content: center; z-index: 9999;
+}
+.sm-modal-inner {
+    background: #fff; border-radius: 8px; width: min(900px, 95vw);
+    max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+}
+.sm-modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 18px; border-bottom: 1px solid #e2e8f0;
+}
+.sm-modal-header .close {
+    background: none; border: 0; font-size: 22px; line-height: 1;
+    color: #475569; cursor: pointer;
+}
+.sm-modal-body { padding: 14px 18px; }
+
+/* Tables — let long values wrap rather than expand the column. */
+.sm-preview-table td,
+.sm-history-table td,
+.sm-run-table td { word-break: break-word; }
+
+/* Compact table */
+#oncore-site-migration .table-sm { font-size: 13.5px; }

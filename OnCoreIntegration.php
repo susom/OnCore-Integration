@@ -8,6 +8,7 @@ require_once 'classes/Entities.php';
 require_once 'classes/Protocols.php';
 require_once 'classes/Subjects.php';
 require_once 'classes/Mapping.php';
+require_once 'classes/SiteMigration.php';
 
 /**
  * Class OnCoreIntegration
@@ -32,6 +33,16 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     const REDCAP_ENTITY_ONCORE_SUBJECTS = 'redcap_entity_oncore_subjects';
     const ONCORE_REDCAP_RECORD_LINKAGE = 'oncore_redcap_records_linkage';
     const REDCAP_ENTITY_ONCORE_REDCAP_RECORD_LINKAGE = 'redcap_entity_oncore_redcap_records_linkage';
+
+    // Site Migration entity types (Site Migration feature — see SITE_MIGRATION_PLAN.md)
+    const ONCORE_SITE_MIGRATION = 'oncore_site_migration';
+    const REDCAP_ENTITY_ONCORE_SITE_MIGRATION = 'redcap_entity_oncore_site_migration';
+    const ONCORE_SITE_MIGRATION_LOG = 'oncore_site_migration_log';
+    const REDCAP_ENTITY_ONCORE_SITE_MIGRATION_LOG = 'redcap_entity_oncore_site_migration_log';
+    const ONCORE_MIGRATION_PROJECT_STATUS = 'oncore_migration_project_status';
+    const REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS = 'redcap_entity_oncore_migration_project_status';
+
+    const SITE_MIGRATION_IN_PROGRESS = 'migration-in-progress';
 
     const REDCAP_ONLY = 0;
 
@@ -603,6 +614,145 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
         // TODO redcap entity to save the linkage between redcap and OnCore records
 
+        // Site Migration: rule sets (one row per saved rename/merge/keep/sunset rule set).
+        $types[self::ONCORE_SITE_MIGRATION] = [
+            'label' => 'OnCore Site Migration',
+            'label_plural' => 'OnCore Site Migrations',
+            'icon' => 'home_pencil',
+            'properties' => [
+                'name' => [
+                    'name' => 'Migration Name',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'description' => [
+                    'name' => 'Description',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'rules' => [
+                    'name' => 'Rules JSON',
+                    'type' => 'long_text',
+                    'required' => true,
+                ],
+                'library_index' => [
+                    'name' => 'OnCore Library Index',
+                    'type' => 'integer',
+                    'required' => false,
+                ],
+                'status' => [
+                    'name' => 'Status',
+                    'type' => 'text',
+                    'required' => true,
+                    'default' => 'draft',
+                ],
+                'created_by' => [
+                    'name' => 'Created By',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+            ],
+            'special_keys' => [
+                'label' => 'name',
+            ],
+        ];
+
+        // Site Migration: per-change log (one row per atomic change per project).
+        $types[self::ONCORE_SITE_MIGRATION_LOG] = [
+            'label' => 'OnCore Site Migration Log',
+            'label_plural' => 'OnCore Site Migration Logs',
+            'icon' => 'home_pencil',
+            'properties' => [
+                'migration_id' => [
+                    'name' => 'Migration Id',
+                    'type' => 'integer',
+                    'required' => true,
+                ],
+                'project_id' => [
+                    'name' => 'REDCap Project Id',
+                    'type' => 'integer',
+                    'required' => true,
+                ],
+                'rule_id' => [
+                    'name' => 'Rule Id',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'change_type' => [
+                    'name' => 'Change Type',
+                    'type' => 'text',
+                    'required' => true,
+                ],
+                'field_name' => [
+                    'name' => 'REDCap Field Name',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+                'old_value' => [
+                    'name' => 'Old Value',
+                    'type' => 'long_text',
+                    'required' => false,
+                ],
+                'new_value' => [
+                    'name' => 'New Value',
+                    'type' => 'long_text',
+                    'required' => false,
+                ],
+                'migrated_by' => [
+                    'name' => 'Migrated By',
+                    'type' => 'text',
+                    'required' => false,
+                ],
+            ],
+            'special_keys' => [
+                'label' => 'change_type',
+            ],
+        ];
+
+        // Site Migration: per-project status tracker (enables safe re-runs and resume).
+        $types[self::ONCORE_MIGRATION_PROJECT_STATUS] = [
+            'label' => 'OnCore Migration Project Status',
+            'label_plural' => 'OnCore Migration Project Statuses',
+            'icon' => 'home_pencil',
+            'properties' => [
+                'migration_id' => [
+                    'name' => 'Migration Id',
+                    'type' => 'integer',
+                    'required' => true,
+                ],
+                'project_id' => [
+                    'name' => 'REDCap Project Id',
+                    'type' => 'integer',
+                    'required' => true,
+                ],
+                'status' => [
+                    'name' => 'Status',
+                    'type' => 'text',
+                    'required' => true,
+                    'default' => 'pending',
+                ],
+                'changes_applied' => [
+                    'name' => 'Changes Applied',
+                    'type' => 'integer',
+                    'required' => false,
+                    'default' => 0,
+                ],
+                'completed_at' => [
+                    'name' => 'Completed At',
+                    'type' => 'integer',
+                    'required' => false,
+                ],
+                'error_message' => [
+                    'name' => 'Error Message',
+                    'type' => 'long_text',
+                    'required' => false,
+                ],
+            ],
+            'special_keys' => [
+                'label' => 'status',
+            ],
+        ];
+
         return $types;
     }
 
@@ -1130,6 +1280,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function onCoreProtocolsScanCron()
     {
+        if (SiteMigration::isMigrationInProgress($this)) {
+            $this->emLog('onCoreProtocolsScanCron: skipped — site migration in progress');
+            return;
+        }
+
         try {
             $projects = self::query("select project_id, project_irb_number from redcap_projects where project_irb_number is NOT NULL AND project_id NOT IN (select redcap_project_id from redcap_entity_oncore_protocols)", []);
 
@@ -1179,6 +1334,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function onCoreAutoPullCron()
     {
+        if (SiteMigration::isMigrationInProgress($this)) {
+            $this->emLog('onCoreAutoPullCron: skipped — site migration in progress');
+            return;
+        }
+
         $projects = self::query("select project_id from redcap_external_module_settings where `key` = 'enable-auto-pull' AND `value` = 'true'", []);
 
         // manually set users to make guzzle calls.
@@ -1354,6 +1514,39 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         return $this->getSubSettings('libraries', $this->getProjectId());
     }
 
+    /** @var SiteMigration|null */
+    private $siteMigration = null;
+
+    /**
+     * Lazy accessor for the SiteMigration helper. The helper is stateless
+     * relative to the module, so a single instance per request is sufficient.
+     */
+    public function getSiteMigration(): SiteMigration
+    {
+        if ($this->siteMigration === null) {
+            $this->siteMigration = new SiteMigration($this);
+        }
+        return $this->siteMigration;
+    }
+
+    /**
+     * Used by redcap_module_ajax() to route Site Migration actions around the
+     * project-scoped OnCore push-permission checks.
+     */
+    public static function isSiteMigrationAction(string $action): bool
+    {
+        static $actions = [
+            'listSiteMigrationRuleSets', 'getSiteMigrationRuleSet',
+            'saveSiteMigrationRuleSet',  'deleteSiteMigrationRuleSet',
+            'previewSiteMigration',      'previewSiteMigrationDeep',
+            'exportMigrationPreview',
+            'startSiteMigration',        'processNextMigrationProject',
+            'getMigrationStatus',        'finalizeMigration',
+            'getMigrationHistory',       'getMigrationProjectLog',
+        ];
+        return in_array($action, $actions, true);
+    }
+
     public function checkCustomErrorMessages($message)
     {
         $customErrorMessages = $this->getSubSettings('custom-error-messages', $this->getProjectId());
@@ -1419,6 +1612,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
 
     public function redcapCleanupEntityRecords()
     {
+        if (SiteMigration::isMigrationInProgress($this)) {
+            $this->emLog('redcapCleanupEntityRecords: skipped — site migration in progress');
+            return;
+        }
+
         $sql = sprintf("select  project_id, oncore_protocol_id from redcap_entity_oncore_protocols LEFT OUTER JOIN redcap_projects ON project_id = redcap_entity_oncore_protocols.redcap_project_id where redcap_projects.date_deleted is not null");
         $q = db_query($sql);
 
@@ -1453,13 +1651,25 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             if (isset($action)) {
                 $action = htmlspecialchars($action);
                 $result = null;
-                $this->initiateProtocol();
 
-                // actions exempt from allow to push
-                $exemptActions = array('triggerIRBSweep', 'integrateOnCore', 'approveIntegrateOncore');
+                // Site Migration actions are Control Center / super-user-only.
+                // They bypass the project-scoped initiateProtocol() and push-permission
+                // machinery used by the OnCore field-mapping flow.
+                $isSiteMigrationAction = self::isSiteMigrationAction($action);
 
-                if (!$this->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && !in_array($action, $exemptActions)) {
-                    throw new \Exception(self::getActionExceptionText($action));
+                if ($isSiteMigrationAction) {
+                    if (!$this->isSuperUser()) {
+                        throw new \Exception('Site Migration actions require super-user privileges.');
+                    }
+                } else {
+                    $this->initiateProtocol();
+
+                    // actions exempt from allow to push
+                    $exemptActions = array('triggerIRBSweep', 'integrateOnCore', 'approveIntegrateOncore');
+
+                    if (!$this->getProtocols()->getUser()->isOnCoreContactAllowedToPush() && !in_array($action, $exemptActions)) {
+                        throw new \Exception(self::getActionExceptionText($action));
+                    }
                 }
 
                 switch ($action) {
@@ -1773,6 +1983,72 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             $result = $new_entity_record;
                         }
                         break;
+
+                    // ─── Site Migration: rule set CRUD (Phase 2) ──────────────────
+                    case "listSiteMigrationRuleSets":
+                        $result = $this->getSiteMigration()->listRuleSets();
+                        break;
+                    case "getSiteMigrationRuleSet":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $result = $this->getSiteMigration()->getRuleSet($rsid);
+                        break;
+                    case "saveSiteMigrationRuleSet":
+                        $savedRuleSetId = $this->getSiteMigration()->saveRuleSet(is_array($payload) ? $payload : []);
+                        $result = ['id' => $savedRuleSetId];
+                        break;
+                    case "deleteSiteMigrationRuleSet":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $this->getSiteMigration()->deleteRuleSet($rsid);
+                        $result = ['ok' => true];
+                        break;
+
+                    // ─── Site Migration: preview (Phase 3) ────────────────────────
+                    case "previewSiteMigration":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $result = $this->getSiteMigration()->previewMigration($rsid, false);
+                        break;
+                    case "previewSiteMigrationDeep":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $result = $this->getSiteMigration()->previewMigration($rsid, true);
+                        break;
+                    case "exportMigrationPreview":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        // Return CSV body inline; client wraps it in a download. (For very large
+                        // exports we'd switch to a no-auth-page streaming endpoint; preview-sized
+                        // data is fine inline.)
+                        $result = [
+                            'filename' => sprintf('site-migration-preview-%d.csv', $rsid),
+                            'csv'      => $this->getSiteMigration()->exportPreviewCSV($rsid),
+                        ];
+                        break;
+
+                    // ─── Site Migration: execution engine (Phase 4) ──────────────
+                    case "startSiteMigration":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $result = $this->getSiteMigration()->startMigration($rsid);
+                        break;
+                    case "processNextMigrationProject":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $result = $this->getSiteMigration()->processNextProject($rsid);
+                        break;
+                    case "getMigrationStatus":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $result = $this->getSiteMigration()->getMigrationStatus($rsid);
+                        break;
+                    case "finalizeMigration":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $result = $this->getSiteMigration()->finalizeMigration($rsid);
+                        break;
+
+                    // ─── Site Migration: history & audit (Phase 6) ───────────────
+                    case "getMigrationHistory":
+                        $result = $this->getSiteMigration()->getMigrationHistory();
+                        break;
+                    case "getMigrationProjectLog":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $logPid = isset($payload['project_id']) ? (int)$payload['project_id'] : null;
+                        $result = $this->getSiteMigration()->getMigrationProjectLog($rsid, $logPid);
+                        break;
                 }
                 $return_o["success"] = 1;
                 $result = json_encode($result, JSON_THROW_ON_ERROR);
@@ -1896,6 +2172,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
      */
     public function updateOnCoreSubjectsDemographics()
     {
+        if (SiteMigration::isMigrationInProgress($this)) {
+            $this->emLog('updateOnCoreSubjectsDemographics: skipped — site migration in progress');
+            return false;
+        }
+
         // only update not excluded subjects
         $sql = sprintf("SELECT * from %s where excluded = 0", db_escape(OnCoreIntegration::REDCAP_ENTITY_ONCORE_SUBJECTS));
 

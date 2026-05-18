@@ -60,6 +60,12 @@
         "icon": "fas fa-chart-bar",
         "url": "pages/summary_page.php",
         "show-header-and-footer": true
+      },
+      {
+        "name": "OnCore Site Migration",
+        "icon": "fas fa-exchange-alt",
+        "url": "pages/site_migration.php",
+        "show-header-and-footer": true
       }
     ],
     "project": [
@@ -92,7 +98,20 @@
   "auth-ajax-actions": [
     "integrateOnCore",
     "approveIntegrateOncore",
-    "triggerIRBSweep"
+    "triggerIRBSweep",
+    "listSiteMigrationRuleSets",
+    "getSiteMigrationRuleSet",
+    "saveSiteMigrationRuleSet",
+    "deleteSiteMigrationRuleSet",
+    "previewSiteMigration",
+    "previewSiteMigrationDeep",
+    "exportMigrationPreview",
+    "startSiteMigration",
+    "processNextMigrationProject",
+    "getMigrationStatus",
+    "finalizeMigration",
+    "getMigrationHistory",
+    "getMigrationProjectLog"
   ],
   "project-settings": [
     {
@@ -326,6 +345,14 @@
       "name": "Following Support Page link will be attached to Exception Modal. ",
       "required": false,
       "type": "text"
+    },
+    {
+      "key": "migration-in-progress",
+      "name": "<b>Site Migration In Progress</b> (managed automatically by the Site Migration tool)",
+      "required": false,
+      "type": "checkbox",
+      "hidden": true,
+      "super-users-only": true
     }
   ],
   "crons": [

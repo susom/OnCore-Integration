@@ -2,8 +2,9 @@
 
 **Module:** OnCore Integration v9.9.9  
 **Author:** ihabz  
-**Date:** 2026-05-12  
-**Status:** Planning
+**Date:** 2026-05-18 (rev 2 — added sharded data tables + May 2026 Stanford worksheet)  
+**Status:** Planning  
+**Source mapping:** `Subject Study Site Worksheet.pdf`
 
 ---
 
@@ -12,7 +13,7 @@
 1. [Problem Statement](#1-problem-statement)
 2. [Design Decisions & Constraints](#2-design-decisions--constraints)
 3. [Data Model — What Actually Changes](#3-data-model--what-actually-changes)
-4. [Open Decision Points](#4-open-decision-points)
+4. [Open Decision Points (Answered)](#4-open-decision-points-answered)
 5. [Rule Types & Detailed Effects](#5-rule-types--detailed-effects)
 6. [New Database Entities](#6-new-database-entities)
 7. [New PHP Class: SiteMigration](#7-new-php-class-sitemigration)
@@ -24,6 +25,7 @@
 13. [Performance Strategy](#13-performance-strategy)
 14. [Files to Create / Modify](#14-files-to-create--modify)
 15. [Implementation Sequence](#15-implementation-sequence)
+16. [REDCap Sharded Data Tables](#16-redcap-sharded-data-tables)
 
 ---
 
@@ -37,7 +39,9 @@ OnCore periodically renames study sites or merges multiple sites into one. When 
 - The system-level library site list (`library-oncore-study-sites`) still lists old names
 - Future OnCore syncs send new site names that fail to resolve to REDCap coded values
 
-The goal is a **Control Center administration page** that allows a super-user to define rename/merge rules and apply them retroactively across all ~100 active projects — without modifying the underlying `redcap_data` table at all.
+The concrete trigger for this initiative is the May 2026 Stanford site re-org documented in `Subject Study Site Worksheet.pdf` (encoded as Appendix C below): nine renames plus four merges, with a handful of sites explicitly marked "Leave as-is".
+
+The goal is a **Control Center administration page** that allows a super-user to define rename/merge/keep rules and apply them retroactively across all ~100 active projects — without modifying the underlying `redcap_data*` tables at all. (Note: REDCap shards record data across up to eight tables — `redcap_data`, `redcap_data2`, … `redcap_data8`. The migration deliberately stays on the metadata / settings side of the line and never has to choose a shard for its writes. See [Section 16](#16-redcap-sharded-data-tables).)
 
 ---
 
@@ -117,88 +121,125 @@ Study site names flow through five independent storage locations. **`redcap_data
 
 **Implementation note:** The mapped REDCap field name is retrieved from `redcap-oncore-fields-mapping` → `pull.studySites.redcap_field`. Only the specific instrument field in that project is updated. Uses a parameterized SQL UPDATE for performance (no `REDCap::getData` round-trip).
 
+`redcap_metadata` is **not sharded** — see [Section 16](#16-redcap-sharded-data-tables) — so the project-scoped `UPDATE redcap_metadata WHERE project_id = ?` is safe regardless of which `redcap_data*` shard the project lives in.
+
+### 3.5 What This Migration Does NOT Touch
+
+| Table | Sharded? | Touched by migration? | Why |
+|-------|----------|------------------------|-----|
+| `redcap_data` … `redcap_data8` | **Yes** | **No** | Historical coded values stay intact. Records that hold the old code keep that code; only the option *label* gets a suffix. |
+| `redcap_log_event` (and shards) | Yes | Indirectly, via `REDCap::logEvent()` | The REDCap API routes to the correct shard automatically. We never query it with raw SQL. |
+| `redcap_metadata` | No (single table) | **Yes** — `element_enum` updated per project | Project scope enforced via `WHERE project_id = ?`. |
+| `redcap_external_modules_settings` | No | Yes — project-level and system-level settings | Standard EM settings API. |
+| `redcap_entity_oncore_*` (this EM) | No | Yes — new rows in 3 entity types | New tables added in this migration. |
+
+The "no shard math required" property is a load-bearing design decision: it means the migration is auditable as a settings/metadata operation, not as a data migration.
+
 ---
 
-## 4. Open Decision Points
+## 4. Open Decision Points (Answered)
 
-These require answers before implementation begins.
+Original draft left these open. The May 2026 Stanford worksheet (Appendix C) answers them concretely.
 
 ### 4.1 Merge — Primary Code Selection
 
-When `"Palo Alto VA"` (rc=`"2"`) and `"Menlo Park VA"` (rc=`"3"`) merge into `"VA Palo Alto HCS"`, future OnCore syncs send `"VA Palo Alto HCS"`. This must map to exactly one existing REDCap coded value.
+**Answer: Option A (admin selects in UI), with a convention seeded from the worksheet.**
 
-| Option | Description | Tradeoff |
-|--------|-------------|----------|
-| **A** _(recommended)_ | Admin explicitly selects the primary in the rule editor UI — e.g., a dropdown: *"Future 'VA Palo Alto HCS' records map to the same code as: [Palo Alto VA ▼]"* | Most transparent; admin controls exactly which code "wins" |
-| **B** | Always default to the first listed old site's code, no UI choice | Simpler UI; may not match admin's intent |
-| **C** | Create a new REDCap dropdown option for the merged site | Clean separation; requires data dict change; new code won't match any historical records |
+Convention from the worksheet: in each merge group, the row whose disposition is **"Rename"** is the primary; all other rows in that group have the disposition **"Move to Line N (NewName)"** or **"Sunset"** and merge into the primary's rc code.
 
-**Default plan assumes Option A.**
+Example (Main Hospital group):
+
+| Old site | Disposition | Role |
+|----------|-------------|------|
+| SCI-Palo Alto | Rename → Main Hospital | **Primary** — its rc code becomes "Main Hospital"'s code |
+| SHC Main Hosp, Pasteur, Welch & campus/nearby clinics | Move to "Main Hospital" | Merge into primary |
+| SHC Satellite & Other | Move to "Main Hospital" | Merge into primary |
+
+The UI still surfaces a primary dropdown so the admin can override; the default selection is the row with the "Rename" disposition flag.
 
 ### 4.2 Library Scope — Single vs. Multiple Libraries
 
-Study sites are scoped to libraries. Each linked project uses one library (stored as `oncore_library` index in the protocol entity).
+**Answer: Treat as potentially multi-library, but the May 2026 worksheet is single-library (Stanford).**
 
-- If **one library** exists: rules apply globally; no library selector needed in UI.
-- If **multiple libraries** exist: the rule editor should show a library selector so the admin knows which library's site list they are editing.
+The worksheet's "Under Stanford?" column shows three sites currently outside Stanford (SCI-South Bay, SCI-Emeryville, SCI - Livermore line… though Livermore is marked Yes — only **SCI-South Bay** and **SCI-Emeryville** are flagged `No`). For those, the OnCore-side org move ("move under Stanford") is a manual SCI step done outside REDCap. By the time the REDCap migration runs, those sites are expected to already be in OnCore's Stanford library.
 
-**Clarification needed: how many libraries are configured in your system?**
+Implications:
+- **Within scope:** rename/merge/keep rules **inside a single library**.
+- **Out of scope for v1:** moving a site from one EM library to another. If the SCI library exists as a separate EM library, an admin still has to manually add the new name to the Stanford library and remove from SCI. The UI shows the library selector when more than one library is configured.
 
 ### 4.3 System Site List — Replace vs. Append
 
-When a rename happens:
+**Answer: Replace** (old name removed from `library-oncore-study-sites`, new name added) — both names retained in `value_mapping` for backward compat with any OnCore record still emitting the old name during the cutover window.
 
-| Option | Behavior |
-|--------|----------|
-| **Replace** | `"Stanford Hospital"` removed from library, `"Stanford Medical Center"` added. Cleaner going forward; assumes OnCore has already been renamed. |
-| **Append** | Both old and new names kept in the library list. Safe during transition; produces duplicate-looking list over time. |
-
-**Default plan assumes Replace**, with both names kept in the `value_mapping` for backward compat.
+Sunset rows (e.g., **SHC - Emeryville**, retired 2025-09-04) are also **removed** from the library list. The value_mapping entry for the sunset name is retained so that any in-flight historical OnCore payload still resolves; no new value_mapping entry is added for the sunset name's "new" mapping because OnCore will never emit it again.
 
 ---
 
 ## 5. Rule Types & Detailed Effects
 
+Four rule types: `rename`, `merge`, `keep`, `sunset`. Examples below use real names from the May 2026 worksheet.
+
 ### 5.1 Rule: Rename
 
 ```
-old_site:  "Stanford Hospital"
-new_site:  "Stanford Medical Center"
+old_site:  "SHC Tri-Valley"
+new_site:  "Tri-Valley"
 type:      rename
 ```
 
 | Layer | Before | After |
 |-------|--------|-------|
-| Library site list | `["Stanford Hospital", ...]` | `["Stanford Medical Center", ...]` |
-| Project site subset | `["Stanford Hospital"]` | `["Stanford Medical Center"]` |
-| Value mapping | `[{"oc":"Stanford Hospital","rc":"1"}]` | `[{"oc":"Stanford Hospital","rc":"1"}, {"oc":"Stanford Medical Center","rc":"1"}]` |
-| Field label | `1, Stanford Hospital` | `1, Stanford Hospital (changed to Stanford Medical Center)` |
+| Library site list | `["SHC Tri-Valley", ...]` | `["Tri-Valley", ...]` |
+| Project site subset | `["SHC Tri-Valley"]` | `["Tri-Valley"]` |
+| Value mapping | `[{"oc":"SHC Tri-Valley","rc":"7"}]` | `[{"oc":"SHC Tri-Valley","rc":"7"}, {"oc":"Tri-Valley","rc":"7"}]` |
+| Field label | `7, SHC Tri-Valley` | `7, SHC Tri-Valley (changed to Tri-Valley)` |
 
 ### 5.2 Rule: Merge
 
 ```
-old_sites: ["Palo Alto VA", "Menlo Park VA"]
-new_site:  "VA Palo Alto Health Care System"
-primary:   "Palo Alto VA"   ← admin-selected (Option A)
+old_sites: ["SCI-Palo Alto", "SHC Main Hosp, Pasteur, Welch & campus/nearby clinics", "SHC Satellite & Other"]
+new_site:  "Main Hospital"
+primary:   "SCI-Palo Alto"   ← row marked "Rename" in worksheet
 type:      merge
 ```
 
 | Layer | Before | After |
 |-------|--------|-------|
-| Library site list | `["Palo Alto VA", "Menlo Park VA", ...]` | `["VA Palo Alto Health Care System", ...]` |
-| Project site subset | `["Palo Alto VA", "Menlo Park VA"]` | `["VA Palo Alto Health Care System"]` |
-| Value mapping | `[{"oc":"Palo Alto VA","rc":"2"},{"oc":"Menlo Park VA","rc":"3"}]` | `[{"oc":"Palo Alto VA","rc":"2"},{"oc":"Menlo Park VA","rc":"3"},{"oc":"VA Palo Alto Health Care System","rc":"2"}]` |
-| Field label — Palo Alto VA | `2, Palo Alto VA` | `2, Palo Alto VA (merged into VA Palo Alto Health Care System)` |
-| Field label — Menlo Park VA | `3, Menlo Park VA` | `3, Menlo Park VA (merged into VA Palo Alto Health Care System)` |
+| Library site list | `["SCI-Palo Alto", "SHC Main Hosp...", "SHC Satellite & Other", ...]` | `["Main Hospital", ...]` |
+| Project site subset | `["SCI-Palo Alto", "SHC Main Hosp..."]` | `["Main Hospital"]` |
+| Value mapping | `[{"oc":"SCI-Palo Alto","rc":"1"},{"oc":"SHC Main Hosp...","rc":"4"},{"oc":"SHC Satellite & Other","rc":"9"}]` | …unchanged… **plus** `{"oc":"Main Hospital","rc":"1"}` |
+| Field label — SCI-Palo Alto (primary) | `1, SCI-Palo Alto` | `1, SCI-Palo Alto (changed to Main Hospital)` |
+| Field label — SHC Main Hosp... | `4, SHC Main Hosp...` | `4, SHC Main Hosp... (merged into Main Hospital)` |
+| Field label — SHC Satellite & Other | `9, SHC Satellite & Other` | `9, SHC Satellite & Other (merged into Main Hospital)` |
+
+Note: the primary's label uses the **"changed to"** suffix (it's effectively a rename whose code is being reused); the secondary rows use **"merged into"**.
 
 ### 5.3 Rule: Keep
 
 ```
-site:  "Site C"
+site:  "Byers Eye Institute"
 type:  keep
 ```
 
-No changes applied. Site C passes through migration untouched.
+No changes applied. Site passes through migration untouched. Used explicitly so preview/history can report "intentionally left alone" vs. "rule missing".
+
+### 5.4 Rule: Sunset
+
+```
+old_site:        "SHC - Emeryville"
+retired_on:      "2025-09-04"
+merged_into:     "Emeryville"    ← optional; for label suffix only
+type:            sunset
+```
+
+Variant of merge for sites OnCore has retired and will never emit again.
+
+| Layer | Behavior |
+|-------|----------|
+| Library site list | Old name removed. No new entry added (handled by the related rename/merge rule). |
+| Project site subset | Old name removed. |
+| Value mapping | Old entry retained for in-flight backward compat. **No new entry added** — OnCore will not emit this name again. |
+| Field label | `N, SHC - Emeryville` → `N, SHC - Emeryville (retired 2025-09-04, merged into Emeryville)` |
 
 ---
 
@@ -227,23 +268,38 @@ Stores persistent migration rule sets.
   {
     "id": "rule-1",
     "type": "rename",
-    "old_sites": ["Stanford Hospital"],
-    "new_site": "Stanford Medical Center",
-    "primary_old_site": null
+    "old_sites": ["SHC Tri-Valley"],
+    "new_site": "Tri-Valley",
+    "primary_old_site": null,
+    "retired_on": null
   },
   {
     "id": "rule-2",
     "type": "merge",
-    "old_sites": ["Palo Alto VA", "Menlo Park VA"],
-    "new_site": "VA Palo Alto Health Care System",
-    "primary_old_site": "Palo Alto VA"
+    "old_sites": [
+      "SCI-Palo Alto",
+      "SHC Main Hosp, Pasteur, Welch & campus/nearby clinics",
+      "SHC Satellite & Other"
+    ],
+    "new_site": "Main Hospital",
+    "primary_old_site": "SCI-Palo Alto",
+    "retired_on": null
   },
   {
     "id": "rule-3",
     "type": "keep",
-    "old_sites": ["Site C"],
+    "old_sites": ["Byers Eye Institute"],
     "new_site": null,
-    "primary_old_site": null
+    "primary_old_site": null,
+    "retired_on": null
+  },
+  {
+    "id": "rule-4",
+    "type": "sunset",
+    "old_sites": ["SHC - Emeryville"],
+    "new_site": "Emeryville",
+    "primary_old_site": null,
+    "retired_on": "2025-09-04"
   }
 ]
 ```
@@ -308,15 +364,25 @@ private function processProject(int $projectId, array $rules, int $migrationId):
 private function updateLibrarySettings(array $rules, int $libraryIndex): void  // runs once
 private function updateProjectSiteSubset(int $pid, array $rules): array
 private function updateValueMapping(int $pid, array $rules): array
-private function updateFieldLabels(int $pid, array $rules): array  // SQL UPDATE
+private function updateFieldLabels(int $pid, array $rules): array  // SQL UPDATE — redcap_metadata (not sharded)
 private function logToEntity(int $pid, int $migrationId, array $changes): void
 private function logToREDCap(int $pid, array $summary): void
+
+// Shard-aware preview helpers (read-only; only used if previewIncludesRecordCounts is true)
+private function getProjectDataTable(int $pid): string         // returns redcap_data / redcap_data2 / ...
+private function countRecordsWithSiteCode(int $pid, string $fieldName, string $rcCode): int
 
 // Cron gate
 public static function isMigrationInProgress(): bool
 public function disableCrons(): void
 public function enableCrons(): void
 ```
+
+### Sharding rules for the class
+
+- **Writes:** all writes are to non-sharded tables (`redcap_metadata`, `redcap_external_modules_settings`, EM entity tables) or via APIs that handle sharding internally (`REDCap::logEvent()`). No `redcap_data*` write.
+- **Reads (optional preview only):** when computing record-level usage counts, `getProjectDataTable($pid)` resolves the correct shard. Implementation should prefer the framework method `$this->module->getDataTable($pid)` (per `EXTERNAL_MODULES_INDEX.md`, "Data Methods"); if not available in the deployed framework version, fall back to `SELECT data_table FROM redcap_projects WHERE project_id = ?`.
+- **Never** hard-code the literal `redcap_data` table name in any SQL emitted by this class.
 
 ### `processProject` — Per-Project Transaction
 
@@ -430,13 +496,16 @@ private function updateFieldLabels(int $pid, array $rules): array
 
 Added to `auth-ajax-actions` in `config.json`. All require authenticated super-user context.
 
+(Total: 13 actions, +1 from the original draft to expose the optional shard-aware deep preview.)
+
 | Action | Description | Returns |
 |--------|-------------|---------|
 | `listSiteMigrationRuleSets` | List all saved rule sets | `[{id, name, status, created_at, ...}]` |
 | `getSiteMigrationRuleSet` | Load single rule set with full rules | `{id, name, rules, ...}` |
 | `saveSiteMigrationRuleSet` | Create or update a rule set | `{id}` |
 | `deleteSiteMigrationRuleSet` | Delete a draft rule set | `{ok: true}` |
-| `previewSiteMigration` | Dry-run preview — counts only | `{projects: [{pid, name, affectedSites, labelChanges, status}]}` |
+| `previewSiteMigration` | Dry-run preview — counts only (settings-level overlap; cheap) | `{projects: [{pid, name, affectedSites, labelChanges, status}]}` |
+| `previewSiteMigrationDeep` | Optional record-level usage counts (queries the project's sharded `redcap_data*` shard via `getProjectDataTable($pid)`) | `{projects: [{pid, name, affectedSites, labelChanges, recordsAffected, status}]}` |
 | `exportMigrationPreview` | Generate CSV blob | CSV string |
 | `startSiteMigration` | Initialize migration session | `{sessionId, total, projects: [...]}` |
 | `processNextMigrationProject` | Process one project, advance cursor | `{current, total, projectId, projectName, status, errors}` |
@@ -536,22 +605,37 @@ Admin Browser                     Server (AJAX)                    Database
 ### Tab 2 — Rule Editor
 
 ```
-Name: [____________________________]
-Description: [____________________________]
-Library: [All Libraries ▼]   (shown only if multiple libraries detected)
+Name: [Q2 2026 Stanford Site Restructuring     ]
+Description: [Per Subject Study Site Worksheet ]
+Library: [Stanford ▼]   (shown only if multiple libraries detected)
 
 Study Sites from Library
-─────────────────────────────────────────────────────────
-  Site Name                │  Action        │  Target Name
-  ─────────────────────────────────────────────────────
-  Stanford Hospital         │ ○Keep ○Rename ●Merge │ Group A  [VA Palo Alto HCS]
-  Palo Alto VA              │ ○Keep ○Rename ●Merge │ Group A  [VA Palo Alto HCS]
-  Menlo Park VA             │ ○Keep ○Rename ●Merge │ Group A  [VA Palo Alto HCS]
-  Stanford Medical Center   │ ○Keep ●Rename ○Merge │ [Stanford Medical Center  ]
-  Site C                    │ ●Keep ○Rename ○Merge │ —
+──────────────────────────────────────────────────────────────────────────────────
+  Site Name                                                  │ Action                    │ Target / Group
+  ──────────────────────────────────────────────────────────────────────────────
+  SCI-Palo Alto                                              │ ○Keep ○Rename ●Merge ○Sunset │ Main Hospital  (group MH)
+  SHC Main Hosp, Pasteur, Welch & campus/nearby clinics      │ ○Keep ○Rename ●Merge ○Sunset │ Main Hospital  (group MH)
+  SHC Satellite & Other                                      │ ○Keep ○Rename ●Merge ○Sunset │ Main Hospital  (group MH)
+  SCI-LPCH                                                   │ ○Keep ○Rename ●Merge ○Sunset │ Children's Hospital (group CH)
+  LPCH Main Hosp, Welch Rd & campus/nearby clinics           │ ○Keep ○Rename ●Merge ○Sunset │ Children's Hospital (group CH)
+  LPCH Satellite & Other                                     │ ○Keep ○Rename ●Merge ○Sunset │ Children's Hospital (group CH)
+  SHC Redwood City                                           │ ○Keep ○Rename ●Merge ○Sunset │ Redwood City   (group RC)
+  SCI-Redwood City                                           │ ○Keep ○Rename ●Merge ○Sunset │ Redwood City   (group RC)
+  SCI-Emeryville                                             │ ○Keep ○Rename ●Merge ○Sunset │ Emeryville     (group EM)
+  SHC - Emeryville                                           │ ○Keep ○Rename ○Merge ●Sunset │ Emeryville  (retired 2025-09-04)
+  Quarry Rd clinics;Hoover Pavilion                          │ ○Keep ●Rename ○Merge ○Sunset │ Quarry Rd clinics/Hoover Pavilion
+  Psychiatry: Page Mill, Porter Dr, other                    │ ○Keep ●Rename ○Merge ○Sunset │ Page Mill/Porter Dr
+  SHC Tri-Valley                                             │ ○Keep ●Rename ○Merge ○Sunset │ Tri-Valley
+  SCI-South Bay                                              │ ○Keep ●Rename ○Merge ○Sunset │ South Bay
+  SCI - Livermore                                            │ ○Keep ●Rename ○Merge ○Sunset │ Livermore
+  1070 Arastradero, Byers Eye Institute, CTRU (800 Welch Rd),│
+  Remote interactions, Lucas Center, Community site,         │ ●Keep ○Rename ○Merge ○Sunset │ —
+  Center for Cognitive..., Stanford Ear Institute            │
 
-  Merge Group A primary: [Palo Alto VA ▼]
-  (New records for "VA Palo Alto HCS" will use Palo Alto VA's REDCap code)
+  Merge Group MH primary: [SCI-Palo Alto ▼]   ← row marked "Rename" in worksheet; admin can override
+  Merge Group CH primary: [SCI-LPCH ▼]
+  Merge Group RC primary: [SHC Redwood City ▼]
+  Merge Group EM primary: [SCI-Emeryville ▼]
 
 [ Save as Draft ]  [ Save & Activate ]
 ```
@@ -697,7 +781,7 @@ The `redcap_entity_oncore_site_migration_log` table records granular changes use
 
 | Concern | Approach |
 |---------|----------|
-| ~100 projects × field label updates | Single parameterized `UPDATE redcap_metadata` per project — no REDCap API round-trip |
+| ~100 projects × field label updates | Single parameterized `UPDATE redcap_metadata` per project — no REDCap API round-trip. `redcap_metadata` is **not sharded**, so one UPDATE per project hits a single table. |
 | Value mapping updates | JSON decode → PHP mutation → JSON encode → single `setProjectSetting` call |
 | Project site subset updates | Same — single `setProjectSetting` call |
 | Library setting update | Runs once at migration start via `setSystemSetting` — not per-project |
@@ -705,6 +789,7 @@ The `redcap_entity_oncore_site_migration_log` table records granular changes use
 | Progress state | Stored in `redcap_entity_oncore_migration_project_status` — survives browser refresh |
 | Polling interval | 1.5 s client-side — low overhead, smooth UI feel |
 | Transaction scope | Per-project only — a failure in project N does not affect projects 1…N-1 |
+| Deep preview (optional) | Issues one `SELECT COUNT(*)` against the project's `redcap_data*` shard (resolved via `getProjectDataTable($pid)`). The query is `WHERE project_id=? AND field_name=? AND value IN (...)` — covered by REDCap's standard index on (`project_id`,`field_name`). One round-trip per project; only fires when user clicks **Deep Preview**. |
 
 ---
 
@@ -715,9 +800,9 @@ The `redcap_entity_oncore_site_migration_log` table records granular changes use
 | File | Purpose |
 |------|---------|
 | `classes/SiteMigration.php` | All migration logic — rule management, preview, execution, audit |
-| `pages/site_migration.php` | Control Center page — server-side shell, loads JS module |
-| `frontend_3/site_migration/index.js` | Tab-based SPA UI — rule editor, live progress, history |
-| `frontend_3/site_migration/style.css` | Page-specific styles |
+| `pages/site_migration.php` | Control Center page — single PHP file rendering the 5-tab shell, inline JS bootstrap |
+| `assets/scripts/site_migration.js` | Vanilla JS — tab switching, AJAX polling loop, rule-editor state |
+| `assets/styles/site_migration.css` | Page-specific styles |
 
 ### Modified Files
 
@@ -817,3 +902,150 @@ $sites = OnCoreIntegration::getSubSettingsValuesAsArray(
 ```
 
 Migration updates the system-level sub_settings JSON for the affected library's `library-oncore-study-sites` entries using `setSystemSetting('libraries', $updatedLibraries)`.
+
+---
+
+## 16. REDCap Sharded Data Tables
+
+REDCap shards record data horizontally across up to eight physical tables: `redcap_data`, `redcap_data2`, `redcap_data3`, `redcap_data4`, `redcap_data5`, `redcap_data6`, `redcap_data7`, `redcap_data8`. Each project is assigned to exactly one shard, recorded in `redcap_projects.data_table`. The same sharding scheme applies to `redcap_log_event` (`redcap_log_event2`, …).
+
+### What is sharded vs not
+
+| Table family | Sharded? | How to resolve the right shard |
+|--------------|----------|--------------------------------|
+| `redcap_data*` (up to `redcap_data8`) | Yes | `$module->getDataTable($projectId)` (framework method) → returns the literal table name, e.g. `"redcap_data3"` or `"redcap_data8"`. Fallback: `SELECT data_table FROM redcap_projects WHERE project_id = ?`. |
+| `redcap_log_event*` | Yes | Use `REDCap::logEvent()` — it routes internally; never query the log tables with raw SQL. |
+| `redcap_metadata` | **No** | Single table; safe to `WHERE project_id = ?`. |
+| `redcap_projects` | No | Single table. |
+| `redcap_external_modules_settings` | No | Single table; settings APIs do the right thing. |
+| EM entity tables (`redcap_entity_*`) | No | Single table per entity type. |
+
+### Implications for this migration
+
+1. **Writes:** zero `redcap_data*` writes (by design). All writes target non-sharded tables or use sharding-aware APIs.
+2. **Reads (deep preview only):** when answering "how many existing records reference this old site?", call `getProjectDataTable($pid)` first, then issue the COUNT against the returned table name. Hard-coding `redcap_data` would silently miss every project that lives on `redcap_data2`+.
+3. **REDCap audit log writes:** done via `REDCap::logEvent()`. The API picks the right `redcap_log_event*` shard internally — we never compute it ourselves.
+4. **Backwards compat:** `getDataTable()` is available in framework v5+ (see `EXTERNAL_MODULES_INDEX.md`, "Data Methods"). The OnCore EM already targets v12+, so the framework method is the canonical choice. Direct `redcap_projects.data_table` lookup is only a safety fallback.
+
+### Where `getDataTable` MUST be used in this module
+
+| Location | Reason |
+|----------|--------|
+| `SiteMigration::countRecordsWithSiteCode()` | Deep preview record counts |
+| Any future "find records still holding code X" tooling | Same |
+| **Nowhere else** in this migration | All other code paths touch non-sharded tables or sharded-API methods |
+
+---
+
+## Appendix C — May 2026 Stanford Site Mapping (Source: `Subject Study Site Worksheet.pdf`)
+
+This appendix encodes the worksheet into the rule schema from §6.1 so the rule set can be seeded directly into the rule editor.
+
+### C.1 Worksheet rows → rule classification
+
+| # | Old Site (worksheet) | Worksheet "Proposed New Name" | Disposition | Rule type | Group |
+|---|----------------------|-------------------------------|-------------|-----------|-------|
+| 1 | SCI-Palo Alto | Main Hospital | Rename | `merge` (primary) | MH |
+| 2 | SHC Main Hosp, Pasteur, Welch & campus/nearby clinics | Main Hospital | Move to "Main Hospital" | `merge` | MH |
+| 3 | SCI-LPCH | Children's Hospital | Rename | `merge` (primary) | CH |
+| 4 | LPCH Main Hosp, Welch Rd & campus/nearby clinics | Children's Hospital | Move to "Children's Hospital" | `merge` | CH |
+| 5 | SHC Redwood City | Redwood City | Rename | `merge` (primary) | RC |
+| 6 | Quarry Rd clinics;Hoover Pavilion | Quarry Rd clinics/Hoover Pavilion | Rename | `rename` | — |
+| 7 | 1070 Arastradero | — | Leave as-is | `keep` | — |
+| 8 | Byers Eye Institute | — | Leave as-is | `keep` | — |
+| 9 | LPCH Satellite & Other | Children's Hospital | Move to "Children's Hospital" | `merge` | CH |
+| 10 | CTRU (800 Welch Rd) | — | Leave as-is | `keep` | — |
+| 11 | Remote interactions (e.g., online/phone/survey) | — | Leave as-is | `keep` | — |
+| 12 | Lucas Center | — | Leave as-is | `keep` | — |
+| 13 | SHC Satellite & Other | Main Hospital | Move to "Main Hospital" | `merge` | MH |
+| 14 | Psychiatry: Page Mill, Porter Dr, other | Page Mill/Porter Dr | Rename | `rename` | — |
+| 15 | Community site | — | Leave as-is | `keep` | — |
+| 16 | Center for Cognitive and Neurobiological Imaging | — | Leave as-is | `keep` | — |
+| 17 | SCI-South Bay | South Bay | Manual (SCI move + rename) | `rename` | — |
+| 18 | SHC Tri-Valley | Tri-Valley | Rename | `rename` | — |
+| 19 | SCI-Redwood City | Redwood City | Move to "Redwood City" (rename done; patients pending) | `merge` | RC |
+| 20 | Stanford Ear Institute | — | Leave as-is | `keep` | — |
+| 21 | SCI-Emeryville | Emeryville | Manual (SCI move + rename) | `merge` (primary) | EM |
+| 22 | SCI - Livermore | Livermore | Rename | `rename` | — |
+| 23 | SHC - Emeryville | Emeryville | Sunset; retired 2025-09-04 | `sunset` | EM |
+
+### C.2 Seed rule set (JSON)
+
+```json
+[
+  {
+    "id": "merge-main-hospital",
+    "type": "merge",
+    "old_sites": [
+      "SCI-Palo Alto",
+      "SHC Main Hosp, Pasteur, Welch & campus/nearby clinics",
+      "SHC Satellite & Other"
+    ],
+    "new_site": "Main Hospital",
+    "primary_old_site": "SCI-Palo Alto"
+  },
+  {
+    "id": "merge-childrens-hospital",
+    "type": "merge",
+    "old_sites": [
+      "SCI-LPCH",
+      "LPCH Main Hosp, Welch Rd & campus/nearby clinics",
+      "LPCH Satellite & Other"
+    ],
+    "new_site": "Children's Hospital",
+    "primary_old_site": "SCI-LPCH"
+  },
+  {
+    "id": "merge-redwood-city",
+    "type": "merge",
+    "old_sites": ["SHC Redwood City", "SCI-Redwood City"],
+    "new_site": "Redwood City",
+    "primary_old_site": "SHC Redwood City"
+  },
+  {
+    "id": "merge-emeryville",
+    "type": "merge",
+    "old_sites": ["SCI-Emeryville"],
+    "new_site": "Emeryville",
+    "primary_old_site": "SCI-Emeryville"
+  },
+  {
+    "id": "sunset-shc-emeryville",
+    "type": "sunset",
+    "old_sites": ["SHC - Emeryville"],
+    "new_site": "Emeryville",
+    "retired_on": "2025-09-04"
+  },
+  { "id": "rename-quarry-rd",   "type": "rename", "old_sites": ["Quarry Rd clinics;Hoover Pavilion"],         "new_site": "Quarry Rd clinics/Hoover Pavilion" },
+  { "id": "rename-psychiatry",  "type": "rename", "old_sites": ["Psychiatry: Page Mill, Porter Dr, other"],    "new_site": "Page Mill/Porter Dr" },
+  { "id": "rename-south-bay",   "type": "rename", "old_sites": ["SCI-South Bay"],                              "new_site": "South Bay" },
+  { "id": "rename-tri-valley",  "type": "rename", "old_sites": ["SHC Tri-Valley"],                             "new_site": "Tri-Valley" },
+  { "id": "rename-livermore",   "type": "rename", "old_sites": ["SCI - Livermore"],                            "new_site": "Livermore" },
+  { "id": "keep-arastradero",   "type": "keep",   "old_sites": ["1070 Arastradero"] },
+  { "id": "keep-byers",         "type": "keep",   "old_sites": ["Byers Eye Institute"] },
+  { "id": "keep-ctru",          "type": "keep",   "old_sites": ["CTRU (800 Welch Rd)"] },
+  { "id": "keep-remote",        "type": "keep",   "old_sites": ["Remote interactions (e.g., online/phone/survey)"] },
+  { "id": "keep-lucas",         "type": "keep",   "old_sites": ["Lucas Center"] },
+  { "id": "keep-community",     "type": "keep",   "old_sites": ["Community site"] },
+  { "id": "keep-cnbi",          "type": "keep",   "old_sites": ["Center for Cognitive and Neurobiological Imaging"] },
+  { "id": "keep-ear-institute", "type": "keep",   "old_sites": ["Stanford Ear Institute"] }
+]
+```
+
+### C.3 Notable cross-library / OnCore-side caveats
+
+These items have OnCore-side prerequisites that the REDCap migration **does not** perform. They must be done in OnCore before (or in parallel with) this migration:
+
+| Item | Out-of-scope action | Handler |
+|------|--------------------|---------|
+| SCI-South Bay → South Bay | Move from SCI library to Stanford library in OnCore, then rename | OnCore admin (manual) |
+| SCI-Emeryville → Emeryville | Move from SCI library to Stanford library in OnCore, then rename | OnCore admin (Juan, per worksheet — "Done") |
+| SCI - Livermore → Livermore | Rename inside SCI in OnCore | OnCore admin (Agnes, per worksheet — "Done") |
+| SCI-Redwood City → Redwood City | Records' patient assignment moves in OnCore | OnCore admin (in progress per worksheet) |
+| SHC - Emeryville | Already retired in OnCore on 2025-09-04 | OnCore admin (done) |
+
+The REDCap migration assumes that by the time it runs, OnCore is the source of the new names. If it runs early, future syncs may still emit old names — but that is harmless because the `value_mapping` retains the old `oc → rc` entry per §4.3.
+
+### C.4 Sites NOT in the worksheet
+
+Any site present in `library-oncore-study-sites` for the Stanford library that is **not** listed above represents an unknown — the rule editor should flag these as "no rule defined" and refuse to start the migration until the admin explicitly adds a `keep` rule or another disposition. This guards against an admin running the migration with an outdated worksheet and silently leaving sites in an undefined state.
