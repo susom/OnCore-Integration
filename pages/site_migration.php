@@ -42,9 +42,19 @@ $module->initializeJavascriptModuleObject();
     <h2>OnCore Study Site Migration</h2>
     <p class="text-muted small">
         Apply OnCore study-site renames, merges, keeps, and sunsets retroactively across
-        all OnCore-linked REDCap projects. <strong>No records in <code>redcap_data</code>
-        are written</strong> — only settings, value mappings, and field option labels.
+        all OnCore-linked REDCap projects.
     </p>
+    <div class="sm-intro-callout">
+        <div><strong>What gets written:</strong></div>
+        <ul class="mb-0">
+            <li><code>redcap_metadata.element_enum</code> — labels: rename relabels in place; merge allocates a new code and suffixes old ones <code>(retired — migrated to X)</code></li>
+            <li><code>redcap_external_modules_settings</code> — project site subset + value mapping + library site list</li>
+            <li><code>redcap_data*</code> (sharded) — <strong>merge and target-bound sunset rewrite record values</strong> from old code → new code on the project's resolved shard (<code>getDataTable($pid)</code> + allowlist regex). Renames leave records untouched.</li>
+        </ul>
+        <div class="mt-1 small">
+            Before any merge runs, a code-reference scan flags branching logic / alerts / ASI / report filters that reference the old codes. Findings appear as warnings; admin must Acknowledge each project before its migration is allowed to run.
+        </div>
+    </div>
 
     <ul class="nav nav-tabs" id="smTabs" role="tablist">
         <li class="nav-item"><a class="nav-link active" data-tab="rule-sets" href="#">Rule Sets</a></li>
@@ -113,8 +123,15 @@ $module->initializeJavascriptModuleObject();
                       placeholder='[{"type":"keep","old_sites":["Byers Eye Institute"]}]'></textarea>
             <small class="form-text text-muted">
                 Rule schema:
-                <code>{"id"?, "type": "rename|merge|keep|sunset", "old_sites": [...], "new_site"?, "primary_old_site"?, "retired_on"?}</code>.
-                See <code>SITE_MIGRATION_PLAN.md</code> §6.1 and Appendix C.
+                <code>{"id"?, "type": "rename|merge|keep|sunset", "old_sites": [...], "new_site"?, "primary_old_site"?, "merged_into"?, "retired_on"?}</code>.
+                <br>
+                <strong>rename</strong> = relabel the existing code in place; no <code>redcap_data*</code> write.
+                <strong>merge</strong> = allocate a new per-project code (<code>max+1</code>), suffix old codes <code>(retired — migrated to X)</code>, rewrite records on the project's shard.
+                <strong>sunset</strong> = suffix label <code>(retired YYYY-MM-DD)</code>; if <code>merged_into</code> is set, also rewrites records.
+                <strong>keep</strong> = no-op.
+                <br>
+                <code>primary_old_site</code> is informational only (used to seed the UI default) — the primary's code is <strong>not</strong> reused; merges always allocate a fresh code.
+                See <code>SITE_MIGRATION_PLAN.md</code> §5 and Appendix C.
             </small>
 
             <div class="mt-3">
@@ -142,16 +159,46 @@ $module->initializeJavascriptModuleObject();
         <table class="table table-sm sm-preview-table">
             <thead>
                 <tr>
-                    <th>Project ID</th><th>Title</th>
-                    <th>Sites Affected</th><th>Label Changes</th>
-                    <th>Mapping Changes</th><th>Records (deep)</th>
-                    <th>Status</th><th>Note</th>
+                    <th>PID</th>
+                    <th>Title</th>
+                    <th title="Sites in this project that match a rule's old_sites">Sites</th>
+                    <th title="element_enum label edits">Label Δ</th>
+                    <th title="value_mapping entries added">Map Δ</th>
+                    <th title="Codes newly allocated for merge / target-bound sunset">New Codes</th>
+                    <th title="Records that will be (or were, in deep preview) rewritten">Records</th>
+                    <th title="Code references found in branching logic, alerts, ASI, reports">⚠ Refs</th>
+                    <th>Status</th>
+                    <th>Note</th>
                 </tr>
             </thead>
             <tbody id="sm-preview-body">
-                <tr><td colspan="8" class="text-muted">Select a rule set and click Generate Preview.</td></tr>
+                <tr><td colspan="10" class="text-muted">Select a rule set and click Generate Preview.</td></tr>
             </tbody>
         </table>
+
+        <!-- Code-reference details modal (filled by getCodeReferenceDetails) -->
+        <div id="sm-refs-modal" class="sm-modal" style="display:none">
+            <div class="sm-modal-inner">
+                <div class="sm-modal-header">
+                    <strong id="sm-refs-title">Code references</strong>
+                    <button type="button" class="close" id="sm-refs-close">&times;</button>
+                </div>
+                <div class="sm-modal-body">
+                    <div id="sm-refs-status" class="small text-muted mb-2"></div>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr><th>Source</th><th>Table</th><th>Row ID</th><th>Snippet</th></tr>
+                        </thead>
+                        <tbody id="sm-refs-body"></tbody>
+                    </table>
+                    <div class="text-right">
+                        <button type="button" class="btn btn-primary btn-sm" id="sm-refs-ack">
+                            Acknowledge — allow this project to run
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- TAB: Run Migration --------------------------------------------- -->
@@ -160,7 +207,13 @@ $module->initializeJavascriptModuleObject();
             <strong>Heads up:</strong> starting a migration sets
             <code>migration-in-progress = true</code>, which causes all 4 OnCore sync
             crons to skip until finalize. The system flag is cleared by Finalize Migration.
+            <br>
+            Merges and target-bound sunsets will write to the project's
+            <code>redcap_data*</code> shard (resolved per project via
+            <code>getDataTable($pid)</code>). Per-project transactions wrap both metadata
+            and data writes, so a failure rolls back atomically.
         </div>
+        <div id="sm-run-blocked-banner" class="alert alert-info" style="display:none"></div>
 
         <div class="sm-toolbar">
             <label class="mb-0 mr-2">Rule Set:</label>
@@ -177,7 +230,14 @@ $module->initializeJavascriptModuleObject();
 
         <table class="table table-sm sm-run-table">
             <thead>
-                <tr><th>Project</th><th>Status</th><th>Changes</th><th>Error</th></tr>
+                <tr>
+                    <th>Project</th>
+                    <th>Status</th>
+                    <th title="Codes newly allocated">New Codes</th>
+                    <th title="Records rewritten in redcap_data*">Records</th>
+                    <th>Changes</th>
+                    <th>Error</th>
+                </tr>
             </thead>
             <tbody id="sm-run-body"></tbody>
         </table>

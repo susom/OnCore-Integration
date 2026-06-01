@@ -181,6 +181,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             \REDCapEntity\EntityDB::buildSchema($this->PREFIX);
             Entities::createLog("Created all OnCore Entity tables");
 //            $this->emDebug("Created all OnCore Entity tables");
+            // Rev-3 site-migration columns — add to pre-existing entity tables if missing.
+            try {
+                // getSiteMigration() also runs ensureSchemaUpToDate() behind a static guard;
+                // calling it explicitly here makes the enable-time intent obvious.
+                $this->getSiteMigration()->ensureSchemaUpToDate();
+            } catch (\Throwable $e) {
+                // Non-fatal: lazy guard in getSiteMigration() will retry.
+            }
         }
     }
 
@@ -703,6 +711,14 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                     'type' => 'text',
                     'required' => false,
                 ],
+                // rev-3: optional JSON blob carrying extra context per change.
+                // For change_type='record_value_migration': {"rows_affected": N, "data_table": "redcap_dataN", "reason": "merge|sunset"}
+                // For change_type='code_allocation': {"new_site": "...", "reason": "merge|sunset"}
+                'details' => [
+                    'name' => 'Change Details (JSON)',
+                    'type' => 'long_text',
+                    'required' => false,
+                ],
             ],
             'special_keys' => [
                 'label' => 'change_type',
@@ -745,6 +761,22 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                 'error_message' => [
                     'name' => 'Error Message',
                     'type' => 'long_text',
+                    'required' => false,
+                ],
+                // rev-3: code-reference scan persistence + acknowledge gate.
+                'code_references_json' => [
+                    'name' => 'Code Reference Scan (JSON)',
+                    'type' => 'long_text',
+                    'required' => false,
+                ],
+                'acknowledged_at' => [
+                    'name' => 'Warnings Acknowledged At',
+                    'type' => 'integer',
+                    'required' => false,
+                ],
+                'acknowledged_by' => [
+                    'name' => 'Warnings Acknowledged By',
+                    'type' => 'text',
                     'required' => false,
                 ],
             ],
@@ -1517,14 +1549,28 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
     /** @var SiteMigration|null */
     private $siteMigration = null;
 
+    /** @var bool Tracks whether the rev-3 schema upgrade has been checked this request. */
+    private static $schemaChecked = false;
+
     /**
      * Lazy accessor for the SiteMigration helper. The helper is stateless
      * relative to the module, so a single instance per request is sufficient.
+     *
+     * Also runs ensureSchemaUpToDate() at most once per request, in case the
+     * EM was upgraded in place without a disable+enable cycle.
      */
     public function getSiteMigration(): SiteMigration
     {
         if ($this->siteMigration === null) {
             $this->siteMigration = new SiteMigration($this);
+        }
+        if (!self::$schemaChecked) {
+            self::$schemaChecked = true;
+            try {
+                $this->siteMigration->ensureSchemaUpToDate();
+            } catch (\Throwable $_) {
+                // Best-effort; will retry next request if it fails.
+            }
         }
         return $this->siteMigration;
     }
@@ -1543,6 +1589,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             'startSiteMigration',        'processNextMigrationProject',
             'getMigrationStatus',        'finalizeMigration',
             'getMigrationHistory',       'getMigrationProjectLog',
+            'getCodeReferenceDetails',   'acknowledgeProjectWarnings',
         ];
         return in_array($action, $actions, true);
     }
@@ -2020,6 +2067,19 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                             'filename' => sprintf('site-migration-preview-%d.csv', $rsid),
                             'csv'      => $this->getSiteMigration()->exportPreviewCSV($rsid),
                         ];
+                        break;
+
+                    // ─── Site Migration: code-reference scan (rev-3) ─────────────
+                    case "getCodeReferenceDetails":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $pid  = (int)($payload['project_id'] ?? 0);
+                        $result = $this->getSiteMigration()->getCodeReferenceDetails($rsid, $pid);
+                        break;
+                    case "acknowledgeProjectWarnings":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $pid  = (int)($payload['project_id'] ?? 0);
+                        $this->getSiteMigration()->acknowledgeProjectWarnings($rsid, $pid);
+                        $result = ['ok' => true, 'project_id' => $pid, 'acknowledged_at' => time()];
                         break;
 
                     // ─── Site Migration: execution engine (Phase 4) ──────────────

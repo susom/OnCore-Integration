@@ -3,29 +3,28 @@
 namespace Stanford\OnCoreIntegration;
 
 /**
- * Class SiteMigration
+ * Class SiteMigration  —  rev 3 (clean-label exports: per-project new-code allocation
+ * for merges + sharded redcap_data* record rewrite for merges & target-bound sunsets).
  *
- * Implements the OnCore Study Site Migration tool described in SITE_MIGRATION_PLAN.md.
+ * See SITE_MIGRATION_PLAN.md (rev 3) §§3, 5, 7, 9, 16 and prompt.txt for the spec.
  *
- * Scope of this class:
- *   - Rule-set CRUD (rename / merge / keep / sunset rules)
- *   - The five per-change layer updates (library setting, project subset, value mapping,
- *     field labels, audit log)
- *   - Cron-guard primitives (system-wide pause flag)
- *   - Shard-aware data-table resolver for read-only preview queries
+ * Per rule-type effect summary:
+ *   - rename             → in-place element_enum relabel; no new code; no record write.
+ *   - merge              → allocate per-project max+1 code with clean new label;
+ *                          suffix each old code's label "(retired — migrated to <new>)";
+ *                          UPDATE redcap_data* records from each old code → new code.
+ *   - sunset w/ target   → merge variant; new label suffix carries "(retired YYYY-MM-DD, migrated to <new>)".
+ *   - sunset w/o target  → label-only suffix "(retired YYYY-MM-DD)"; no code allocation; no record write.
+ *   - keep               → no-op.
  *
- * Phase 2 (this file): rule CRUD + per-change layer updates + logging.
- * Phase 3: preview methods (added to this class).
- * Phase 4: execution engine (startMigration / processNextProject / finalizeMigration,
- *          also added to this class).
+ * Tables written:
+ *   - redcap_metadata (NOT sharded)               — UPDATE element_enum
+ *   - redcap_external_modules_settings            — via $module setting APIs
+ *   - redcap_data{,2..8} (SHARDED)                — UPDATE value via getDataTable() + allowlist regex
+ *   - redcap_entity_oncore_site_migration{,_log,_migration_project_status}
  *
- * Tables touched:
- *   - redcap_metadata (NOT sharded) — UPDATE element_enum
- *   - redcap_external_modules_settings — via $module->setProjectSetting / setSystemSetting
- *   - redcap_entity_oncore_site_migration{,_log,_project_status} (this EM's new entities)
- *
- * Tables NEVER touched:
- *   - redcap_data, redcap_data2 … redcap_data8 (the sharded record data tables)
+ * Tables NEVER written with raw SQL:
+ *   - redcap_log_event*  — only via REDCap::logEvent() (shard-aware API)
  *
  * @package Stanford\OnCoreIntegration
  */
@@ -33,29 +32,32 @@ class SiteMigration
 {
     use emLoggerTrait;
 
-    /** Rule status values stored in redcap_entity_oncore_site_migration.status */
-    const STATUS_DRAFT = 'draft';
-    const STATUS_ACTIVE = 'active';
-    const STATUS_COMPLETED = 'completed';
+    /** Rule-set lifecycle */
+    public const STATUS_DRAFT     = 'draft';
+    public const STATUS_ACTIVE    = 'active';
+    public const STATUS_COMPLETED = 'completed';
 
     /** Rule types */
-    const RULE_RENAME = 'rename';
-    const RULE_MERGE = 'merge';
-    const RULE_KEEP = 'keep';
-    const RULE_SUNSET = 'sunset';
+    public const RULE_RENAME = 'rename';
+    public const RULE_MERGE  = 'merge';
+    public const RULE_KEEP   = 'keep';
+    public const RULE_SUNSET = 'sunset';
 
-    /** Per-project status values in redcap_entity_oncore_migration_project_status.status */
-    const PROJECT_PENDING = 'pending';
-    const PROJECT_IN_PROGRESS = 'in_progress';
-    const PROJECT_COMPLETED = 'completed';
-    const PROJECT_FAILED = 'failed';
-    const PROJECT_SKIPPED = 'skipped';
+    /** Per-project status values. */
+    public const PROJECT_PENDING     = 'pending';
+    public const PROJECT_NEEDS_ACK   = 'needs_ack';
+    public const PROJECT_IN_PROGRESS = 'in_progress';
+    public const PROJECT_COMPLETED   = 'completed';
+    public const PROJECT_FAILED      = 'failed';
+    public const PROJECT_SKIPPED     = 'skipped';
 
-    /** Change-type values in redcap_entity_oncore_site_migration_log.change_type */
-    const CHANGE_LIBRARY_SETTING = 'library_setting';
-    const CHANGE_PROJECT_SUBSET = 'project_subset';
-    const CHANGE_VALUE_MAPPING = 'value_mapping';
-    const CHANGE_FIELD_LABEL = 'field_label';
+    /** Change-type values */
+    public const CHANGE_LIBRARY_SETTING        = 'library_setting';
+    public const CHANGE_PROJECT_SUBSET         = 'project_subset';
+    public const CHANGE_VALUE_MAPPING          = 'value_mapping';
+    public const CHANGE_FIELD_LABEL            = 'field_label';
+    public const CHANGE_CODE_ALLOCATION        = 'code_allocation';
+    public const CHANGE_RECORD_VALUE_MIGRATION = 'record_value_migration';
 
     /** @var OnCoreIntegration */
     private $module;
@@ -65,15 +67,10 @@ class SiteMigration
         $this->module = $module;
     }
 
-    // -----------------------------------------------------------------------
-    // Rule set CRUD
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // Rule-set CRUD
+    // =======================================================================
 
-    /**
-     * Return a single rule set by id, with rules already JSON-decoded.
-     *
-     * @return array|null  ['id'=>int, 'name'=>string, 'rules'=>array, ...] or null
-     */
     public function getRuleSet(int $id): ?array
     {
         $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_SITE_MIGRATION;
@@ -86,11 +83,6 @@ class SiteMigration
         return $row;
     }
 
-    /**
-     * List all rule sets, newest first. Returns summary rows (no rules JSON).
-     *
-     * @return array[]
-     */
     public function listRuleSets(): array
     {
         $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_SITE_MIGRATION;
@@ -100,19 +92,12 @@ class SiteMigration
             []
         );
         $out = [];
-        while ($row = $r->fetch_assoc()) {
+        while ($r && ($row = $r->fetch_assoc())) {
             $out[] = $row;
         }
         return $out;
     }
 
-    /**
-     * Create or update a rule set. Pass id=0/null to create.
-     *
-     * Validates rule structure before saving (throws on bad input).
-     *
-     * @return int  Entity id of the saved rule set.
-     */
     public function saveRuleSet(array $data): int
     {
         $rules = $this->normalizeRules($data['rules'] ?? []);
@@ -122,12 +107,12 @@ class SiteMigration
         }
 
         $row = [
-            'name' => $name,
-            'description' => (string)($data['description'] ?? ''),
-            'rules' => json_encode($rules, JSON_THROW_ON_ERROR),
+            'name'          => $name,
+            'description'   => (string)($data['description'] ?? ''),
+            'rules'         => json_encode($rules, JSON_THROW_ON_ERROR),
             'library_index' => isset($data['library_index']) ? (int)$data['library_index'] : null,
-            'status' => $data['status'] ?? self::STATUS_DRAFT,
-            'created_by' => $data['created_by'] ?? (defined('USERID') ? USERID : 'system'),
+            'status'        => $data['status'] ?? self::STATUS_DRAFT,
+            'created_by'    => $data['created_by'] ?? (defined('USERID') ? USERID : 'system'),
         ];
 
         $id = (int)($data['id'] ?? 0);
@@ -154,9 +139,6 @@ class SiteMigration
         return (int)$this->lastInsertId();
     }
 
-    /**
-     * Delete a rule set. Only allowed for status='draft' — completed/active sets are kept for history.
-     */
     public function deleteRuleSet(int $id): void
     {
         $existing = $this->getRuleSet($id);
@@ -170,20 +152,10 @@ class SiteMigration
         $this->module->query("DELETE FROM $table WHERE id = ?", [$id]);
     }
 
-    // -----------------------------------------------------------------------
-    // Layer 1: Library site list (system setting; runs once per migration)
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // Layer 1 — Library site list (system-scope; runs ONCE inside startMigration)
+    // =======================================================================
 
-    /**
-     * Update the system-level library site list for the given library index.
-     *
-     * For each non-keep rule, remove old site names from the library's
-     * library-oncore-study-sites sub-setting and add the new name (if not present).
-     *
-     * Logged at change_type='library_setting' against project_id=0 (system-scope).
-     *
-     * @return array  Array of change descriptors (each: change_type, old_value, new_value).
-     */
     public function updateLibrarySettings(array $rules, int $libraryIndex, int $migrationId): array
     {
         $libraries = $this->module->getSubSettings('libraries');
@@ -196,13 +168,12 @@ class SiteMigration
             'library-study-site'
         );
         $original = $sites;
-
         $changes = [];
+
         foreach ($rules as $rule) {
             if ($rule['type'] === self::RULE_KEEP) {
                 continue;
             }
-
             // Remove every old site listed.
             foreach ($rule['old_sites'] as $oldSite) {
                 $idx = array_search($oldSite, $sites, true);
@@ -216,43 +187,43 @@ class SiteMigration
                     ];
                 }
             }
-
             // For rename/merge: add the new site if not already present.
-            // For sunset: do NOT add (the related rename/merge rule handles its new name).
-            if ($rule['type'] !== self::RULE_SUNSET) {
+            // For sunset-with-target: also add the merge-target name (covers
+            // standalone sunsets where no companion merge already added it).
+            // For sunset without target: do NOT add (the sunset retires the name).
+            $shouldAddNew = false;
+            $newSite = '';
+            if ($rule['type'] === self::RULE_RENAME || $rule['type'] === self::RULE_MERGE) {
                 $newSite = $rule['new_site'] ?? '';
-                if ($newSite !== '' && !in_array($newSite, $sites, true)) {
-                    $sites[] = $newSite;
-                    $changes[] = [
-                        'change_type' => self::CHANGE_LIBRARY_SETTING,
-                        'rule_id'     => $rule['id'] ?? null,
-                        'old_value'   => '',
-                        'new_value'   => $newSite,
-                    ];
-                }
+                $shouldAddNew = $newSite !== '';
+            } elseif ($rule['type'] === self::RULE_SUNSET && !empty($rule['merged_into'])) {
+                $newSite = $rule['merged_into'];
+                $shouldAddNew = true;
+            }
+            if ($shouldAddNew && !in_array($newSite, $sites, true)) {
+                $sites[] = $newSite;
+                $changes[] = [
+                    'change_type' => self::CHANGE_LIBRARY_SETTING,
+                    'rule_id'     => $rule['id'] ?? null,
+                    'old_value'   => '',
+                    'new_value'   => $newSite,
+                ];
             }
         }
 
         if ($sites !== $original) {
             $this->writeLibrarySites($libraryIndex, $sites);
         }
-
-        // System-scope log entries — use project_id=0 sentinel.
         foreach ($changes as $c) {
             $this->logToEntity(0, $migrationId, [$c]);
         }
         return $changes;
     }
 
-    // -----------------------------------------------------------------------
-    // Layer 2: Project site subset (per-project setting)
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // Layer 2 — Project site subset
+    // =======================================================================
 
-    /**
-     * Update redcap-oncore-project-site-studies for one project.
-     *
-     * @return array  Change descriptors (rule_id, change_type, old_value, new_value).
-     */
     public function updateProjectSiteSubset(int $pid, array $rules): array
     {
         $raw = $this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, $pid);
@@ -279,8 +250,7 @@ class SiteMigration
             if ($rule['type'] !== self::RULE_SUNSET) {
                 $newSite = $rule['new_site'] ?? '';
                 if ($newSite !== '' && !in_array($newSite, $current, true)) {
-                    // Only add the new site if at least one old site was present in this project.
-                    // (Otherwise this project never used the affected sites — skip the add.)
+                    // Only add the new site if at least one old site was present.
                     $touched = false;
                     foreach ($rule['old_sites'] as $oldSite) {
                         if (in_array($oldSite, $original, true)) {
@@ -311,68 +281,107 @@ class SiteMigration
         return $changes;
     }
 
-    // -----------------------------------------------------------------------
-    // Layer 3: Field value mapping (per-project setting)
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // Layer 3 — Value mapping (rev-3: receives the plan to bind merges to new codes)
+    // =======================================================================
 
     /**
-     * Add new {oc -> rc} entries to redcap-oncore-fields-mapping[pull|push].studySites.value_mapping.
-     * Existing old entries are retained for backward compatibility with in-flight OnCore payloads.
+     * Append new {oc → rc} entries to redcap-oncore-fields-mapping[pull|push].studySites.value_mapping.
      *
-     * @return array  Change descriptors.
+     *   - rename: append {oc: new_site, rc: <unchanged code>}      (same rc as the renamed site)
+     *   - merge / sunset with merged_into: append {oc: new_site, rc: <newly allocated code>}
+     *   - sunset without merged_into: NO new entry
+     *
+     * All old oc→rc entries are retained for backward compat with in-flight OnCore payloads.
+     * Both pull AND push branches receive the same updates.
      */
-    public function updateValueMapping(int $pid, array $rules): array
+    public function updateValueMapping(int $pid, array $rules, array $plan): array
     {
         $raw = $this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, $pid);
         $mapping = $raw ? (json_decode($raw, true) ?: []) : [];
         $changes = [];
 
+        // Lookup table: new-site → new-code from the plan's allocations.
+        $allocByNewSite = [];
+        foreach ($plan['code_allocations'] ?? [] as $alloc) {
+            $allocByNewSite[(string)$alloc['new_site']] = (string)$alloc['new_code'];
+        }
+
+        $touched = false;
         foreach (['pull', 'push'] as $direction) {
             if (empty($mapping[$direction][OnCoreIntegration::ONCORE_STUDY_SITE]['value_mapping'])) {
                 continue;
             }
             $vmap =& $mapping[$direction][OnCoreIntegration::ONCORE_STUDY_SITE]['value_mapping'];
+            $fieldName = $mapping[$direction][OnCoreIntegration::ONCORE_STUDY_SITE]['redcap_field'] ?? null;
 
             foreach ($rules as $rule) {
-                if ($rule['type'] === self::RULE_KEEP || $rule['type'] === self::RULE_SUNSET) {
-                    continue;
-                }
-                $newSite = $rule['new_site'] ?? '';
-                if ($newSite === '') {
+                $type = $rule['type'] ?? '';
+                if ($type === self::RULE_KEEP) {
                     continue;
                 }
 
-                // Determine which rc code to use for the new site.
-                $primary = $this->resolvePrimaryOldSite($rule);
-                $rcCode = $this->getRcCodeForSite($primary, $vmap);
-                if ($rcCode === null) {
-                    // No old entry for the primary in this project's mapping — nothing to bind to.
+                $newSite = '';
+                $newRc   = null;
+
+                if ($type === self::RULE_RENAME) {
+                    $newSite = $rule['new_site'] ?? '';
+                    if ($newSite === '') {
+                        continue;
+                    }
+                    $oldSite = $rule['old_sites'][0] ?? '';
+                    $newRc = $this->getRcCodeForSite($oldSite, $vmap);
+                } elseif ($type === self::RULE_MERGE
+                       || ($type === self::RULE_SUNSET && !empty($rule['merged_into']))) {
+                    $newSite = $type === self::RULE_MERGE
+                        ? ($rule['new_site'] ?? '')
+                        : ($rule['merged_into'] ?? '');
+                    if ($newSite === '') {
+                        continue;
+                    }
+                    if (isset($allocByNewSite[$newSite])) {
+                        $newRc = $allocByNewSite[$newSite];
+                    } else {
+                        // Re-run case: a previous run allocated this label already.
+                        $newRc = $this->getRcCodeForSite($newSite, $vmap);
+                    }
+                } else {
+                    // Sunset without target — no new mapping entry.
                     continue;
                 }
 
-                // Avoid duplicate {oc:newSite, rc:rcCode}.
-                $alreadyExists = false;
+                if ($newRc === null || $newRc === '') {
+                    continue;
+                }
+
+                // Idempotency.
+                $exists = false;
                 foreach ($vmap as $entry) {
-                    if (($entry['oc'] ?? null) === $newSite && (string)($entry['rc'] ?? '') === (string)$rcCode) {
-                        $alreadyExists = true;
+                    if (($entry['oc'] ?? null) === $newSite
+                        && (string)($entry['rc'] ?? '') === (string)$newRc) {
+                        $exists = true;
                         break;
                     }
                 }
-                if (!$alreadyExists) {
-                    $vmap[] = ['oc' => $newSite, 'rc' => (string)$rcCode];
-                    $changes[] = [
-                        'rule_id'     => $rule['id'] ?? null,
-                        'change_type' => self::CHANGE_VALUE_MAPPING,
-                        'old_value'   => $primary . ' (rc=' . $rcCode . ')',
-                        'new_value'   => $newSite . ' (rc=' . $rcCode . ')',
-                        'field_name'  => $mapping[$direction][OnCoreIntegration::ONCORE_STUDY_SITE]['redcap_field'] ?? null,
-                    ];
+                if ($exists) {
+                    continue;
                 }
+
+                $vmap[] = ['oc' => $newSite, 'rc' => (string)$newRc];
+                $touched = true;
+                $changes[] = [
+                    'rule_id'     => $rule['id'] ?? null,
+                    'change_type' => self::CHANGE_VALUE_MAPPING,
+                    'old_value'   => '',
+                    'new_value'   => $newSite . ' (rc=' . $newRc . ')',
+                    'field_name'  => $fieldName,
+                    'details'     => json_encode(['direction' => $direction]),
+                ];
             }
             unset($vmap);
         }
 
-        if (!empty($changes)) {
+        if ($touched) {
             $this->module->setProjectSetting(
                 OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME,
                 json_encode($mapping),
@@ -382,96 +391,501 @@ class SiteMigration
         return $changes;
     }
 
-    // -----------------------------------------------------------------------
-    // Layer 4: Field option labels (parameterized SQL on redcap_metadata)
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // Layer 4 — planFieldChanges (rev-3 keystone) + applyFieldChanges
+    // =======================================================================
 
     /**
-     * Suffix the element_enum label for each affected coded value with the rule's suffix:
-     *   - rename:  "(changed to <new>)"
-     *   - merge primary: "(changed to <new>)"
-     *   - merge secondary: "(merged into <new>)"
-     *   - sunset:  "(retired <date>, merged into <new>)" (if merged_into present)
+     * Pure planner. Same (pid, rules, current element_enum state) → same plan.
+     * Re-running on a previously-migrated project produces a no-op plan.
      *
-     * Idempotent: skips labels that already contain "(changed to", "(merged into", "(retired".
-     *
-     * Only touches redcap_metadata, which is NOT sharded.
-     *
-     * @return array  Change descriptors.
+     * Return shape:
+     *   [
+     *     'field_name'        => 'site_dropdown' | null,
+     *     'code_allocations'  => [['rule_id', 'new_site', 'new_code', 'reason'], ...],
+     *     'label_updates'     => [['rule_id', 'code', 'mode'=>'in_place'|'suffix',
+     *                              'old_label', 'new_label'], ...],
+     *     'record_migrations' => [['rule_id', 'old_code', 'new_code', 'reason'], ...],
+     *   ]
      */
-    public function updateFieldLabels(int $pid, array $rules): array
+    public function planFieldChanges(int $pid, array $rules): array
     {
+        $plan = [
+            'field_name'        => null,
+            'code_allocations'  => [],
+            'label_updates'     => [],
+            'record_migrations' => [],
+        ];
+
         $mapping = $this->getStudySiteMapping($pid);
         if (!$mapping) {
-            return [];
+            return $plan;
         }
         $fieldName = $mapping['redcap_field'];
-        $vmap = $mapping['value_mapping'] ?? [];
+        $vmap      = $mapping['value_mapping'] ?? [];
+        $plan['field_name'] = $fieldName;
 
-        $r = $this->module->query(
-            'SELECT element_enum FROM redcap_metadata WHERE project_id = ? AND field_name = ? LIMIT 1',
-            [$pid, $fieldName]
-        );
-        $row = $r ? $r->fetch_assoc() : null;
-        if (!$row || $row['element_enum'] === null || $row['element_enum'] === '') {
-            return [];
-        }
-        $enum = $row['element_enum'];
-        $changes = [];
+        $enum  = $this->loadElementEnum($pid, $fieldName);
+        $codes = $enum['codes']; // working copy; mutated as we plan
 
         foreach ($rules as $rule) {
-            if ($rule['type'] === self::RULE_KEEP) {
+            $type = $rule['type'] ?? '';
+
+            if ($type === self::RULE_KEEP) {
                 continue;
             }
 
-            $newSite = $rule['new_site'] ?? '';
-            $primary = $this->resolvePrimaryOldSite($rule);
+            // ---- RENAME — in-place relabel -----------------------------------
+            if ($type === self::RULE_RENAME) {
+                $newSite = (string)($rule['new_site'] ?? '');
+                if ($newSite === '') {
+                    continue;
+                }
+                $oldSite = $rule['old_sites'][0] ?? '';
+                $oldCode = $this->getRcCodeForSite($oldSite, $vmap);
+                if ($oldCode === null) {
+                    continue;
+                }
+                $oldCode = (string)$oldCode;
+                if (!array_key_exists($oldCode, $codes)) {
+                    continue;
+                }
+                $existingLabel = (string)$codes[$oldCode];
+                if ($existingLabel === $newSite) {
+                    continue; // already renamed
+                }
+                $plan['label_updates'][] = [
+                    'rule_id'   => $rule['id'] ?? null,
+                    'code'      => $oldCode,
+                    'mode'      => 'in_place',
+                    'old_label' => $existingLabel,
+                    'new_label' => $newSite,
+                ];
+                $codes[$oldCode] = $newSite;
+                continue;
+            }
 
-            foreach ($rule['old_sites'] as $oldSite) {
-                $rcCode = $this->getRcCodeForSite($oldSite, $vmap);
-                if ($rcCode === null) {
+            // ---- MERGE or SUNSET with target ---------------------------------
+            $isMerge = ($type === self::RULE_MERGE);
+            $isSunsetWithTarget = ($type === self::RULE_SUNSET && !empty($rule['merged_into']));
+
+            if ($isMerge || $isSunsetWithTarget) {
+                $newSite = $isMerge ? (string)($rule['new_site'] ?? '')
+                                    : (string)($rule['merged_into'] ?? '');
+                if ($newSite === '') {
                     continue;
                 }
 
-                $suffix = $this->buildLabelSuffix($rule, $oldSite, $primary);
-                if ($suffix === '') {
-                    continue;
-                }
-
-                [$newEnum, $changed, $oldLabel, $newLabel] = $this->suffixEnumLabel($enum, (string)$rcCode, $suffix);
-                if ($changed) {
-                    $enum = $newEnum;
-                    $changes[] = [
-                        'rule_id'     => $rule['id'] ?? null,
-                        'change_type' => self::CHANGE_FIELD_LABEL,
-                        'field_name'  => $fieldName,
-                        'old_value'   => $oldLabel,
-                        'new_value'   => $newLabel,
+                // Find or allocate a code for the new site.
+                $existingCode = $this->findCodeForLabel($codes, $newSite);
+                if ($existingCode !== null) {
+                    $newCode = (string)$existingCode;
+                } else {
+                    $newCode = (string)$this->allocateNewCode($codes);
+                    $codes[$newCode] = $newSite;
+                    $plan['code_allocations'][] = [
+                        'rule_id'  => $rule['id'] ?? null,
+                        'new_site' => $newSite,
+                        'new_code' => $newCode,
+                        'reason'   => $type,
                     ];
+                }
+
+                $suffix = ($type === self::RULE_SUNSET && !empty($rule['retired_on']))
+                    ? "(retired {$rule['retired_on']}, migrated to $newSite)"
+                    : "(retired — migrated to $newSite)";
+
+                foreach ($rule['old_sites'] as $oldSite) {
+                    $oldCode = $this->getRcCodeForSite($oldSite, $vmap);
+                    if ($oldCode === null) {
+                        continue;
+                    }
+                    $oldCode = (string)$oldCode;
+                    if (!array_key_exists($oldCode, $codes)) {
+                        continue;
+                    }
+                    if ((string)$oldCode === (string)$newCode) {
+                        // Same code (e.g. label happened to match an existing code). No-op.
+                        continue;
+                    }
+                    $existingLabel = (string)$codes[$oldCode];
+                    if ($this->labelAlreadyRetired($existingLabel)) {
+                        continue; // already suffixed in a prior run
+                    }
+                    $newLabel = rtrim($existingLabel) . ' ' . $suffix;
+                    $plan['label_updates'][] = [
+                        'rule_id'   => $rule['id'] ?? null,
+                        'code'      => $oldCode,
+                        'mode'      => 'suffix',
+                        'old_label' => $existingLabel,
+                        'new_label' => $newLabel,
+                    ];
+                    $codes[$oldCode] = $newLabel;
+                    $plan['record_migrations'][] = [
+                        'rule_id'  => $rule['id'] ?? null,
+                        'old_code' => $oldCode,
+                        'new_code' => $newCode,
+                        'reason'   => $type,
+                    ];
+                }
+                continue;
+            }
+
+            // ---- SUNSET without target ---------------------------------------
+            if ($type === self::RULE_SUNSET) {
+                $date = (string)($rule['retired_on'] ?? '');
+                $suffix = $date !== '' ? "(retired $date)" : "(retired)";
+                foreach ($rule['old_sites'] as $oldSite) {
+                    $oldCode = $this->getRcCodeForSite($oldSite, $vmap);
+                    if ($oldCode === null) {
+                        continue;
+                    }
+                    $oldCode = (string)$oldCode;
+                    if (!array_key_exists($oldCode, $codes)) {
+                        continue;
+                    }
+                    $existingLabel = (string)$codes[$oldCode];
+                    if ($this->labelAlreadyRetired($existingLabel)) {
+                        continue;
+                    }
+                    $newLabel = rtrim($existingLabel) . ' ' . $suffix;
+                    $plan['label_updates'][] = [
+                        'rule_id'   => $rule['id'] ?? null,
+                        'code'      => $oldCode,
+                        'mode'      => 'suffix',
+                        'old_label' => $existingLabel,
+                        'new_label' => $newLabel,
+                    ];
+                    $codes[$oldCode] = $newLabel;
                 }
             }
         }
 
-        if (!empty($changes)) {
+        return $plan;
+    }
+
+    /**
+     * Apply planned label updates + code allocations to redcap_metadata.element_enum.
+     * One UPDATE per (project, field). Returns change-log entries.
+     */
+    public function applyFieldChanges(int $pid, array $plan): array
+    {
+        $changes = [];
+        $fieldName = $plan['field_name'] ?? null;
+        if (!$fieldName) {
+            return $changes;
+        }
+        if (empty($plan['label_updates']) && empty($plan['code_allocations'])) {
+            return $changes;
+        }
+
+        $enum = $this->loadElementEnum($pid, $fieldName);
+        $codes = $enum['codes'];
+
+        // 1. Label updates.
+        foreach ($plan['label_updates'] as $lu) {
+            $code = (string)$lu['code'];
+            if (!array_key_exists($code, $codes)) {
+                continue;
+            }
+            $current = (string)$codes[$code];
+            if ($lu['mode'] === 'suffix' && $this->labelAlreadyRetired($current)) {
+                continue;
+            }
+            if ($current === (string)$lu['new_label']) {
+                continue;
+            }
+            $codes[$code] = (string)$lu['new_label'];
+            $changes[] = [
+                'rule_id'     => $lu['rule_id'] ?? null,
+                'change_type' => self::CHANGE_FIELD_LABEL,
+                'field_name'  => $fieldName,
+                'old_value'   => $code . ', ' . $current,
+                'new_value'   => $code . ', ' . $lu['new_label'],
+            ];
+        }
+
+        // 2. Code allocations (append).
+        foreach ($plan['code_allocations'] as $alloc) {
+            $code = (string)$alloc['new_code'];
+            $label = (string)$alloc['new_site'];
+            if (array_key_exists($code, $codes) && (string)$codes[$code] === $label) {
+                continue;
+            }
+            $codes[$code] = $label;
+            $changes[] = [
+                'rule_id'     => $alloc['rule_id'] ?? null,
+                'change_type' => self::CHANGE_CODE_ALLOCATION,
+                'field_name'  => $fieldName,
+                'old_value'   => '',
+                'new_value'   => $code . ', ' . $label,
+                'details'     => json_encode([
+                    'new_site' => $label,
+                    'reason'   => $alloc['reason'] ?? null,
+                ]),
+            ];
+        }
+
+        // 3. Persist only if changed.
+        $newRaw = $this->serializeElementEnum($codes);
+        if ($newRaw !== $enum['raw']) {
             $this->module->query(
                 'UPDATE redcap_metadata SET element_enum = ? WHERE project_id = ? AND field_name = ?',
-                [$enum, $pid, $fieldName]
+                [$newRaw, $pid, $fieldName]
             );
         }
         return $changes;
     }
 
-    // -----------------------------------------------------------------------
-    // Logging
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // Layer 5 — Sharded record-value rewrites
+    // =======================================================================
 
     /**
-     * Insert a row in redcap_entity_oncore_site_migration_log for each change.
-     *
-     * @param int   $pid          REDCap project id (0 for system-scope library changes)
-     * @param int   $migrationId  FK to redcap_entity_oncore_site_migration.id
-     * @param array $changes      Array of change descriptors
+     * UPDATE the project's shard, rewriting value=<oldCode> → <newCode> for the mapped field.
+     * Returns rows affected (counted via a pre-UPDATE SELECT for portability across query wrappers).
      */
+    public function updateRecordValues(int $pid, string $fieldName, string $oldCode, string $newCode): int
+    {
+        $dataTable = $this->validateDataTableName($this->getProjectDataTable($pid));
+
+        $countR = $this->module->query(
+            "SELECT COUNT(*) AS c FROM `$dataTable`
+             WHERE project_id = ? AND field_name = ? AND value = ?",
+            [$pid, $fieldName, (string)$oldCode]
+        );
+        $row = $countR ? $countR->fetch_assoc() : null;
+        $expected = (int)($row['c'] ?? 0);
+
+        if ($expected === 0) {
+            return 0;
+        }
+
+        $this->module->query(
+            "UPDATE `$dataTable`
+                SET value = ?
+              WHERE project_id = ?
+                AND field_name = ?
+                AND value = ?",
+            [(string)$newCode, $pid, $fieldName, (string)$oldCode]
+        );
+        return $expected;
+    }
+
+    private function validateDataTableName(string $tableName): string
+    {
+        if (!preg_match('/^redcap_data[2-8]?$/', $tableName)) {
+            throw new \RuntimeException(
+                "Refusing to interpolate unexpected data-table name: " . var_export($tableName, true)
+            );
+        }
+        return $tableName;
+    }
+
+    public function getProjectDataTable(int $pid): string
+    {
+        if (method_exists($this->module, 'getDataTable')) {
+            $name = $this->module->getDataTable($pid);
+            if (is_string($name) && $name !== '') {
+                return $name;
+            }
+        }
+        $r = $this->module->query(
+            'SELECT data_table FROM redcap_projects WHERE project_id = ? LIMIT 1',
+            [$pid]
+        );
+        $row = $r ? $r->fetch_assoc() : null;
+        $name = $row['data_table'] ?? '';
+        if ($name === '' || !preg_match('/^redcap_data[2-8]?$/', $name)) {
+            return 'redcap_data';
+        }
+        return $name;
+    }
+
+    public function countRecordsWithSiteCode(int $pid, string $fieldName, string $rcCode): int
+    {
+        $table = $this->validateDataTableName($this->getProjectDataTable($pid));
+        $r = $this->module->query(
+            "SELECT COUNT(*) AS c FROM `$table` WHERE project_id = ? AND field_name = ? AND value = ?",
+            [$pid, $fieldName, (string)$rcCode]
+        );
+        $row = $r ? $r->fetch_assoc() : null;
+        return (int)($row['c'] ?? 0);
+    }
+
+    // =======================================================================
+    // Code-reference scan
+    // =======================================================================
+
+    /**
+     * Scan logic-bearing tables for references like  [<fieldName>] = '<oldCode>'.
+     * One COUNT(*) per source. Returns aggregate counts.
+     *
+     * Per plan §3.6, covered sources: branching_logic, action_tags (misc),
+     * alerts.trigger_logic, surveys_emails.condition_logic,
+     * surveys_scheduler.condition_logic, reports.limiter_logic,
+     * calc-field formulas (element_enum on calc/calc_legacy/text), and
+     * element_validation_min / element_validation_max.
+     */
+    public function scanCodeReferences(int $pid, string $fieldName, array $oldCodes): array
+    {
+        $result = [
+            'branching_logic'   => 0,
+            'action_tags'       => 0,
+            'alerts'            => 0,
+            'surveys_emails'    => 0,
+            'surveys_scheduler' => 0,
+            'reports'           => 0,
+            'calc_fields'       => 0,
+            'validation_min'    => 0,
+            'validation_max'    => 0,
+            'total'             => 0,
+        ];
+        if (empty($oldCodes) || $fieldName === '') {
+            return $result;
+        }
+
+        // MySQL REGEXP (POSIX ERE):  \[field\][[:space:]]*=[[:space:]]*['"]?(c1|c2|...)['"]?
+        $fieldRe = $this->mysqlRegexQuote($fieldName);
+        $codesRe = implode('|', array_map([$this, 'mysqlRegexQuote'], array_map('strval', $oldCodes)));
+        $pattern = "\\[{$fieldRe}\\][[:space:]]*=[[:space:]]*['\"]?({$codesRe})['\"]?";
+
+        $sources = [
+            'branching_logic'   => ['table' => 'redcap_metadata',          'col' => 'branching_logic', 'where' => 'project_id = ?',          'params' => [$pid]],
+            'action_tags'       => ['table' => 'redcap_metadata',          'col' => 'misc',            'where' => 'project_id = ?',          'params' => [$pid]],
+            'alerts'            => ['table' => 'redcap_alerts',            'col' => 'trigger_logic',   'where' => 'project_id = ?',          'params' => [$pid]],
+            'surveys_emails'    => ['table' => 'redcap_surveys_emails',    'col' => 'condition_logic', 'where' => 'survey_id IN (SELECT survey_id FROM redcap_surveys WHERE project_id = ?)', 'params' => [$pid]],
+            'surveys_scheduler' => ['table' => 'redcap_surveys_scheduler', 'col' => 'condition_logic', 'where' => 'survey_id IN (SELECT survey_id FROM redcap_surveys WHERE project_id = ?)', 'params' => [$pid]],
+            'reports'           => ['table' => 'redcap_reports',           'col' => 'limiter_logic',   'where' => 'project_id = ?',          'params' => [$pid]],
+            // Calc fields store their formula in element_enum.
+            'calc_fields'       => ['table' => 'redcap_metadata',          'col' => 'element_enum',    'where' => "project_id = ? AND element_type IN ('calc','calc_legacy','text')", 'params' => [$pid]],
+            'validation_min'    => ['table' => 'redcap_metadata',          'col' => 'element_validation_min', 'where' => 'project_id = ?',   'params' => [$pid]],
+            'validation_max'    => ['table' => 'redcap_metadata',          'col' => 'element_validation_max', 'where' => 'project_id = ?',   'params' => [$pid]],
+        ];
+
+        foreach ($sources as $key => $src) {
+            try {
+                $sql = "SELECT COUNT(*) AS c FROM {$src['table']} WHERE {$src['where']} AND {$src['col']} REGEXP ?";
+                $params = array_merge($src['params'], [$pattern]);
+                $r = $this->module->query($sql, $params);
+                $row = $r ? $r->fetch_assoc() : null;
+                $result[$key] = (int)($row['c'] ?? 0);
+            } catch (\Throwable $e) {
+                $this->module->emDebug("scanCodeReferences: source $key unavailable: " . $e->getMessage());
+                $result[$key] = 0;
+            }
+        }
+
+        $result['total'] =
+              $result['branching_logic']
+            + $result['action_tags']
+            + $result['alerts']
+            + $result['surveys_emails']
+            + $result['surveys_scheduler']
+            + $result['reports']
+            + $result['calc_fields']
+            + $result['validation_min']
+            + $result['validation_max'];
+        return $result;
+    }
+
+    /**
+     * Per-project drill-down (up to 200 rows) — actual row-level matches with snippets.
+     * Used by the warning-chip modal.
+     */
+    public function getCodeReferenceDetails(int $ruleSetId, int $pid): array
+    {
+        $ruleSet = $this->getRuleSet($ruleSetId);
+        if (!$ruleSet) {
+            return [];
+        }
+        $rules = $ruleSet['rules'];
+
+        $mapping = $this->getStudySiteMapping($pid);
+        if (!$mapping) {
+            return [];
+        }
+        $fieldName = $mapping['redcap_field'];
+        $plan = $this->planFieldChanges($pid, $rules);
+        $oldCodes = array_unique(array_map(
+            fn($rm) => (string)$rm['old_code'],
+            $plan['record_migrations'] ?? []
+        ));
+        if (empty($oldCodes)) {
+            return [];
+        }
+
+        $fieldRe = $this->mysqlRegexQuote($fieldName);
+        $codesRe = implode('|', array_map([$this, 'mysqlRegexQuote'], $oldCodes));
+        $pattern = "\\[{$fieldRe}\\][[:space:]]*=[[:space:]]*['\"]?({$codesRe})['\"]?";
+
+        $sources = [
+            ['source' => 'branching_logic',   'table' => 'redcap_metadata',          'idCol' => 'field_name', 'col' => 'branching_logic', 'where' => 'project_id = ?',         'params' => [$pid]],
+            ['source' => 'action_tags',       'table' => 'redcap_metadata',          'idCol' => 'field_name', 'col' => 'misc',            'where' => 'project_id = ?',         'params' => [$pid]],
+            ['source' => 'alerts',            'table' => 'redcap_alerts',            'idCol' => 'alert_id',   'col' => 'trigger_logic',   'where' => 'project_id = ?',         'params' => [$pid]],
+            ['source' => 'surveys_emails',    'table' => 'redcap_surveys_emails',    'idCol' => 'email_id',   'col' => 'condition_logic', 'where' => 'survey_id IN (SELECT survey_id FROM redcap_surveys WHERE project_id = ?)', 'params' => [$pid]],
+            ['source' => 'surveys_scheduler', 'table' => 'redcap_surveys_scheduler', 'idCol' => 'ss_id',      'col' => 'condition_logic', 'where' => 'survey_id IN (SELECT survey_id FROM redcap_surveys WHERE project_id = ?)', 'params' => [$pid]],
+            ['source' => 'reports',           'table' => 'redcap_reports',           'idCol' => 'report_id',  'col' => 'limiter_logic',   'where' => 'project_id = ?',         'params' => [$pid]],
+            ['source' => 'calc_fields',       'table' => 'redcap_metadata',          'idCol' => 'field_name', 'col' => 'element_enum',    'where' => "project_id = ? AND element_type IN ('calc','calc_legacy','text')", 'params' => [$pid]],
+            ['source' => 'validation_min',    'table' => 'redcap_metadata',          'idCol' => 'field_name', 'col' => 'element_validation_min', 'where' => 'project_id = ?',  'params' => [$pid]],
+            ['source' => 'validation_max',    'table' => 'redcap_metadata',          'idCol' => 'field_name', 'col' => 'element_validation_max', 'where' => 'project_id = ?',  'params' => [$pid]],
+        ];
+
+        $out = [];
+        $limit = 200;
+        foreach ($sources as $src) {
+            if (count($out) >= $limit) break;
+            try {
+                $remaining = max(1, $limit - count($out));
+                $sql = "SELECT {$src['idCol']} AS row_id, {$src['col']} AS snippet
+                          FROM {$src['table']}
+                         WHERE {$src['where']} AND {$src['col']} REGEXP ?
+                         LIMIT $remaining";
+                $params = array_merge($src['params'], [$pattern]);
+                $r = $this->module->query($sql, $params);
+                while ($r && ($row = $r->fetch_assoc())) {
+                    $snippet = (string)$row['snippet'];
+                    if (strlen($snippet) > 400) {
+                        $snippet = substr($snippet, 0, 400) . '…';
+                    }
+                    $out[] = [
+                        'source'  => $src['source'],
+                        'table'   => $src['table'],
+                        'row_id'  => (string)$row['row_id'],
+                        'snippet' => $snippet,
+                    ];
+                }
+            } catch (\Throwable $e) {
+                // Table missing — skip.
+            }
+        }
+        return $out;
+    }
+
+    public function acknowledgeProjectWarnings(int $ruleSetId, int $pid): void
+    {
+        $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS;
+        $current = $this->getProjectStatus($ruleSetId, $pid);
+        if ($current === null) {
+            throw new \RuntimeException("No status row for migration #$ruleSetId / project #$pid.");
+        }
+        if ($current !== self::PROJECT_NEEDS_ACK) {
+            return; // idempotent
+        }
+        $now = time();
+        $by  = defined('USERID') ? USERID : 'system';
+        $this->module->query(
+            "UPDATE $table
+                SET status = ?, acknowledged_at = ?, acknowledged_by = ?, updated = ?
+              WHERE migration_id = ? AND project_id = ?",
+            [self::PROJECT_PENDING, $now, $by, $now, $ruleSetId, $pid]
+        );
+    }
+
+    // =======================================================================
+    // Logging
+    // =======================================================================
+
     public function logToEntity(int $pid, int $migrationId, array $changes): void
     {
         if (empty($changes)) {
@@ -485,8 +899,8 @@ class SiteMigration
             $this->module->query(
                 "INSERT INTO $table
                    (migration_id, project_id, rule_id, change_type, field_name,
-                    old_value, new_value, migrated_by, created, updated)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    old_value, new_value, details, migrated_by, created, updated)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [
                     $migrationId,
                     $pid,
@@ -495,6 +909,7 @@ class SiteMigration
                     $c['field_name'] ?? null,
                     $c['old_value'] ?? null,
                     $c['new_value'] ?? null,
+                    $c['details'] ?? null,
                     $migratedBy,
                     $now,
                     $now,
@@ -503,10 +918,6 @@ class SiteMigration
         }
     }
 
-    /**
-     * Write a summary entry to the REDCap audit log (via REDCap::logEvent — which
-     * auto-routes to the project's redcap_log_event* shard).
-     */
     public function logToREDCap(int $pid, array $changes): void
     {
         if (empty($changes) || $pid <= 0) {
@@ -514,19 +925,32 @@ class SiteMigration
         }
         $lines = ['OnCore Site Migration applied:'];
         foreach ($changes as $c) {
+            $ct = $c['change_type'] ?? '?';
+            $old = $c['old_value'] ?? '';
+            $new = $c['new_value'] ?? '';
+            $extra = '';
+            if ($ct === self::CHANGE_RECORD_VALUE_MIGRATION && !empty($c['details'])) {
+                $d = is_array($c['details']) ? $c['details'] : (json_decode((string)$c['details'], true) ?: []);
+                if (!empty($d)) {
+                    $extra = sprintf(
+                        ' [%d rows in %s]',
+                        (int)($d['rows_affected'] ?? 0),
+                        (string)($d['data_table'] ?? '?')
+                    );
+                }
+            }
             $lines[] = sprintf(
-                '- [%s] %s%s%s',
-                $c['change_type'] ?? '?',
-                $c['old_value'] ?? '',
-                ($c['new_value'] ?? '') !== '' ? ' → ' : '',
-                $c['new_value'] ?? ''
+                '- [%s] %s%s%s%s',
+                $ct,
+                $old,
+                ($new !== '') ? ' → ' : '',
+                $new,
+                $extra
             );
         }
-        $description = implode("\n", $lines);
-
         \REDCap::logEvent(
             'OnCore Site Migration',
-            $description,
+            implode("\n", $lines),
             '',     // sql
             null,   // record
             null,   // event
@@ -534,9 +958,9 @@ class SiteMigration
         );
     }
 
-    // -----------------------------------------------------------------------
-    // Cron guard primitives (used by Phase 4 cron methods)
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // Cron guard primitives
+    // =======================================================================
 
     public static function isMigrationInProgress(\ExternalModules\AbstractExternalModule $module): bool
     {
@@ -553,65 +977,10 @@ class SiteMigration
         $this->module->setSystemSetting(OnCoreIntegration::SITE_MIGRATION_IN_PROGRESS, false);
     }
 
-    // -----------------------------------------------------------------------
-    // Shard-aware data table resolver (read-only, used by preview in Phase 3)
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // History & audit retrieval
+    // =======================================================================
 
-    /**
-     * Resolve the project's data shard (redcap_data, redcap_data2, … redcap_data8).
-     *
-     * Prefers the framework method getDataTable(); falls back to a direct
-     * redcap_projects.data_table lookup.
-     *
-     * NEVER hard-codes "redcap_data".
-     */
-    public function getProjectDataTable(int $pid): string
-    {
-        if (method_exists($this->module, 'getDataTable')) {
-            $name = $this->module->getDataTable($pid);
-            if (is_string($name) && $name !== '') {
-                return $name;
-            }
-        }
-        $r = $this->module->query(
-            'SELECT data_table FROM redcap_projects WHERE project_id = ? LIMIT 1',
-            [$pid]
-        );
-        $row = $r ? $r->fetch_assoc() : null;
-        $name = $row['data_table'] ?? '';
-        if ($name === '' || !preg_match('/^redcap_data[1-8]?$/', $name)) {
-            // Defensive fallback. If the column is empty (older REDCap rows pre-sharding),
-            // default to the canonical first shard.
-            return 'redcap_data';
-        }
-        return $name;
-    }
-
-    /**
-     * Count records in the project's data shard that hold the given coded value
-     * for the given field. Read-only; used only by the optional Deep Preview path.
-     */
-    public function countRecordsWithSiteCode(int $pid, string $fieldName, string $rcCode): int
-    {
-        $table = $this->getProjectDataTable($pid);
-        // $table is validated by getProjectDataTable() against a strict regex,
-        // so it is safe to inline (the framework's query() cannot parameterize identifiers).
-        $r = $this->module->query(
-            "SELECT COUNT(*) AS c FROM `$table` WHERE project_id = ? AND field_name = ? AND value = ?",
-            [$pid, $fieldName, $rcCode]
-        );
-        $row = $r ? $r->fetch_assoc() : null;
-        return (int)($row['c'] ?? 0);
-    }
-
-    // -----------------------------------------------------------------------
-    // History &amp; audit retrieval (Phase 6)
-    // -----------------------------------------------------------------------
-
-    /**
-     * List rule sets with aggregated per-status counts.
-     * Used by the History tab.
-     */
     public function getMigrationHistory(): array
     {
         $rs = OnCoreIntegration::REDCAP_ENTITY_ONCORE_SITE_MIGRATION;
@@ -623,6 +992,7 @@ class SiteMigration
                     COALESCE(SUM(ps.status = ?), 0) AS failed,
                     COALESCE(SUM(ps.status = ?), 0) AS skipped,
                     COALESCE(SUM(ps.status = ?), 0) AS pending,
+                    COALESCE(SUM(ps.status = ?), 0) AS needs_ack,
                     COALESCE(SUM(ps.status = ?), 0) AS in_progress,
                     COUNT(ps.id) AS total_projects
              FROM $rs rs
@@ -632,13 +1002,12 @@ class SiteMigration
              ORDER BY rs.id DESC",
             [
                 self::PROJECT_COMPLETED, self::PROJECT_FAILED, self::PROJECT_SKIPPED,
-                self::PROJECT_PENDING, self::PROJECT_IN_PROGRESS,
+                self::PROJECT_PENDING, self::PROJECT_NEEDS_ACK, self::PROJECT_IN_PROGRESS,
             ]
         );
         $out = [];
         while ($r && ($row = $r->fetch_assoc())) {
-            // Cast numeric aggregates so JSON consumers don't get strings.
-            foreach (['completed','failed','skipped','pending','in_progress','total_projects'] as $k) {
+            foreach (['completed','failed','skipped','pending','needs_ack','in_progress','total_projects'] as $k) {
                 $row[$k] = (int)$row[$k];
             }
             $out[] = $row;
@@ -646,11 +1015,6 @@ class SiteMigration
         return $out;
     }
 
-    /**
-     * Per-project change log for a given migration. Optionally narrowed to one project.
-     *
-     * Used by the History tab's drill-down modal.
-     */
     public function getMigrationProjectLog(int $ruleSetId, ?int $projectId = null): array
     {
         $logTable = OnCoreIntegration::REDCAP_ENTITY_ONCORE_SITE_MIGRATION_LOG;
@@ -681,9 +1045,17 @@ class SiteMigration
 
         $logs = [];
         while ($logsR && ($row = $logsR->fetch_assoc())) {
+            // Decode the details JSON blob so the History modal receives a
+            // structured object (data_table, rows_affected, reason, ...) instead
+            // of a raw JSON string.
+            if (isset($row['details']) && $row['details'] !== '' && $row['details'] !== null) {
+                $decoded = json_decode((string)$row['details'], true);
+                $row['details'] = is_array($decoded) ? $decoded : null;
+            } else {
+                $row['details'] = null;
+            }
             $logs[] = $row;
         }
-
         return [
             'migration_id' => $ruleSetId,
             'project_id'   => $projectId,
@@ -692,29 +1064,10 @@ class SiteMigration
         ];
     }
 
-    // -----------------------------------------------------------------------
-    // Execution engine (Phase 4)
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // Execution engine
+    // =======================================================================
 
-    /**
-     * Initialize a migration session for the given rule set.
-     *
-     *   - Sets the system-wide migration-in-progress flag (cron guard).
-     *   - Marks the rule set status='active'.
-     *   - Runs updateLibrarySettings() once (system-scope, before any project work).
-     *   - Enumerates OnCore-integrated projects and seeds redcap_entity_oncore_migration_project_status
-     *     with status='pending' for any project that does not already have a status row
-     *     for this rule set. Projects already at status='completed' are not re-queued.
-     *
-     * Returns:
-     *   [
-     *     'sessionId'  => int   (== rule set id)
-     *     'total'      => int   (projects queued for this run, including already-completed ones)
-     *     'pending'    => int   (projects still to process)
-     *     'completed'  => int   (projects already completed in a previous run)
-     *     'projects'   => array of {project_id, project_title, status}
-     *   ]
-     */
     public function startMigration(int $ruleSetId): array
     {
         $ruleSet = $this->getRuleSet($ruleSetId);
@@ -723,10 +1076,8 @@ class SiteMigration
         }
         $rules = $ruleSet['rules'];
 
-        // Disable crons before any writes.
         $this->disableCrons();
 
-        // Mark rule set as active (idempotent).
         if ($ruleSet['status'] !== self::STATUS_ACTIVE && $ruleSet['status'] !== self::STATUS_COMPLETED) {
             $this->module->query(
                 'UPDATE ' . OnCoreIntegration::REDCAP_ENTITY_ONCORE_SITE_MIGRATION
@@ -735,18 +1086,17 @@ class SiteMigration
             );
         }
 
-        // System-scope library update — runs once per migration session.
+        // System-scope library update runs ONCE per migration session.
         $libIdx = isset($ruleSet['library_index']) ? (int)$ruleSet['library_index'] : 0;
         try {
             $this->updateLibrarySettings($rules, $libIdx, $ruleSetId);
         } catch (\Throwable $e) {
             $this->module->emError('updateLibrarySettings failed: ' . $e->getMessage());
-            // Re-enable crons on a fatal startup error.
             $this->enableCrons();
             throw $e;
         }
 
-        // Seed per-project status rows.
+        // Seed per-project status rows for any project that doesn't yet have one.
         $projects = $this->enumerateProjects();
         $existing = $this->loadProjectStatusMap($ruleSetId);
         $statusTable = OnCoreIntegration::REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS;
@@ -754,7 +1104,7 @@ class SiteMigration
         foreach ($projects as $proj) {
             $pid = (int)$proj['project_id'];
             if (isset($existing[$pid])) {
-                continue; // already seeded (possibly from a prior run)
+                continue;
             }
             $this->module->query(
                 "INSERT INTO $statusTable
@@ -764,27 +1114,25 @@ class SiteMigration
             );
         }
 
+        // Compute pending & blocked PIDs for the run UI banner.
+        $statusRows = $this->loadProjectStatusMap($ruleSetId);
+        $blocked = [];
+        $pending = [];
+        foreach ($statusRows as $pid => $st) {
+            if ($st === self::PROJECT_NEEDS_ACK) $blocked[] = (int)$pid;
+            elseif ($st === self::PROJECT_PENDING) $pending[] = (int)$pid;
+        }
+
         return array_merge(
-            ['sessionId' => $ruleSetId],
+            [
+                'sessionId' => $ruleSetId,
+                'projects'  => $pending,
+                'blocked'   => $blocked,
+            ],
             $this->getMigrationStatus($ruleSetId)
         );
     }
 
-    /**
-     * Process exactly one pending project. Picks the lowest-id pending project,
-     * runs the per-project transaction, and returns progress.
-     *
-     * Returns:
-     *   [
-     *     'sessionId'      => int
-     *     'projectId'      => int|null  (null if no more pending)
-     *     'projectTitle'   => string
-     *     'status'         => 'completed'|'failed'|'skipped'|'idle'
-     *     'changesApplied' => int
-     *     'error'          => string (empty unless status=failed)
-     *     'progress'       => same as getMigrationStatus()
-     *   ]
-     */
     public function processNextProject(int $ruleSetId): array
     {
         $ruleSet = $this->getRuleSet($ruleSetId);
@@ -795,13 +1143,15 @@ class SiteMigration
         $next = $this->claimNextPendingProject($ruleSetId);
         if ($next === null) {
             return [
-                'sessionId'      => $ruleSetId,
-                'projectId'      => null,
-                'projectTitle'   => '',
-                'status'         => 'idle',
-                'changesApplied' => 0,
-                'error'          => '',
-                'progress'       => $this->getMigrationStatus($ruleSetId),
+                'sessionId'         => $ruleSetId,
+                'projectId'         => null,
+                'projectTitle'      => '',
+                'status'            => 'idle',
+                'changesApplied'    => 0,
+                'newCodesAllocated' => [],
+                'recordsMigrated'   => null,
+                'error'             => '',
+                'progress'          => $this->getMigrationStatus($ruleSetId),
             ];
         }
 
@@ -810,19 +1160,18 @@ class SiteMigration
         $outcome = $this->processProject($pid, $ruleSet['rules'], $ruleSetId);
 
         return [
-            'sessionId'      => $ruleSetId,
-            'projectId'      => $pid,
-            'projectTitle'   => $title,
-            'status'         => $outcome['status'],
-            'changesApplied' => $outcome['changes'],
-            'error'          => $outcome['error'] ?? '',
-            'progress'       => $this->getMigrationStatus($ruleSetId),
+            'sessionId'         => $ruleSetId,
+            'projectId'         => $pid,
+            'projectTitle'      => $title,
+            'status'            => $outcome['status'],
+            'changesApplied'    => $outcome['changes'] ?? 0,
+            'newCodesAllocated' => $outcome['newCodesAllocated'] ?? [],
+            'recordsMigrated'   => $outcome['recordsMigrated'] ?? null,
+            'error'             => $outcome['error'] ?? '',
+            'progress'          => $this->getMigrationStatus($ruleSetId),
         ];
     }
 
-    /**
-     * Snapshot of a migration's progress. Safe to poll.
-     */
     public function getMigrationStatus(int $ruleSetId): array
     {
         $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS;
@@ -831,8 +1180,9 @@ class SiteMigration
             [$ruleSetId]
         );
         $counts = [
-            self::PROJECT_PENDING => 0, self::PROJECT_IN_PROGRESS => 0,
-            self::PROJECT_COMPLETED => 0, self::PROJECT_FAILED => 0, self::PROJECT_SKIPPED => 0,
+            self::PROJECT_PENDING => 0, self::PROJECT_NEEDS_ACK => 0,
+            self::PROJECT_IN_PROGRESS => 0, self::PROJECT_COMPLETED => 0,
+            self::PROJECT_FAILED => 0, self::PROJECT_SKIPPED => 0,
         ];
         while ($r && ($row = $r->fetch_assoc())) {
             $counts[$row['status']] = (int)$row['c'];
@@ -840,20 +1190,17 @@ class SiteMigration
         $total = array_sum($counts);
         $current = $counts[self::PROJECT_COMPLETED] + $counts[self::PROJECT_FAILED] + $counts[self::PROJECT_SKIPPED];
         return [
-            'total'     => $total,
-            'current'   => $current,
-            'pending'   => $counts[self::PROJECT_PENDING],
-            'inProgress'=> $counts[self::PROJECT_IN_PROGRESS],
-            'completed' => $counts[self::PROJECT_COMPLETED],
-            'failed'    => $counts[self::PROJECT_FAILED],
-            'skipped'   => $counts[self::PROJECT_SKIPPED],
+            'total'      => $total,
+            'current'    => $current,
+            'pending'    => $counts[self::PROJECT_PENDING],
+            'needs_ack'  => $counts[self::PROJECT_NEEDS_ACK],
+            'inProgress' => $counts[self::PROJECT_IN_PROGRESS],
+            'completed'  => $counts[self::PROJECT_COMPLETED],
+            'failed'     => $counts[self::PROJECT_FAILED],
+            'skipped'    => $counts[self::PROJECT_SKIPPED],
         ];
     }
 
-    /**
-     * Close out a migration session: re-enable crons and (if no failures remain)
-     * mark the rule set status='completed'.
-     */
     public function finalizeMigration(int $ruleSetId): array
     {
         $progress = $this->getMigrationStatus($ruleSetId);
@@ -867,9 +1214,9 @@ class SiteMigration
 
         $this->enableCrons();
 
-        // Only mark "completed" if there are no failures. Otherwise leave as "active"
-        // so the admin can investigate, retry failed projects, then call finalize again.
-        $allDone = ($progress['failed'] === 0 && $progress['pending'] === 0);
+        $allDone = ($progress['failed'] === 0
+                 && $progress['pending'] === 0
+                 && $progress['needs_ack'] === 0);
         if ($allDone) {
             $this->module->query(
                 'UPDATE ' . OnCoreIntegration::REDCAP_ENTITY_ONCORE_SITE_MIGRATION
@@ -886,77 +1233,113 @@ class SiteMigration
     }
 
     /**
-     * Per-project transaction. Called by processNextProject(). Public so it can
-     * be invoked from tests / one-off retry tooling.
+     * Per-project transaction wrapping metadata + sharded data writes.
      *
      * Returns:
-     *   ['status' => 'completed'|'failed', 'changes' => int, 'error' => string]
+     *   ['status' => 'completed'|'failed'|'skipped',
+     *    'changes' => int, 'newCodesAllocated' => [...], 'recordsMigrated' => int, 'error' => '']
      */
     public function processProject(int $projectId, array $rules, int $migrationId): array
     {
-        // Re-confirm project is in 'in_progress' state (claimNextPendingProject set this).
-        // If a caller invokes processProject directly without claiming first, claim now.
         $current = $this->getProjectStatus($migrationId, $projectId);
-        if ($current === self::PROJECT_COMPLETED) {
-            return ['status' => self::PROJECT_SKIPPED, 'changes' => 0, 'error' => ''];
+        if ($current === self::PROJECT_COMPLETED || $current === self::PROJECT_SKIPPED) {
+            return ['status' => self::PROJECT_SKIPPED, 'changes' => 0,
+                    'newCodesAllocated' => [], 'recordsMigrated' => 0, 'error' => ''];
         }
+        // NOTE: PROJECT_NEEDS_ACK rows are filtered out by claimNextPendingProject(),
+        // so they never reach processProject(). The run loop surfaces them via
+        // startMigration()['blocked'] instead.
         if ($current !== self::PROJECT_IN_PROGRESS) {
             $this->markProjectStatus($migrationId, $projectId, self::PROJECT_IN_PROGRESS);
         }
 
-        $allChanges = [];
+        $allChanges        = [];
+        $totalRows         = 0;
+        $newCodesAllocated = [];
 
         try {
             $this->module->query('START TRANSACTION', []);
 
+            $plan = $this->planFieldChanges($projectId, $rules);
+
             $subsetChanges  = $this->updateProjectSiteSubset($projectId, $rules);
-            $mappingChanges = $this->updateValueMapping($projectId, $rules);
-            $labelChanges   = $this->updateFieldLabels($projectId, $rules);
+            $mappingChanges = $this->updateValueMapping($projectId, $rules, $plan);
+            $fieldChanges   = $this->applyFieldChanges($projectId, $plan);
 
-            $allChanges = array_merge($subsetChanges, $mappingChanges, $labelChanges);
+            $allChanges = array_merge($subsetChanges, $mappingChanges, $fieldChanges);
 
-            // Persist entity log rows inside the same transaction so logs only
-            // appear when the data writes succeed.
+            // Sharded record-value migrations (merge / target-bound sunset).
+            $shardName = null;
+            if (!empty($plan['record_migrations']) && !empty($plan['field_name'])) {
+                $shardName = $this->validateDataTableName($this->getProjectDataTable($projectId));
+                foreach ($plan['record_migrations'] as $rm) {
+                    $rows = $this->updateRecordValues(
+                        $projectId,
+                        $plan['field_name'],
+                        (string)$rm['old_code'],
+                        (string)$rm['new_code']
+                    );
+                    $totalRows += $rows;
+                    $allChanges[] = [
+                        'rule_id'     => $rm['rule_id'] ?? null,
+                        'change_type' => self::CHANGE_RECORD_VALUE_MIGRATION,
+                        'field_name'  => $plan['field_name'],
+                        'old_value'   => (string)$rm['old_code'],
+                        'new_value'   => (string)$rm['new_code'],
+                        'details'     => json_encode([
+                            'rows_affected' => $rows,
+                            'data_table'    => $shardName,
+                            'reason'        => $rm['reason'] ?? null,
+                        ]),
+                    ];
+                }
+            }
+
+            $newCodesAllocated = array_map(
+                fn($a) => ['code' => (string)$a['new_code'], 'site' => (string)$a['new_site']],
+                $plan['code_allocations'] ?? []
+            );
+
+            // Persist entity log INSIDE the transaction.
             $this->logToEntity($projectId, $migrationId, $allChanges);
 
             $this->module->query('COMMIT', []);
 
-            // REDCap::logEvent and per-project status update are NOT inside the
-            // transaction. They are best-effort follow-ups; failure here should
-            // not roll back the actual data changes.
+            // Best-effort follow-ups.
             $this->logToREDCap($projectId, $allChanges);
             $this->markProjectStatus($migrationId, $projectId, self::PROJECT_COMPLETED, count($allChanges));
 
-            return ['status' => self::PROJECT_COMPLETED, 'changes' => count($allChanges), 'error' => ''];
+            return [
+                'status'            => self::PROJECT_COMPLETED,
+                'changes'           => count($allChanges),
+                'newCodesAllocated' => $newCodesAllocated,
+                'recordsMigrated'   => $totalRows,
+                'error'             => '',
+            ];
         } catch (\Throwable $e) {
             try { $this->module->query('ROLLBACK', []); } catch (\Throwable $_) { /* swallow */ }
             $this->module->emError("Site migration project $projectId failed: " . $e->getMessage());
             $this->markProjectStatus($migrationId, $projectId, self::PROJECT_FAILED, 0, $e->getMessage());
-            return ['status' => self::PROJECT_FAILED, 'changes' => 0, 'error' => $e->getMessage()];
+            return [
+                'status'            => self::PROJECT_FAILED,
+                'changes'           => 0,
+                'newCodesAllocated' => [],
+                'recordsMigrated'   => 0,
+                'error'             => $e->getMessage(),
+            ];
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Phase 4 internals
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // Execution internals
+    // =======================================================================
 
-    /**
-     * Atomically claim the next pending project for this rule set by flipping
-     * its status to 'in_progress'. Uses MySQL's row-level UPDATE-with-LIMIT
-     * pattern so two concurrent callers cannot grab the same row.
-     *
-     * @return array|null  ['id'=>int, 'project_id'=>int] or null if no more pending
-     */
     private function claimNextPendingProject(int $ruleSetId): ?array
     {
         $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS;
         $now = time();
 
-        // Pick the lowest-id pending row and atomically flip it to in_progress.
-        // Note: we cannot use FOR UPDATE in this codebase consistently, but the
-        // UPDATE-then-SELECT pattern combined with the system migration-in-progress
-        // flag (which prevents crons from interleaving) is sufficient for our
-        // single-admin use case.
+        // Only PROJECT_PENDING is claimable. needs_ack rows are deliberately left alone.
         $sel = $this->module->query(
             "SELECT id, project_id FROM $table
              WHERE migration_id = ? AND status = ?
@@ -968,14 +1351,11 @@ class SiteMigration
             return null;
         }
 
-        $upd = $this->module->query(
+        $this->module->query(
             "UPDATE $table SET status = ?, updated = ?
              WHERE id = ? AND status = ?",
             [self::PROJECT_IN_PROGRESS, $now, (int)$row['id'], self::PROJECT_PENDING]
         );
-        // mysqli affected_rows is available on the connection used by the framework,
-        // but the wrapper returns a result handle. If a concurrent caller already
-        // claimed this row, we'd see status != pending now; recurse to pick another.
         $confirm = $this->getProjectStatus($ruleSetId, (int)$row['project_id']);
         if ($confirm !== self::PROJECT_IN_PROGRESS) {
             return $this->claimNextPendingProject($ruleSetId);
@@ -1034,21 +1414,14 @@ class SiteMigration
         return (string)($row['app_title'] ?? '');
     }
 
-    // -----------------------------------------------------------------------
-    // Preview (Phase 3) — no writes
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // Preview
+    // =======================================================================
 
     /**
-     * Dry-run preview for a rule set. Per project, counts:
-     *   - sitesAffected   : how many of the rule set's old_sites are in the project's site subset
-     *   - labelChanges    : how many element_enum labels would be suffixed
-     *   - mappingChanges  : how many new value_mapping entries would be added
-     *   - status          : pending | already_migrated | no_mapping
-     *
-     * If $deep is true, also includes per-rule record counts from the project's
-     * sharded redcap_data* table (recordsAffected).
-     *
-     * Never writes anything. Safe to run repeatedly.
+     * Dry-run preview. Computes per-project deltas via planFieldChanges (pure),
+     * runs the code-reference scan for projects with record_migrations, and
+     * persists scan results / sets needs_ack status as appropriate.
      */
     public function previewMigration(int $ruleSetId, bool $deep = false): array
     {
@@ -1058,72 +1431,145 @@ class SiteMigration
         }
         $rules = $ruleSet['rules'];
 
-        $alreadyMigrated = $this->loadCompletedProjectIds($ruleSetId);
-        $projects = $this->enumerateProjects();
+        $statusMap = $this->loadProjectStatusMap($ruleSetId);
+        $projects  = $this->enumerateProjects();
+
+        // Ensure each enumerated project has a status row (needed to persist scan + ack state).
+        $statusTable = OnCoreIntegration::REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS;
+        $now = time();
+        foreach ($projects as $proj) {
+            $pid = (int)$proj['project_id'];
+            if (!isset($statusMap[$pid])) {
+                $this->module->query(
+                    "INSERT INTO $statusTable
+                       (migration_id, project_id, status, changes_applied, created, updated)
+                     VALUES (?, ?, ?, 0, ?, ?)",
+                    [$ruleSetId, $pid, self::PROJECT_PENDING, $now, $now]
+                );
+                $statusMap[$pid] = self::PROJECT_PENDING;
+            }
+        }
 
         $rows = [];
         foreach ($projects as $proj) {
-            $pid = (int)$proj['project_id'];
+            $pid   = (int)$proj['project_id'];
+            $title = (string)($proj['app_title'] ?? '');
+            $existingStatus = $statusMap[$pid] ?? null;
 
-            if (in_array($pid, $alreadyMigrated, true)) {
+            if ($existingStatus === self::PROJECT_COMPLETED) {
                 $rows[] = [
-                    'project_id'      => $pid,
-                    'project_title'   => $proj['app_title'] ?? '',
-                    'sitesAffected'   => 0,
-                    'labelChanges'    => 0,
-                    'mappingChanges'  => 0,
-                    'recordsAffected' => 0,
-                    'status'          => self::PROJECT_SKIPPED,
-                    'note'            => 'Already migrated for this rule set',
+                    'project_id'       => $pid,
+                    'project_title'    => $title,
+                    'sitesAffected'    => 0,
+                    'labelChanges'     => 0,
+                    'mappingChanges'   => 0,
+                    'newCodes'         => [],
+                    'recordsToMigrate' => null,
+                    'codeReferences'   => ['total' => 0],
+                    'status'           => self::PROJECT_COMPLETED,
+                    'note'             => 'Already migrated for this rule set',
                 ];
                 continue;
             }
 
             $mapping = $this->getStudySiteMapping($pid);
             if (!$mapping) {
+                $this->markProjectStatus($ruleSetId, $pid, self::PROJECT_SKIPPED, 0, 'no site mapping');
                 $rows[] = [
-                    'project_id'      => $pid,
-                    'project_title'   => $proj['app_title'] ?? '',
-                    'sitesAffected'   => 0,
-                    'labelChanges'    => 0,
-                    'mappingChanges'  => 0,
-                    'recordsAffected' => 0,
-                    'status'          => self::PROJECT_SKIPPED,
-                    'note'            => 'No studySites mapping configured',
+                    'project_id'       => $pid,
+                    'project_title'    => $title,
+                    'sitesAffected'    => 0,
+                    'labelChanges'     => 0,
+                    'mappingChanges'   => 0,
+                    'newCodes'         => [],
+                    'recordsToMigrate' => null,
+                    'codeReferences'   => ['total' => 0],
+                    'status'           => self::PROJECT_SKIPPED,
+                    'note'             => 'No studySites mapping configured',
                 ];
                 continue;
             }
 
-            $analysis = $this->analyzeProject($pid, $rules, $mapping, $deep);
-            $rows[] = array_merge([
-                'project_id'    => $pid,
-                'project_title' => $proj['app_title'] ?? '',
-                'status'        => self::PROJECT_PENDING,
-                'note'          => '',
-            ], $analysis);
+            $plan      = $this->planFieldChanges($pid, $rules);
+            $fieldName = $plan['field_name'];
+
+            // Counts.
+            $sitesAffectedSet = [];
+            foreach ($plan['label_updates']     as $lu) $sitesAffectedSet[$lu['code']]     = true;
+            foreach ($plan['record_migrations'] as $rm) $sitesAffectedSet[$rm['old_code']] = true;
+            $sitesAffected = count($sitesAffectedSet);
+
+            $labelChanges = count($plan['label_updates']);
+            $newCodes     = array_map(
+                fn($a) => ['code' => (string)$a['new_code'], 'site' => (string)$a['new_site']],
+                $plan['code_allocations']
+            );
+
+            // Simulate value-mapping additions WITHOUT writing.
+            $mappingChanges = $this->countSimulatedMappingChanges($pid, $rules, $plan);
+
+            // Deep preview: per-shard record counts.
+            $recordsToMigrate = null;
+            if ($deep && $fieldName) {
+                $recordsToMigrate = 0;
+                foreach ($plan['record_migrations'] as $rm) {
+                    $recordsToMigrate += $this->countRecordsWithSiteCode($pid, $fieldName, (string)$rm['old_code']);
+                }
+            }
+
+            // Code-reference scan only when record migrations are planned.
+            $codeReferences = ['total' => 0];
+            $oldCodes = array_unique(array_map(fn($rm) => (string)$rm['old_code'], $plan['record_migrations']));
+            if (!empty($oldCodes) && $fieldName) {
+                $codeReferences = $this->scanCodeReferences($pid, $fieldName, $oldCodes);
+                $this->persistCodeReferences($ruleSetId, $pid, $codeReferences);
+            } else {
+                $this->persistCodeReferences($ruleSetId, $pid, ['total' => 0]);
+            }
+
+            // Status: needs_ack iff scan found references and not already acknowledged.
+            $newStatus = $existingStatus;
+            if ($codeReferences['total'] > 0) {
+                $ackd = $this->getAcknowledgedAt($ruleSetId, $pid);
+                $newStatus = $ackd ? self::PROJECT_PENDING : self::PROJECT_NEEDS_ACK;
+            } elseif ($existingStatus === self::PROJECT_NEEDS_ACK) {
+                $newStatus = self::PROJECT_PENDING;
+            } elseif (!$existingStatus) {
+                $newStatus = self::PROJECT_PENDING;
+            }
+            if ($newStatus !== $existingStatus
+                && $existingStatus !== self::PROJECT_COMPLETED
+                && $existingStatus !== self::PROJECT_IN_PROGRESS
+                && $existingStatus !== self::PROJECT_FAILED) {
+                $this->markProjectStatus($ruleSetId, $pid, $newStatus, 0);
+            }
+
+            $rows[] = [
+                'project_id'       => $pid,
+                'project_title'    => $title,
+                'sitesAffected'    => $sitesAffected,
+                'labelChanges'     => $labelChanges,
+                'mappingChanges'   => $mappingChanges,
+                'newCodes'         => $newCodes,
+                'recordsToMigrate' => $recordsToMigrate,
+                'codeReferences'   => $codeReferences,
+                'status'           => $newStatus,
+                'note'             => '',
+            ];
         }
 
         return [
-            'rule_set'  => [
+            'rule_set' => [
                 'id'     => $ruleSet['id'],
                 'name'   => $ruleSet['name'],
                 'status' => $ruleSet['status'],
                 'rules'  => $rules,
             ],
-            'projects'  => $rows,
-            'totals'    => $this->summarizeTotals($rows),
+            'projects' => $rows,
+            'totals'   => $this->summarizeTotals($rows),
         ];
     }
 
-    /**
-     * Generate a CSV that enumerates every planned change for a rule set.
-     *
-     * Columns:
-     *   project_id, project_title, rule_id, rule_type, change_type,
-     *   field_name, old_value, new_value
-     *
-     * Returns the full CSV body as a string (no streaming — preview-level data).
-     */
     public function exportPreviewCSV(int $ruleSetId): string
     {
         $ruleSet = $this->getRuleSet($ruleSetId);
@@ -1135,29 +1581,48 @@ class SiteMigration
 
         $fh = fopen('php://temp', 'r+');
         fputcsv($fh, [
-            'project_id', 'project_title', 'rule_id', 'rule_type',
-            'change_type', 'field_name', 'old_value', 'new_value',
+            'project_id', 'project_title', 'change_type', 'rule_id',
+            'code', 'old_code', 'new_code', 'old_label', 'new_label',
+            'records_affected_estimate',
         ]);
 
         foreach ($projects as $proj) {
             $pid = (int)$proj['project_id'];
-            $title = $proj['app_title'] ?? '';
+            $title = (string)($proj['app_title'] ?? '');
             $mapping = $this->getStudySiteMapping($pid);
             if (!$mapping) {
                 continue;
             }
-            $details = $this->collectChangeDetails($pid, $rules, $mapping);
-            foreach ($details as $d) {
-                fputcsv($fh, [
-                    $pid,
-                    $title,
-                    $d['rule_id'] ?? '',
-                    $d['rule_type'] ?? '',
-                    $d['change_type'] ?? '',
-                    $d['field_name'] ?? '',
-                    $d['old_value'] ?? '',
-                    $d['new_value'] ?? '',
-                ]);
+            $plan = $this->planFieldChanges($pid, $rules);
+            $fieldName = $plan['field_name'] ?? '';
+
+            // Project subset rows.
+            foreach ($this->dryRunSubsetRemovals($pid, $rules) as $r) {
+                fputcsv($fh, [$pid, $title, self::CHANGE_PROJECT_SUBSET, $r['rule_id'] ?? '',
+                              '', '', '', $r['old_value'] ?? '', $r['new_value'] ?? '', '']);
+            }
+            // Code allocations.
+            foreach ($plan['code_allocations'] as $alloc) {
+                fputcsv($fh, [$pid, $title, self::CHANGE_CODE_ALLOCATION, $alloc['rule_id'] ?? '',
+                              $alloc['new_code'], '', $alloc['new_code'], '', $alloc['new_site'], '']);
+            }
+            // Label updates.
+            foreach ($plan['label_updates'] as $lu) {
+                fputcsv($fh, [$pid, $title, self::CHANGE_FIELD_LABEL, $lu['rule_id'] ?? '',
+                              $lu['code'], '', '', $lu['old_label'], $lu['new_label'], '']);
+            }
+            // Record migrations + estimate.
+            foreach ($plan['record_migrations'] as $rm) {
+                $est = $fieldName !== ''
+                    ? $this->countRecordsWithSiteCode($pid, $fieldName, (string)$rm['old_code'])
+                    : '';
+                fputcsv($fh, [$pid, $title, self::CHANGE_RECORD_VALUE_MIGRATION, $rm['rule_id'] ?? '',
+                              '', $rm['old_code'], $rm['new_code'], '', '', $est]);
+            }
+            // Value mapping additions.
+            foreach ($this->dryRunValueMappingAdditions($pid, $rules, $plan) as $vm) {
+                fputcsv($fh, [$pid, $title, self::CHANGE_VALUE_MAPPING, $vm['rule_id'] ?? '',
+                              '', '', $vm['new_rc'] ?? '', '', $vm['new_oc'] ?? '', '']);
             }
         }
 
@@ -1167,183 +1632,101 @@ class SiteMigration
         return $csv;
     }
 
-    /**
-     * Per-project counts (no writes). Called by previewMigration; safe for batch use.
-     *
-     * @return array  ['sitesAffected'=>int, 'labelChanges'=>int, 'mappingChanges'=>int, 'recordsAffected'=>int]
-     */
-    private function analyzeProject(int $pid, array $rules, array $mapping, bool $deep): array
+    private function dryRunSubsetRemovals(int $pid, array $rules): array
     {
-        $subsetRaw = $this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, $pid);
-        $subset = $subsetRaw ? (json_decode($subsetRaw, true) ?: []) : [];
-        $vmap = $mapping['value_mapping'] ?? [];
-        $fieldName = $mapping['redcap_field'];
-
-        $enumRow = $this->module->query(
-            'SELECT element_enum FROM redcap_metadata WHERE project_id = ? AND field_name = ? LIMIT 1',
-            [$pid, $fieldName]
-        );
-        $enum = ($enumRow && ($r = $enumRow->fetch_assoc())) ? (string)$r['element_enum'] : '';
-
-        $sitesAffected = 0;
-        $labelChanges = 0;
-        $mappingChanges = 0;
-        $recordsAffected = 0;
-
-        foreach ($rules as $rule) {
-            if (($rule['type'] ?? '') === self::RULE_KEEP) {
-                continue;
-            }
-            $primary = $this->resolvePrimaryOldSite($rule);
-
-            // Sites in the project's subset that match this rule.
-            foreach ($rule['old_sites'] as $oldSite) {
-                if (in_array($oldSite, $subset, true)) {
-                    $sitesAffected++;
-                }
-            }
-
-            // Label suffix counts (only for codes that already exist in element_enum
-            // and aren't already suffixed).
-            foreach ($rule['old_sites'] as $oldSite) {
-                $rcCode = $this->getRcCodeForSite($oldSite, $vmap);
-                if ($rcCode === null) {
-                    continue;
-                }
-                $suffix = $this->buildLabelSuffix($rule, $oldSite, $primary);
-                if ($suffix === '') {
-                    continue;
-                }
-                [, $changed, , ] = $this->suffixEnumLabel($enum, (string)$rcCode, $suffix);
-                if ($changed) {
-                    $labelChanges++;
-                }
-                if ($deep) {
-                    $recordsAffected += $this->countRecordsWithSiteCode($pid, $fieldName, (string)$rcCode);
-                }
-            }
-
-            // Value mapping additions (rename/merge only).
-            if (($rule['type'] ?? '') === self::RULE_RENAME || ($rule['type'] ?? '') === self::RULE_MERGE) {
-                $newSite = $rule['new_site'] ?? '';
-                if ($newSite === '' || $primary === null) {
-                    continue;
-                }
-                $primaryRc = $this->getRcCodeForSite($primary, $vmap);
-                if ($primaryRc === null) {
-                    continue;
-                }
-                $exists = false;
-                foreach ($vmap as $e) {
-                    if (($e['oc'] ?? null) === $newSite && (string)($e['rc'] ?? '') === (string)$primaryRc) {
-                        $exists = true;
-                        break;
-                    }
-                }
-                if (!$exists) {
-                    $mappingChanges++;
-                }
-            }
-        }
-
-        return [
-            'sitesAffected'   => $sitesAffected,
-            'labelChanges'    => $labelChanges,
-            'mappingChanges'  => $mappingChanges,
-            'recordsAffected' => $recordsAffected,
-        ];
-    }
-
-    /**
-     * Detailed per-change rows for CSV export. One entry per planned write.
-     */
-    private function collectChangeDetails(int $pid, array $rules, array $mapping): array
-    {
-        $vmap = $mapping['value_mapping'] ?? [];
-        $fieldName = $mapping['redcap_field'];
-        $subsetRaw = $this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, $pid);
-        $subset = $subsetRaw ? (json_decode($subsetRaw, true) ?: []) : [];
-
-        $enumRow = $this->module->query(
-            'SELECT element_enum FROM redcap_metadata WHERE project_id = ? AND field_name = ? LIMIT 1',
-            [$pid, $fieldName]
-        );
-        $enum = ($enumRow && ($r = $enumRow->fetch_assoc())) ? (string)$r['element_enum'] : '';
-
+        $raw = $this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, $pid);
+        $subset = $raw ? (json_decode($raw, true) ?: []) : [];
         $out = [];
         foreach ($rules as $rule) {
-            $type = $rule['type'] ?? '';
-            if ($type === self::RULE_KEEP) {
-                continue;
-            }
-            $primary = $this->resolvePrimaryOldSite($rule);
-
-            // Project subset removals.
+            if (($rule['type'] ?? '') === self::RULE_KEEP) continue;
             foreach ($rule['old_sites'] as $oldSite) {
                 if (in_array($oldSite, $subset, true)) {
-                    $out[] = [
-                        'rule_id' => $rule['id'] ?? '', 'rule_type' => $type,
-                        'change_type' => self::CHANGE_PROJECT_SUBSET,
-                        'field_name' => '', 'old_value' => $oldSite, 'new_value' => '',
-                    ];
-                }
-            }
-
-            // Label suffixes.
-            foreach ($rule['old_sites'] as $oldSite) {
-                $rcCode = $this->getRcCodeForSite($oldSite, $vmap);
-                if ($rcCode === null) {
-                    continue;
-                }
-                $suffix = $this->buildLabelSuffix($rule, $oldSite, $primary);
-                if ($suffix === '') {
-                    continue;
-                }
-                [, $changed, $oldLabel, $newLabel] = $this->suffixEnumLabel($enum, (string)$rcCode, $suffix);
-                if ($changed) {
-                    $out[] = [
-                        'rule_id' => $rule['id'] ?? '', 'rule_type' => $type,
-                        'change_type' => self::CHANGE_FIELD_LABEL,
-                        'field_name' => $fieldName,
-                        'old_value' => $oldLabel, 'new_value' => $newLabel,
-                    ];
-                }
-            }
-
-            // Value mapping additions.
-            if ($type === self::RULE_RENAME || $type === self::RULE_MERGE) {
-                $newSite = $rule['new_site'] ?? '';
-                if ($newSite !== '' && $primary !== null) {
-                    $primaryRc = $this->getRcCodeForSite($primary, $vmap);
-                    if ($primaryRc !== null) {
-                        $exists = false;
-                        foreach ($vmap as $e) {
-                            if (($e['oc'] ?? null) === $newSite && (string)($e['rc'] ?? '') === (string)$primaryRc) {
-                                $exists = true;
-                                break;
-                            }
-                        }
-                        if (!$exists) {
-                            $out[] = [
-                                'rule_id' => $rule['id'] ?? '', 'rule_type' => $type,
-                                'change_type' => self::CHANGE_VALUE_MAPPING,
-                                'field_name' => $fieldName,
-                                'old_value' => $primary . ' (rc=' . $primaryRc . ')',
-                                'new_value' => $newSite . ' (rc=' . $primaryRc . ')',
-                            ];
-                        }
-                    }
+                    $out[] = ['rule_id' => $rule['id'] ?? null, 'old_value' => $oldSite, 'new_value' => ''];
                 }
             }
         }
         return $out;
     }
 
-    /**
-     * Projects in scope of a migration: OnCore-integrated projects only
-     * (i.e., have an entity row in redcap_entity_oncore_protocols with status YES),
-     * skipping deleted REDCap projects.
-     */
+    private function dryRunValueMappingAdditions(int $pid, array $rules, array $plan): array
+    {
+        $raw = $this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, $pid);
+        $mapping = $raw ? (json_decode($raw, true) ?: []) : [];
+        $vmap = $mapping['pull'][OnCoreIntegration::ONCORE_STUDY_SITE]['value_mapping']
+             ?? $mapping['push'][OnCoreIntegration::ONCORE_STUDY_SITE]['value_mapping']
+             ?? [];
+
+        $allocByNewSite = [];
+        foreach ($plan['code_allocations'] ?? [] as $alloc) {
+            $allocByNewSite[(string)$alloc['new_site']] = (string)$alloc['new_code'];
+        }
+
+        $out = [];
+        foreach ($rules as $rule) {
+            $type = $rule['type'] ?? '';
+            if ($type === self::RULE_KEEP) continue;
+
+            if ($type === self::RULE_RENAME) {
+                $newSite = $rule['new_site'] ?? '';
+                $oldSite = $rule['old_sites'][0] ?? '';
+                $rc = $this->getRcCodeForSite($oldSite, $vmap);
+                if ($newSite === '' || $rc === null) continue;
+                if (!$this->mappingHas($vmap, $newSite, (string)$rc)) {
+                    $out[] = ['rule_id' => $rule['id'] ?? null, 'new_oc' => $newSite, 'new_rc' => (string)$rc];
+                }
+                continue;
+            }
+            if ($type === self::RULE_MERGE
+             || ($type === self::RULE_SUNSET && !empty($rule['merged_into']))) {
+                $newSite = $type === self::RULE_MERGE
+                    ? ($rule['new_site'] ?? '')
+                    : ($rule['merged_into'] ?? '');
+                $rc = $allocByNewSite[$newSite] ?? $this->getRcCodeForSite($newSite, $vmap);
+                if ($newSite === '' || $rc === null) continue;
+                if (!$this->mappingHas($vmap, $newSite, (string)$rc)) {
+                    $out[] = ['rule_id' => $rule['id'] ?? null, 'new_oc' => $newSite, 'new_rc' => (string)$rc];
+                }
+            }
+        }
+        return $out;
+    }
+
+    private function mappingHas(array $vmap, string $oc, string $rc): bool
+    {
+        foreach ($vmap as $e) {
+            if (($e['oc'] ?? null) === $oc && (string)($e['rc'] ?? '') === $rc) return true;
+        }
+        return false;
+    }
+
+    private function countSimulatedMappingChanges(int $pid, array $rules, array $plan): int
+    {
+        return count($this->dryRunValueMappingAdditions($pid, $rules, $plan));
+    }
+
+    private function persistCodeReferences(int $ruleSetId, int $pid, array $scan): void
+    {
+        $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS;
+        $this->module->query(
+            "UPDATE $table SET code_references_json = ?, updated = ?
+             WHERE migration_id = ? AND project_id = ?",
+            [json_encode($scan), time(), $ruleSetId, $pid]
+        );
+    }
+
+    private function getAcknowledgedAt(int $ruleSetId, int $pid): ?int
+    {
+        $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS;
+        $r = $this->module->query(
+            "SELECT acknowledged_at FROM $table WHERE migration_id = ? AND project_id = ? LIMIT 1",
+            [$ruleSetId, $pid]
+        );
+        $row = ($r && ($rr = $r->fetch_assoc())) ? $rr : null;
+        return isset($row['acknowledged_at']) && $row['acknowledged_at'] !== null
+            ? (int)$row['acknowledged_at']
+            : null;
+    }
+
     private function enumerateProjects(): array
     {
         $sql = "SELECT DISTINCT p.redcap_project_id AS project_id, rp.app_title
@@ -1360,51 +1743,141 @@ class SiteMigration
         return $out;
     }
 
-    /**
-     * Returns ids of projects already marked completed for the given rule set.
-     */
-    private function loadCompletedProjectIds(int $ruleSetId): array
-    {
-        $table = OnCoreIntegration::REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS;
-        $r = $this->module->query(
-            "SELECT project_id FROM $table WHERE migration_id = ? AND status = ?",
-            [$ruleSetId, self::PROJECT_COMPLETED]
-        );
-        $out = [];
-        while ($r && ($row = $r->fetch_assoc())) {
-            $out[] = (int)$row['project_id'];
-        }
-        return $out;
-    }
-
     private function summarizeTotals(array $rows): array
     {
-        $t = ['projects' => count($rows), 'pending' => 0, 'skipped' => 0,
-              'sitesAffected' => 0, 'labelChanges' => 0, 'mappingChanges' => 0, 'recordsAffected' => 0];
+        $t = [
+            'projects' => count($rows),
+            'pending' => 0, 'needs_ack' => 0, 'in_progress' => 0,
+            'completed' => 0, 'failed' => 0, 'skipped' => 0,
+            'sitesAffected' => 0, 'labelChanges' => 0, 'mappingChanges' => 0,
+            'newCodes' => 0, 'recordsToMigrate' => 0, 'codeReferences' => 0,
+        ];
         foreach ($rows as $r) {
-            if (($r['status'] ?? '') === self::PROJECT_SKIPPED) {
-                $t['skipped']++;
-            } else {
-                $t['pending']++;
-            }
-            $t['sitesAffected']   += (int)($r['sitesAffected'] ?? 0);
-            $t['labelChanges']    += (int)($r['labelChanges'] ?? 0);
-            $t['mappingChanges']  += (int)($r['mappingChanges'] ?? 0);
-            $t['recordsAffected'] += (int)($r['recordsAffected'] ?? 0);
+            $st = $r['status'] ?? '';
+            if (isset($t[$st])) $t[$st]++;
+            $t['sitesAffected']    += (int)($r['sitesAffected'] ?? 0);
+            $t['labelChanges']     += (int)($r['labelChanges'] ?? 0);
+            $t['mappingChanges']   += (int)($r['mappingChanges'] ?? 0);
+            $t['newCodes']         += count($r['newCodes'] ?? []);
+            $t['recordsToMigrate'] += (int)($r['recordsToMigrate'] ?? 0);
+            $t['codeReferences']   += (int)(($r['codeReferences']['total'] ?? 0));
         }
+        // JS-friendly alias — site_migration.js reads totals.inProgress.
+        $t['inProgress'] = $t['in_progress'];
         return $t;
     }
 
-    // -----------------------------------------------------------------------
-    // Internal helpers
-    // -----------------------------------------------------------------------
+    // =======================================================================
+    // element_enum parsing / allocation helpers
+    // =======================================================================
 
     /**
-     * Return the project's studySites mapping entry, normalized.
-     * Looks under mapping[pull][studySites] first, falls back to push.
-     *
-     * @return array|null  ['redcap_field'=>..., 'value_mapping'=>[...]]
+     * Parse "1, Label A | 2, Label B" into ['1' => 'Label A', '2' => 'Label B'].
+     * Keys are kept as strings (codes may be alphanumeric).
+     * Splits on " | " (space-pipe-space) and then on the FIRST ", " only so commas
+     * inside labels like "Psychiatry: Page Mill, Porter Dr, other" are preserved.
      */
+    public function parseElementEnum(string $raw): array
+    {
+        $codes = [];
+        if ($raw === '') return $codes;
+        $entries = preg_split('/\s*\|\s*/', $raw);
+        foreach ($entries as $entry) {
+            if (!preg_match('/^\s*([^,]+?)\s*,\s*(.*)$/s', $entry, $m)) {
+                continue;
+            }
+            $code = trim($m[1]);
+            $label = $m[2];
+            if ($code === '') continue;
+            $codes[$code] = $label;
+        }
+        return $codes;
+    }
+
+    public function serializeElementEnum(array $codes): string
+    {
+        $parts = [];
+        foreach ($codes as $code => $label) {
+            $parts[] = $code . ', ' . $label;
+        }
+        return implode(' | ', $parts);
+    }
+
+    public function loadElementEnum(int $pid, string $fieldName): array
+    {
+        $r = $this->module->query(
+            'SELECT element_enum FROM redcap_metadata WHERE project_id = ? AND field_name = ? LIMIT 1',
+            [$pid, $fieldName]
+        );
+        $row = ($r && ($rr = $r->fetch_assoc())) ? $rr : null;
+        $raw = (string)($row['element_enum'] ?? '');
+        return [
+            'raw'   => $raw,
+            'codes' => $this->parseElementEnum($raw),
+        ];
+    }
+
+    /**
+     * max(numeric codes) + 1 if ALL codes are numeric; otherwise the smallest unused
+     * positive integer.
+     */
+    public function allocateNewCode(array $codes): int
+    {
+        if (empty($codes)) return 1;
+        $allNumeric = true;
+        $max = 0;
+        foreach ($codes as $code => $_) {
+            if (!preg_match('/^\d+$/', (string)$code)) {
+                $allNumeric = false;
+                break;
+            }
+            $max = max($max, (int)$code);
+        }
+        if ($allNumeric) {
+            return $max + 1;
+        }
+        $used = [];
+        foreach ($codes as $code => $_) {
+            if (preg_match('/^\d+$/', (string)$code)) {
+                $used[(int)$code] = true;
+            }
+        }
+        $i = 1;
+        while (isset($used[$i])) $i++;
+        return $i;
+    }
+
+    /**
+     * Find the code whose CLEAN label (with any trailing "(retired …)" stripped)
+     * matches $label. Returns the code (string) or null.
+     */
+    public function findCodeForLabel(array $codes, string $label): ?string
+    {
+        $needle = trim($label);
+        if ($needle === '') return null;
+        foreach ($codes as $code => $existing) {
+            $clean = $this->stripRetiredSuffix((string)$existing);
+            if (trim($clean) === $needle) {
+                return (string)$code;
+            }
+        }
+        return null;
+    }
+
+    private function stripRetiredSuffix(string $label): string
+    {
+        return preg_replace('/\s*\(retired\b[^)]*\)\s*$/u', '', $label) ?? $label;
+    }
+
+    private function labelAlreadyRetired(string $label): bool
+    {
+        return (bool)preg_match('/\(retired\b/u', $label);
+    }
+
+    // =======================================================================
+    // Misc helpers
+    // =======================================================================
+
     private function getStudySiteMapping(int $pid): ?array
     {
         $raw = $this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, $pid);
@@ -1421,9 +1894,6 @@ class SiteMigration
         return null;
     }
 
-    /**
-     * Look up the rc code for a given OnCore site name within a value_mapping array.
-     */
     private function getRcCodeForSite(string $siteName, array $valueMapping)
     {
         foreach ($valueMapping as $entry) {
@@ -1435,104 +1905,15 @@ class SiteMigration
     }
 
     /**
-     * For a merge rule, the primary is admin-selected (or defaults to first old site).
-     * For a rename rule, the primary is the single old site.
-     * For sunset/keep, no primary needed.
+     * Escape a literal string for safe use inside a MySQL POSIX REGEXP pattern.
+     * MySQL REGEXP uses POSIX ERE — backslash-escape ERE metachars.
      */
-    private function resolvePrimaryOldSite(array $rule): ?string
+    private function mysqlRegexQuote(string $s): string
     {
-        if (!empty($rule['primary_old_site'])) {
-            return $rule['primary_old_site'];
-        }
-        return $rule['old_sites'][0] ?? null;
+        // ERE metachars: . * + ? ( ) [ ] { } | ^ $ \
+        return preg_replace('/([\\\\.\\*\\+\\?\\(\\)\\[\\]\\{\\}\\|\\^\\$])/', '\\\\$1', $s);
     }
 
-    /**
-     * Build the label suffix for one (rule, old_site) pair.
-     *   - rename:                          "(changed to <new>)"
-     *   - merge, this site == primary:     "(changed to <new>)"
-     *   - merge, this site != primary:     "(merged into <new>)"
-     *   - sunset:                          "(retired <date>, merged into <new>)" or "(retired <date>)"
-     */
-    private function buildLabelSuffix(array $rule, string $oldSite, ?string $primary): string
-    {
-        $newSite = $rule['new_site'] ?? '';
-        switch ($rule['type']) {
-            case self::RULE_RENAME:
-                return $newSite !== '' ? "(changed to $newSite)" : '';
-
-            case self::RULE_MERGE:
-                if ($newSite === '') {
-                    return '';
-                }
-                return ($oldSite === $primary)
-                    ? "(changed to $newSite)"
-                    : "(merged into $newSite)";
-
-            case self::RULE_SUNSET:
-                $date = $rule['retired_on'] ?? '';
-                if ($newSite !== '' && $date !== '') {
-                    return "(retired $date, merged into $newSite)";
-                }
-                if ($date !== '') {
-                    return "(retired $date)";
-                }
-                if ($newSite !== '') {
-                    return "(merged into $newSite)";
-                }
-                return '';
-        }
-        return '';
-    }
-
-    /**
-     * Modify the element_enum pipe-delimited string to suffix the label for $rcCode.
-     *
-     * Idempotent: skips entries already containing "(changed to", "(merged into",
-     * or "(retired" to avoid double-suffixing on rule re-run.
-     *
-     * @return array [newEnum (string), changed (bool), oldLabel (string), newLabel (string)]
-     */
-    private function suffixEnumLabel(string $enum, string $rcCode, string $suffix): array
-    {
-        $entries = preg_split('/\s*\|\s*/', $enum);
-        $oldLabel = '';
-        $newLabel = '';
-        $changed = false;
-        foreach ($entries as $i => $entry) {
-            // Each entry is "code, label" (label may contain commas).
-            if (!preg_match('/^\s*([^,]+?)\s*,\s*(.*)$/', $entry, $m)) {
-                continue;
-            }
-            $code = $m[1];
-            $label = $m[2];
-            if ((string)$code !== (string)$rcCode) {
-                continue;
-            }
-            // Idempotency guard.
-            if (preg_match('/\((changed to|merged into|retired)\b/', $label)) {
-                return [$enum, false, '', ''];
-            }
-            $oldLabel = $code . ', ' . $label;
-            $newLabel = $code . ', ' . rtrim($label) . ' ' . $suffix;
-            $entries[$i] = $newLabel;
-            $changed = true;
-            break;
-        }
-        return [implode(' | ', $entries), $changed, $oldLabel, $newLabel];
-    }
-
-    /**
-     * Coerce the raw rules input into a validated, typed shape.
-     *
-     * Each rule must have:
-     *   - id        string (auto-generated if missing)
-     *   - type      one of rename|merge|keep|sunset
-     *   - old_sites string[]  (non-empty)
-     *   - new_site  string|null (required for rename/merge; optional for sunset)
-     *   - primary_old_site string|null (merge only)
-     *   - retired_on string|null  (sunset only — YYYY-MM-DD)
-     */
     private function normalizeRules(array $rules): array
     {
         $out = [];
@@ -1553,7 +1934,7 @@ class SiteMigration
             if ($type === self::RULE_RENAME && count($oldSites) !== 1) {
                 throw new \InvalidArgumentException("Rule #$i (rename): exactly one old_site required.");
             }
-            $out[] = [
+            $entry = [
                 'id'               => $r['id'] ?? sprintf('rule-%d-%s', $i + 1, bin2hex(random_bytes(3))),
                 'type'             => $type,
                 'old_sites'        => $oldSites,
@@ -1565,6 +1946,14 @@ class SiteMigration
                                         ? (string)$r['retired_on']
                                         : null,
             ];
+            // Sunset may bind to a merge target.
+            if ($type === self::RULE_SUNSET && !empty($r['merged_into'])) {
+                $entry['merged_into'] = (string)$r['merged_into'];
+            } elseif ($type === self::RULE_SUNSET && $newSite !== '') {
+                // Back-compat: sunset rule that carries new_site is treated as merged_into.
+                $entry['merged_into'] = $newSite;
+            }
+            $out[] = $entry;
         }
         return $out;
     }
@@ -1576,16 +1965,6 @@ class SiteMigration
         return is_array($decoded) ? $decoded : [];
     }
 
-    /**
-     * Write the updated study-sites list back to the library at $libraryIndex.
-     *
-     * REDCap EM sub_settings storage shape: library-study-site is stored as a
-     * nested array — one entry per parent library, each containing an array of
-     * site name strings. We mutate just the entry at $libraryIndex.
-     *
-     * Other sibling leaf settings under `libraries` (library-name, library-staff-role,
-     * library-protocol-status, etc.) are not touched.
-     */
     private function writeLibrarySites(int $libraryIndex, array $sites): void
     {
         $key = 'library-study-site';
@@ -1594,7 +1973,6 @@ class SiteMigration
         if (!is_array($existing)) {
             $existing = [];
         }
-        // Ensure $existing has enough slots.
         while (count($existing) <= $libraryIndex) {
             $existing[] = [];
         }
@@ -1608,4 +1986,63 @@ class SiteMigration
         $row = $r ? $r->fetch_assoc() : null;
         return $row['id'] ?? 0;
     }
+
+    // =======================================================================
+    // Schema migration — idempotent in-place upgrade for pre-rev-3 installs.
+    // =======================================================================
+
+    /**
+     * Adds rev-3 columns to existing entity tables if they're missing.
+     * Idempotent — safe to call on every request. Skips silently if the
+     * entity tables haven't been built yet (EntityDB::buildSchema handles that).
+     *
+     * Column type strings are hard-coded from an internal allowlist below;
+     * never interpolate untrusted input into ALTER TABLE.
+     */
+    public function ensureSchemaUpToDate(): void
+    {
+        $pairs = [
+            OnCoreIntegration::REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS => [
+                'code_references_json' => 'LONGTEXT NULL',
+                'acknowledged_at'      => 'INT NULL',
+                'acknowledged_by'      => 'VARCHAR(255) NULL',
+            ],
+            OnCoreIntegration::REDCAP_ENTITY_ONCORE_SITE_MIGRATION_LOG => [
+                'details' => 'LONGTEXT NULL',
+            ],
+        ];
+        foreach ($pairs as $table => $cols) {
+            // Skip if the entity table doesn't even exist yet — EntityDB::buildSchema will create it.
+            try {
+                $r = $this->module->query("SHOW TABLES LIKE ?", [$table]);
+            } catch (\Throwable $_) {
+                continue;
+            }
+            if (!$r || !$r->fetch_assoc()) {
+                continue;
+            }
+            foreach ($cols as $col => $type) {
+                try {
+                    $check = $this->module->query(
+                        "SELECT COUNT(*) AS c FROM information_schema.columns
+                          WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?",
+                        [$table, $col]
+                    );
+                    $row = $check ? $check->fetch_assoc() : null;
+                    if ((int)($row['c'] ?? 0) === 0) {
+                        // Backticks around identifiers; $type is from the allowlist above.
+                        $this->module->query("ALTER TABLE `$table` ADD COLUMN `$col` $type", []);
+                        if (method_exists($this->module, 'emDebug')) {
+                            $this->module->emDebug("ensureSchemaUpToDate: added column $col to $table");
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    if (method_exists($this->module, 'emError')) {
+                        $this->module->emError("ensureSchemaUpToDate: failed on $table.$col: " . $e->getMessage());
+                    }
+                }
+            }
+        }
+    }
 }
+

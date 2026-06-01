@@ -25,8 +25,20 @@
             'completed': 'sm-badge-completed',
             'pending': 'sm-badge-pending', 'in_progress': 'sm-badge-active',
             'failed': 'sm-badge-failed', 'skipped': 'sm-badge-skipped',
+            'needs_ack': 'sm-badge-needs-ack', 'blocked': 'sm-badge-needs-ack',
         }[status] || 'sm-badge-draft';
         return `<span class="sm-badge ${cls}">${escapeHtml(status || '')}</span>`;
+    }
+    function newCodesCell(arr) {
+        if (!Array.isArray(arr) || arr.length === 0) return '<span class="text-muted">—</span>';
+        return arr.map(nc => `<div class="sm-newcode-pill"><code>${escapeHtml(nc.code)}</code>: ${escapeHtml(nc.site || nc.new_site || '')}</div>`).join('');
+    }
+    function refsCell(refs, pid, ruleSetId) {
+        if (!refs || !refs.total) return '<span class="text-muted">—</span>';
+        return `<button class="btn btn-link btn-sm sm-refs-view sm-warning-chip"
+                        data-pid="${escapeHtml(pid)}" data-rsid="${escapeHtml(ruleSetId)}">
+                    ⚠ ${escapeHtml(refs.total)} <small>view</small>
+                </button>`;
     }
     function fmtDate(unix) {
         if (!unix) return '';
@@ -97,6 +109,7 @@
         if (btn.classList.contains('sm-action-run'))     return openRunFor(btn.dataset.id);
         if (btn.classList.contains('sm-action-delete'))  return deleteRuleSet(btn.dataset.id);
         if (btn.classList.contains('sm-action-log'))     return openProjectLog(btn.dataset.id, btn.dataset.pid || null);
+        if (btn.classList.contains('sm-refs-view'))      return openRefsModal(btn.dataset.rsid, btn.dataset.pid);
     });
 
     function deleteRuleSet(id) {
@@ -211,17 +224,20 @@
         runPreview(false);
     }
 
+    let currentPreviewRuleSetId = null;
+
     function runPreview(deep) {
         const id = Number($('#sm-preview-rule-set').value);
         if (!id) { return showError('Select a rule set first.'); }
+        currentPreviewRuleSetId = id;
         const body = $('#sm-preview-body');
-        body.innerHTML = '<tr><td colspan="8" class="text-muted">Generating preview…</td></tr>';
+        body.innerHTML = '<tr><td colspan="10" class="text-muted">Generating preview…</td></tr>';
         $('#sm-preview-summary').innerHTML = '';
         const action = deep ? 'previewSiteMigrationDeep' : 'previewSiteMigration';
         ajax(action, { id: id }).then(function (resp) {
-            if (!resp || !resp.projects) { body.innerHTML = '<tr><td colspan="8" class="text-danger">No projects returned.</td></tr>'; return; }
+            if (!resp || !resp.projects) { body.innerHTML = '<tr><td colspan="10" class="text-danger">No projects returned.</td></tr>'; return; }
             renderPreviewSummary(resp);
-            renderPreviewRows(resp.projects);
+            renderPreviewRows(resp.projects, id);
         }).catch(showAjaxError);
     }
 
@@ -230,17 +246,20 @@
         $('#sm-preview-summary').innerHTML = `
             <span class="sm-stat"><strong>${escapeHtml(t.projects || 0)}</strong> projects</span>
             <span class="sm-stat"><strong>${escapeHtml(t.pending || 0)}</strong> pending</span>
+            <span class="sm-stat"><strong>${escapeHtml(t.needs_ack || 0)}</strong> needs_ack</span>
             <span class="sm-stat"><strong>${escapeHtml(t.skipped || 0)}</strong> skipped</span>
             <span class="sm-stat"><strong>${escapeHtml(t.sitesAffected || 0)}</strong> sites affected</span>
-            <span class="sm-stat"><strong>${escapeHtml(t.labelChanges || 0)}</strong> label changes</span>
-            <span class="sm-stat"><strong>${escapeHtml(t.mappingChanges || 0)}</strong> mapping changes</span>
-            <span class="sm-stat"><strong>${escapeHtml(t.recordsAffected || 0)}</strong> records (deep)</span>
+            <span class="sm-stat"><strong>${escapeHtml(t.labelChanges || 0)}</strong> label Δ</span>
+            <span class="sm-stat"><strong>${escapeHtml(t.mappingChanges || 0)}</strong> mapping Δ</span>
+            <span class="sm-stat"><strong>${escapeHtml(t.newCodes || 0)}</strong> new codes</span>
+            <span class="sm-stat"><strong>${escapeHtml(t.recordsToMigrate || 0)}</strong> records to migrate</span>
+            <span class="sm-stat"><strong>${escapeHtml(t.codeReferences || 0)}</strong> ⚠ refs</span>
         `;
     }
 
-    function renderPreviewRows(rows) {
+    function renderPreviewRows(rows, ruleSetId) {
         const body = $('#sm-preview-body');
-        if (!rows.length) { body.innerHTML = '<tr><td colspan="8" class="text-muted">No projects.</td></tr>'; return; }
+        if (!rows.length) { body.innerHTML = '<tr><td colspan="10" class="text-muted">No projects.</td></tr>'; return; }
         body.innerHTML = rows.map(r => `
             <tr>
                 <td>${escapeHtml(r.project_id)}</td>
@@ -248,11 +267,51 @@
                 <td>${escapeHtml(r.sitesAffected || 0)}</td>
                 <td>${escapeHtml(r.labelChanges || 0)}</td>
                 <td>${escapeHtml(r.mappingChanges || 0)}</td>
-                <td>${escapeHtml(r.recordsAffected || 0)}</td>
+                <td>${newCodesCell(r.newCodes)}</td>
+                <td>${r.recordsToMigrate == null ? '<span class="text-muted">—</span>' : escapeHtml(r.recordsToMigrate)}</td>
+                <td>${refsCell(r.codeReferences, r.project_id, ruleSetId)}</td>
                 <td>${statusBadge(r.status)}</td>
                 <td><small class="text-muted">${escapeHtml(r.note || '')}</small></td>
             </tr>
         `).join('');
+    }
+
+    // Code-reference modal + acknowledge
+    let currentRefsContext = { ruleSetId: null, projectId: null };
+
+    function openRefsModal(ruleSetId, projectId) {
+        currentRefsContext = { ruleSetId: Number(ruleSetId), projectId: Number(projectId) };
+        $('#sm-refs-title').textContent = `Code references — Project ${projectId}`;
+        $('#sm-refs-status').textContent = 'Loading…';
+        $('#sm-refs-body').innerHTML = '';
+        $('#sm-refs-modal').style.display = '';
+        ajax('getCodeReferenceDetails', { id: Number(ruleSetId), project_id: Number(projectId) })
+            .then(function (rows) {
+                if (!Array.isArray(rows) || !rows.length) {
+                    $('#sm-refs-status').textContent = 'No references found (already cleared?).';
+                    return;
+                }
+                $('#sm-refs-status').textContent = `${rows.length} reference(s) — review before acknowledging.`;
+                $('#sm-refs-body').innerHTML = rows.map(r => `
+                    <tr>
+                        <td><code>${escapeHtml(r.source)}</code></td>
+                        <td><small>${escapeHtml(r.table || '')}</small></td>
+                        <td><small>${escapeHtml(r.row_id || '')}</small></td>
+                        <td><code class="small">${escapeHtml(r.snippet || '')}</code></td>
+                    </tr>
+                `).join('');
+            }).catch(showAjaxError);
+    }
+
+    function acknowledgeCurrentRefs() {
+        const { ruleSetId, projectId } = currentRefsContext;
+        if (!ruleSetId || !projectId) return;
+        if (!confirm(`Acknowledge code references for Project ${projectId}? The migration will be allowed to run this project. You should already have updated any broken branching logic / alerts / filters.`)) return;
+        ajax('acknowledgeProjectWarnings', { id: ruleSetId, project_id: projectId })
+            .then(function () {
+                $('#sm-refs-modal').style.display = 'none';
+                runPreview(false);  // refresh so the row's status flips from needs_ack to pending
+            }).catch(showAjaxError);
     }
 
     function exportCsv() {
@@ -281,14 +340,23 @@
     function startMigration() {
         const id = Number($('#sm-run-rule-set').value);
         if (!id) { return showError('Select a rule set first.'); }
-        if (!confirm('Start migration for rule set #' + id + '? This sets migration-in-progress=true and pauses all OnCore sync crons.')) return;
+        if (!confirm('Start migration for rule set #' + id + '? This sets migration-in-progress=true and pauses all OnCore sync crons. Merges and target-bound sunsets WILL rewrite records in redcap_data*.')) return;
 
         runState = { id: id, polling: true, pause: false, rows: {} };
         $('#sm-run-body').innerHTML = '';
+        $('#sm-run-blocked-banner').style.display = 'none';
+        $('#sm-run-blocked-banner').textContent = '';
         $('#sm-run-start').disabled = true;
         $('#sm-run-pause').disabled = false;
         $('#sm-run-finalize').disabled = true;
         ajax('startSiteMigration', { id: id }).then(function (resp) {
+            if (resp && Array.isArray(resp.blocked) && resp.blocked.length > 0) {
+                const banner = $('#sm-run-blocked-banner');
+                banner.style.display = '';
+                banner.innerHTML = `<strong>${resp.blocked.length} project(s) blocked (needs_ack):</strong>
+                    they will be skipped unless their code-reference warnings are acknowledged from the Preview tab.
+                    Blocked PIDs: <code>${escapeHtml(resp.blocked.join(', '))}</code>`;
+            }
             updateProgress(resp);
             pollNext();
         }).catch(function (e) {
@@ -330,11 +398,14 @@
         const tr = document.createElement('tr');
         const cls = resp.status === 'completed' ? 'table-success'
                   : resp.status === 'failed' ? 'table-danger'
-                  : resp.status === 'skipped' ? 'table-warning' : '';
+                  : resp.status === 'skipped' ? 'table-warning'
+                  : resp.status === 'blocked' ? 'table-info' : '';
         if (cls) tr.classList.add(cls);
         tr.innerHTML = `
             <td><strong>${escapeHtml(resp.projectTitle || '')}</strong> <small class="text-muted">(${escapeHtml(resp.projectId)})</small></td>
             <td>${statusBadge(resp.status)}</td>
+            <td>${newCodesCell(resp.newCodesAllocated)}</td>
+            <td>${resp.recordsMigrated == null ? '<span class="text-muted">—</span>' : escapeHtml(resp.recordsMigrated)}</td>
             <td>${escapeHtml(resp.changesApplied || 0)}</td>
             <td><small class="text-danger">${escapeHtml(resp.error || '')}</small></td>
         `;
@@ -349,7 +420,8 @@
         $('#sm-progress-label').textContent = `${current} / ${total} processed`
             + (p.completed != null ? ` · ${p.completed} completed` : '')
             + (p.failed != null && p.failed > 0 ? ` · ${p.failed} failed` : '')
-            + (p.skipped != null && p.skipped > 0 ? ` · ${p.skipped} skipped` : '');
+            + (p.skipped != null && p.skipped > 0 ? ` · ${p.skipped} skipped` : '')
+            + (p.needs_ack != null && p.needs_ack > 0 ? ` · ${p.needs_ack} needs_ack` : '');
     }
 
     function pauseMigration() {
@@ -478,6 +550,10 @@
             // Tab 5 toolbar
             $('#sm-reload-history').addEventListener('click', loadHistory);
             $('#sm-log-close').addEventListener('click', () => $('#sm-log-modal').style.display = 'none');
+
+            // Code-references modal (Preview tab).
+            $('#sm-refs-close').addEventListener('click', () => $('#sm-refs-modal').style.display = 'none');
+            $('#sm-refs-ack').addEventListener('click', acknowledgeCurrentRefs);
 
             // Start on Rule Sets tab.
             activateTab('rule-sets');

@@ -111,7 +111,9 @@
     "getMigrationStatus",
     "finalizeMigration",
     "getMigrationHistory",
-    "getMigrationProjectLog"
+    "getMigrationProjectLog",
+    "getCodeReferenceDetails",
+    "acknowledgeProjectWarnings"
   ],
   "project-settings": [
     {
