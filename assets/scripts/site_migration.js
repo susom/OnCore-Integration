@@ -33,6 +33,16 @@
         if (!Array.isArray(arr) || arr.length === 0) return '<span class="text-muted">—</span>';
         return arr.map(nc => `<div class="sm-newcode-pill"><code>${escapeHtml(nc.code)}</code>: ${escapeHtml(nc.site || nc.new_site || '')}</div>`).join('');
     }
+    function actionsCell(r, ruleSetId) {
+        if (r.status === 'completed' || r.status === 'skipped') {
+            return '<span class="text-muted">—</span>';
+        }
+        const pid = escapeHtml(r.project_id);
+        const rsid = escapeHtml(ruleSetId);
+        return `<button class="btn btn-link btn-sm sm-action-dryrun" data-pid="${pid}" data-rsid="${rsid}">Details</button>`
+             + `<button class="btn btn-outline-success btn-sm sm-action-migrate-single" data-pid="${pid}" data-rsid="${rsid}">Migrate</button>`;
+    }
+
     function refsCell(refs, pid, ruleSetId) {
         if (!refs || !refs.total) return '<span class="text-muted">—</span>';
         return `<button class="btn btn-link btn-sm sm-refs-view sm-warning-chip"
@@ -104,12 +114,14 @@
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('button');
         if (!btn) return;
-        if (btn.classList.contains('sm-action-edit'))    return openEditor(btn.dataset.id);
-        if (btn.classList.contains('sm-action-preview')) return openPreviewFor(btn.dataset.id);
-        if (btn.classList.contains('sm-action-run'))     return openRunFor(btn.dataset.id);
-        if (btn.classList.contains('sm-action-delete'))  return deleteRuleSet(btn.dataset.id);
-        if (btn.classList.contains('sm-action-log'))     return openProjectLog(btn.dataset.id, btn.dataset.pid || null);
-        if (btn.classList.contains('sm-refs-view'))      return openRefsModal(btn.dataset.rsid, btn.dataset.pid);
+        if (btn.classList.contains('sm-action-edit'))           return openEditor(btn.dataset.id);
+        if (btn.classList.contains('sm-action-preview'))        return openPreviewFor(btn.dataset.id);
+        if (btn.classList.contains('sm-action-run'))            return openRunFor(btn.dataset.id);
+        if (btn.classList.contains('sm-action-delete'))         return deleteRuleSet(btn.dataset.id);
+        if (btn.classList.contains('sm-action-log'))            return openProjectLog(btn.dataset.id, btn.dataset.pid || null);
+        if (btn.classList.contains('sm-refs-view'))             return openRefsModal(btn.dataset.rsid, btn.dataset.pid);
+        if (btn.classList.contains('sm-action-dryrun'))         return openDryRun(btn.dataset.rsid, btn.dataset.pid);
+        if (btn.classList.contains('sm-action-migrate-single')) return migrateOneProject(btn.dataset.rsid, btn.dataset.pid, btn);
     });
 
     function deleteRuleSet(id) {
@@ -259,9 +271,9 @@
 
     function renderPreviewRows(rows, ruleSetId) {
         const body = $('#sm-preview-body');
-        if (!rows.length) { body.innerHTML = '<tr><td colspan="10" class="text-muted">No projects.</td></tr>'; return; }
+        if (!rows.length) { body.innerHTML = '<tr><td colspan="11" class="text-muted">No projects.</td></tr>'; return; }
         body.innerHTML = rows.map(r => `
-            <tr>
+            <tr data-pid="${escapeHtml(r.project_id)}">
                 <td>${escapeHtml(r.project_id)}</td>
                 <td>${escapeHtml(r.project_title)}</td>
                 <td>${escapeHtml(r.sitesAffected || 0)}</td>
@@ -270,8 +282,9 @@
                 <td>${newCodesCell(r.newCodes)}</td>
                 <td>${r.recordsToMigrate == null ? '<span class="text-muted">—</span>' : escapeHtml(r.recordsToMigrate)}</td>
                 <td>${refsCell(r.codeReferences, r.project_id, ruleSetId)}</td>
-                <td>${statusBadge(r.status)}</td>
+                <td class="sm-row-status">${statusBadge(r.status)}</td>
                 <td><small class="text-muted">${escapeHtml(r.note || '')}</small></td>
+                <td class="sm-row-actions">${actionsCell(r, ruleSetId)}</td>
             </tr>
         `).join('');
     }
@@ -326,6 +339,164 @@
             document.body.appendChild(a); a.click(); a.remove();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         }).catch(showAjaxError);
+    }
+
+    // ─── Per-project dry run + single-project migrate ──────────────────────
+
+    let currentDryRunContext = { ruleSetId: null, pid: null };
+
+    function openDryRun(ruleSetId, pid) {
+        currentDryRunContext = { ruleSetId: Number(ruleSetId), pid: Number(pid) };
+        $('#sm-dryrun-title').textContent = 'Dry Run — Project ' + pid;
+        $('#sm-dryrun-content').innerHTML = '<span class="text-muted">Loading…</span>';
+        $('#sm-dryrun-migrate').disabled = false;
+        $('#sm-dryrun-modal').style.display = '';
+        ajax('previewSingleMigrationProject', { id: Number(ruleSetId), project_id: Number(pid) })
+            .then(function (data) {
+                $('#sm-dryrun-title').textContent = 'Dry Run — '
+                    + (data.project_title || 'Project ' + pid) + ' (#' + pid + ')';
+                $('#sm-dryrun-content').innerHTML = renderDryRunContent(data);
+                // Disable Migrate button if already completed / needs acknowledgement.
+                if (data.status === 'completed' || data.status === 'skipped') {
+                    $('#sm-dryrun-migrate').disabled = true;
+                } else if (data.status === 'needs_ack') {
+                    $('#sm-dryrun-migrate').disabled = true;
+                    $('#sm-dryrun-migrate').title = 'Acknowledge code references first (in the ⚠ refs modal)';
+                }
+            })
+            .catch(function (e) {
+                $('#sm-dryrun-content').innerHTML = '<div class="text-danger">' + escapeHtml(String(e)) + '</div>';
+            });
+    }
+
+    function renderDryRunContent(data) {
+        if (!data.field_name) {
+            return '<div class="alert alert-warning">' + escapeHtml(data.note || 'No studySites mapping configured.') + '</div>';
+        }
+
+        let html = '<div class="mb-2"><strong>Field:</strong> <code>' + escapeHtml(data.field_name) + '</code>'
+                 + ' &nbsp; ' + statusBadge(data.status) + '</div>';
+
+        // Label changes.
+        if (data.label_updates && data.label_updates.length > 0) {
+            html += '<h6 class="mt-3">Label Changes (' + data.label_updates.length + ')</h6>'
+                  + '<table class="table table-sm"><thead><tr>'
+                  + '<th>Code</th><th>Mode</th><th>Old Label</th><th>New Label</th>'
+                  + '</tr></thead><tbody>'
+                  + data.label_updates.map(function (lu) {
+                      const modeCls = lu.mode === 'in_place' ? 'sm-badge-active' : 'sm-badge-pending';
+                      return '<tr>'
+                           + '<td><code>' + escapeHtml(lu.code) + '</code></td>'
+                           + '<td><span class="sm-badge ' + modeCls + '">' + escapeHtml(lu.mode) + '</span></td>'
+                           + '<td>' + escapeHtml(lu.old_label) + '</td>'
+                           + '<td>' + escapeHtml(lu.new_label) + '</td>'
+                           + '</tr>';
+                  }).join('')
+                  + '</tbody></table>';
+        } else {
+            html += '<p class="text-muted small mt-2">No label changes planned.</p>';
+        }
+
+        // Code allocations.
+        if (data.code_allocations && data.code_allocations.length > 0) {
+            html += '<h6 class="mt-3">New Code Allocations (' + data.code_allocations.length + ')</h6>'
+                  + '<table class="table table-sm"><thead><tr>'
+                  + '<th>New Code</th><th>New Site</th><th>Reason</th>'
+                  + '</tr></thead><tbody>'
+                  + data.code_allocations.map(function (ca) {
+                      return '<tr>'
+                           + '<td><div class="sm-newcode-pill"><code>' + escapeHtml(ca.new_code) + '</code>: '
+                           + escapeHtml(ca.new_site) + '</div></td>'
+                           + '<td>' + escapeHtml(ca.new_site) + '</td>'
+                           + '<td>' + escapeHtml(ca.reason || '') + '</td>'
+                           + '</tr>';
+                  }).join('')
+                  + '</tbody></table>';
+        }
+
+        // Record migrations.
+        if (data.record_migrations && data.record_migrations.length > 0) {
+            const hasDeep = data.record_counts && Object.keys(data.record_counts).length > 0;
+            html += '<h6 class="mt-3">Record Migrations (' + data.record_migrations.length + ' code pair(s))</h6>'
+                  + '<table class="table table-sm"><thead><tr>'
+                  + '<th>Old Code</th><th>→ New Code</th><th>Reason</th>'
+                  + (hasDeep ? '<th>Records</th>' : '')
+                  + '</tr></thead><tbody>'
+                  + data.record_migrations.map(function (rm) {
+                      return '<tr>'
+                           + '<td><code>' + escapeHtml(rm.old_code) + '</code></td>'
+                           + '<td><code>' + escapeHtml(rm.new_code) + '</code></td>'
+                           + '<td>' + escapeHtml(rm.reason || '') + '</td>'
+                           + (hasDeep ? '<td>' + escapeHtml(data.record_counts[rm.old_code] != null ? data.record_counts[rm.old_code] : '—') + '</td>' : '')
+                           + '</tr>';
+                  }).join('')
+                  + '</tbody></table>';
+        }
+
+        // Code references warning.
+        if (data.code_references && data.code_references.total > 0) {
+            const refs = data.code_references;
+            const detail = ['branching_logic','action_tags','alerts','surveys_emails','surveys_scheduler','reports','calc_fields']
+                .filter(function (k) { return (refs[k] || 0) > 0; })
+                .map(function (k) { return '<li>' + escapeHtml(k) + ': ' + escapeHtml(refs[k]) + '</li>'; })
+                .join('');
+            html += '<div class="alert alert-warning mt-3">'
+                  + '<strong>⚠ ' + escapeHtml(refs.total) + ' code reference(s) found — review before migrating.</strong>'
+                  + '<ul class="mt-1 mb-0 small">' + detail + '</ul>'
+                  + '<div class="mt-1 small">Acknowledge this project in the <strong>⚠ Refs</strong> column of the preview table before running.</div>'
+                  + '</div>';
+        }
+
+        return html;
+    }
+
+    function migrateOneProject(ruleSetId, pid, triggerBtn) {
+        const title = triggerBtn
+            ? triggerBtn.closest('tr')?.querySelector('td:nth-child(2)')?.textContent?.trim()
+            : 'Project ' + pid;
+        if (!confirm('Migrate ' + (title || 'project ' + pid) + ' (#' + pid + ')?\n\n'
+                   + 'This will apply all planned changes. OnCore sync crons will be disabled until Finalize is called.')) {
+            return;
+        }
+        if (triggerBtn) triggerBtn.disabled = true;
+        // Also disable the Migrate button inside the dry-run modal if it's open for this project.
+        if (currentDryRunContext.pid === Number(pid) && currentDryRunContext.ruleSetId === Number(ruleSetId)) {
+            $('#sm-dryrun-migrate').disabled = true;
+        }
+
+        ajax('migrateSpecificProject', { id: Number(ruleSetId), project_id: Number(pid) })
+            .then(function (resp) {
+                // Update the preview table row in place.
+                const tr = $('#sm-preview-body tr[data-pid="' + pid + '"]');
+                if (tr) {
+                    const statusCell = tr.querySelector('.sm-row-status');
+                    if (statusCell) statusCell.innerHTML = statusBadge(resp.status);
+                    const actCell = tr.querySelector('.sm-row-actions');
+                    if (actCell) {
+                        if (resp.status === 'completed') {
+                            actCell.innerHTML = '<span class="text-success small">✓ ' + escapeHtml(resp.changesApplied) + ' changes</span>';
+                        } else if (resp.status === 'failed') {
+                            actCell.innerHTML = '<span class="text-danger small">✗ ' + escapeHtml(resp.error || 'failed') + '</span>';
+                            if (triggerBtn) triggerBtn.disabled = false; // allow retry on failure
+                        } else {
+                            if (triggerBtn) triggerBtn.disabled = false;
+                        }
+                    }
+                }
+                // Update dry-run modal if it is open for this project.
+                if (currentDryRunContext.pid === Number(pid)) {
+                    $('#sm-dryrun-content').innerHTML += '<div class="alert alert-' + (resp.status === 'completed' ? 'success' : 'danger') + ' mt-3">'
+                        + '<strong>' + escapeHtml(resp.status) + '</strong>'
+                        + (resp.changesApplied ? ': ' + escapeHtml(resp.changesApplied) + ' changes applied' : '')
+                        + (resp.recordsMigrated ? ', ' + escapeHtml(resp.recordsMigrated) + ' records rewritten' : '')
+                        + (resp.error ? ': ' + escapeHtml(resp.error) : '')
+                        + '</div>';
+                }
+            })
+            .catch(function (e) {
+                if (triggerBtn) triggerBtn.disabled = false;
+                showAjaxError(e);
+            });
     }
 
     // ─── Tab 4: Run Migration ───────────────────────────────────────────────
@@ -554,6 +725,15 @@
             // Code-references modal (Preview tab).
             $('#sm-refs-close').addEventListener('click', () => $('#sm-refs-modal').style.display = 'none');
             $('#sm-refs-ack').addEventListener('click', acknowledgeCurrentRefs);
+
+            // Dry-run details modal (Preview tab).
+            $('#sm-dryrun-close').addEventListener('click', () => $('#sm-dryrun-modal').style.display = 'none');
+            $('#sm-dryrun-close-btn').addEventListener('click', () => $('#sm-dryrun-modal').style.display = 'none');
+            $('#sm-dryrun-migrate').addEventListener('click', function () {
+                const { ruleSetId, pid } = currentDryRunContext;
+                if (!ruleSetId || !pid) return;
+                migrateOneProject(ruleSetId, pid, null);
+            });
 
             // Start on Rule Sets tab.
             activateTab('rule-sets');

@@ -1988,6 +1988,166 @@ class SiteMigration
     }
 
     // =======================================================================
+    // Single-project dry run + targeted migration
+    // =======================================================================
+
+    /**
+     * Dry-run preview for one specific project.
+     *
+     * Returns the full planFieldChanges output (label_updates, code_allocations,
+     * record_migrations) plus the code-reference scan result and — if $deep is
+     * true — per-old-code record counts from the sharded data table.
+     *
+     * Side effects: creates a status row for the project if one doesn't exist yet,
+     * persists the scan result, and flips the status to needs_ack / pending as
+     * appropriate — same behaviour as the per-project loop inside previewMigration().
+     */
+    public function previewSingleProject(int $ruleSetId, int $pid, bool $deep = false): array
+    {
+        $ruleSet = $this->getRuleSet($ruleSetId);
+        if (!$ruleSet) {
+            throw new \RuntimeException("Rule set #$ruleSetId not found.");
+        }
+
+        $title   = $this->fetchProjectTitle($pid);
+        $mapping = $this->getStudySiteMapping($pid);
+        if (!$mapping) {
+            return [
+                'project_id'        => $pid,
+                'project_title'     => $title,
+                'field_name'        => null,
+                'label_updates'     => [],
+                'code_allocations'  => [],
+                'record_migrations' => [],
+                'code_references'   => ['total' => 0],
+                'record_counts'     => [],
+                'status'            => self::PROJECT_SKIPPED,
+                'note'              => 'No studySites mapping configured',
+            ];
+        }
+
+        $plan      = $this->planFieldChanges($pid, $ruleSet['rules']);
+        $fieldName = $plan['field_name'];
+
+        // Code-reference scan for codes that will be rewritten (merge / target-bound sunset).
+        $oldCodes = array_unique(array_map(
+            fn($rm) => (string)$rm['old_code'],
+            $plan['record_migrations']
+        ));
+        $codeRefs = (!empty($oldCodes) && $fieldName)
+            ? $this->scanCodeReferences($pid, $fieldName, $oldCodes)
+            : ['total' => 0];
+
+        // Ensure status row exists; persist scan result; flip needs_ack / pending.
+        $statusTable    = OnCoreIntegration::REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS;
+        $existingStatus = $this->getProjectStatus($ruleSetId, $pid);
+        if ($existingStatus === null) {
+            $now = time();
+            $this->module->query(
+                "INSERT INTO $statusTable (migration_id, project_id, status, changes_applied, created, updated) VALUES (?, ?, ?, 0, ?, ?)",
+                [$ruleSetId, $pid, self::PROJECT_PENDING, $now, $now]
+            );
+            $existingStatus = self::PROJECT_PENDING;
+        }
+        $this->persistCodeReferences($ruleSetId, $pid, $codeRefs);
+
+        $newStatus = $existingStatus;
+        if ($codeRefs['total'] > 0) {
+            $newStatus = $this->getAcknowledgedAt($ruleSetId, $pid)
+                ? self::PROJECT_PENDING : self::PROJECT_NEEDS_ACK;
+        } elseif ($existingStatus === self::PROJECT_NEEDS_ACK) {
+            $newStatus = self::PROJECT_PENDING;
+        }
+        if ($newStatus !== $existingStatus
+            && !in_array($existingStatus, [self::PROJECT_COMPLETED, self::PROJECT_IN_PROGRESS, self::PROJECT_FAILED], true)) {
+            $this->markProjectStatus($ruleSetId, $pid, $newStatus, 0);
+        }
+
+        // Deep: per-old-code record counts from the sharded table.
+        $recordCounts = [];
+        if ($deep && $fieldName) {
+            foreach ($plan['record_migrations'] as $rm) {
+                $recordCounts[(string)$rm['old_code']] =
+                    $this->countRecordsWithSiteCode($pid, $fieldName, (string)$rm['old_code']);
+            }
+        }
+
+        return [
+            'project_id'        => $pid,
+            'project_title'     => $title,
+            'field_name'        => $fieldName,
+            'label_updates'     => $plan['label_updates'],
+            'code_allocations'  => $plan['code_allocations'],
+            'record_migrations' => $plan['record_migrations'],
+            'code_references'   => $codeRefs,
+            'record_counts'     => $recordCounts,
+            'status'            => $newStatus,
+            'note'              => '',
+        ];
+    }
+
+    /**
+     * Migrate one specific project without running the full automated queue.
+     *
+     * On the first call (or if crons aren't disabled yet): activates the rule set,
+     * disables OnCore sync crons, and runs updateLibrarySettings() (idempotent).
+     *
+     * Then calls processProject() for exactly the requested PID inside a single
+     * per-project transaction. Does NOT re-enable crons — call finalizeMigration()
+     * when all the projects you want to process have been handled.
+     */
+    public function migrateSpecificProject(int $ruleSetId, int $pid): array
+    {
+        $ruleSet = $this->getRuleSet($ruleSetId);
+        if (!$ruleSet) {
+            throw new \RuntimeException("Rule set #$ruleSetId not found.");
+        }
+
+        // First-call init: disable crons + mark active + library update (all idempotent).
+        if ($ruleSet['status'] === self::STATUS_DRAFT || !self::isMigrationInProgress($this->module)) {
+            $this->disableCrons();
+            if ($ruleSet['status'] === self::STATUS_DRAFT) {
+                $this->module->query(
+                    'UPDATE ' . OnCoreIntegration::REDCAP_ENTITY_ONCORE_SITE_MIGRATION
+                    . ' SET status = ?, updated = ? WHERE id = ?',
+                    [self::STATUS_ACTIVE, time(), $ruleSetId]
+                );
+            }
+            $libIdx = isset($ruleSet['library_index']) ? (int)$ruleSet['library_index'] : 0;
+            try {
+                $this->updateLibrarySettings($ruleSet['rules'], $libIdx, $ruleSetId);
+            } catch (\Throwable $e) {
+                $this->module->emError("migrateSpecificProject: updateLibrarySettings: " . $e->getMessage());
+                // Non-fatal — continue with per-project migration.
+            }
+        }
+
+        // Ensure a status row exists for this project.
+        if ($this->getProjectStatus($ruleSetId, $pid) === null) {
+            $now = time();
+            $this->module->query(
+                'INSERT INTO ' . OnCoreIntegration::REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS
+                . ' (migration_id, project_id, status, changes_applied, created, updated) VALUES (?, ?, ?, 0, ?, ?)',
+                [$ruleSetId, $pid, self::PROJECT_PENDING, $now, $now]
+            );
+        }
+
+        $title   = $this->fetchProjectTitle($pid);
+        $outcome = $this->processProject($pid, $ruleSet['rules'], $ruleSetId);
+
+        return [
+            'projectId'         => $pid,
+            'projectTitle'      => $title,
+            'status'            => $outcome['status'],
+            'changesApplied'    => $outcome['changes'] ?? 0,
+            'newCodesAllocated' => $outcome['newCodesAllocated'] ?? [],
+            'recordsMigrated'   => $outcome['recordsMigrated'] ?? null,
+            'error'             => $outcome['error'] ?? '',
+            'progress'          => $this->getMigrationStatus($ruleSetId),
+        ];
+    }
+
+    // =======================================================================
     // Schema migration — idempotent in-place upgrade for pre-rev-3 installs.
     // =======================================================================
 

@@ -169,12 +169,32 @@ $module->initializeJavascriptModuleObject();
                     <th title="Code references found in branching logic, alerts, ASI, reports">⚠ Refs</th>
                     <th>Status</th>
                     <th>Note</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="sm-preview-body">
-                <tr><td colspan="10" class="text-muted">Select a rule set and click Generate Preview.</td></tr>
+                <tr><td colspan="11" class="text-muted">Select a rule set and click Generate Preview.</td></tr>
             </tbody>
         </table>
+
+        <!-- Dry-run details modal (filled by previewSingleMigrationProject) -->
+        <div id="sm-dryrun-modal" class="sm-modal" style="display:none">
+            <div class="sm-modal-inner">
+                <div class="sm-modal-header">
+                    <strong id="sm-dryrun-title">Dry Run</strong>
+                    <button type="button" class="close" id="sm-dryrun-close">&times;</button>
+                </div>
+                <div class="sm-modal-body">
+                    <div id="sm-dryrun-content"><span class="text-muted">Loading…</span></div>
+                    <div class="text-right mt-3" id="sm-dryrun-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="sm-dryrun-close-btn">Close</button>
+                        <button type="button" class="btn btn-success btn-sm ml-2" id="sm-dryrun-migrate">
+                            Migrate This Project
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Code-reference details modal (filled by getCodeReferenceDetails) -->
         <div id="sm-refs-modal" class="sm-modal" style="display:none">

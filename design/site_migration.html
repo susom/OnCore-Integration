@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OnCore Study Site Migration — design preview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Bootstrap 4 (REDCap Control Center uses BS4 markup: nav-tabs, form-row, form-control-sm, etc.) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+<!-- ───────────────────────────────────────────────────────────────────────
+     Inlined verbatim from
+     www/modules-local/oncore_integration_v9.9.9/assets/styles/site_migration.css
+     ─────────────────────────────────────────────────────────────────────── -->
+<style>
+/* OnCore Study Site Migration — Control Center page styles. */
+
+#oncore-site-migration { padding: 16px 4px; }
+#oncore-site-migration h2 { margin-bottom: 4px; }
+#oncore-site-migration > p { margin-bottom: 18px; }
+
+#oncore-site-migration .nav-tabs { margin-bottom: 16px; }
+#oncore-site-migration .nav-tabs .nav-link { cursor: pointer; }
+
+.sm-tab { padding: 8px 4px 24px; }
+
+.sm-toolbar {
+    display: flex; gap: 8px; align-items: center;
+    margin-bottom: 14px; flex-wrap: wrap;
+}
+.sm-toolbar label { white-space: nowrap; margin: 0; }
+.sm-rule-select { width: 360px; }
+
+.sm-rule-sets-table, .sm-preview-table, .sm-run-table, .sm-history-table {
+    background: #fff;
+}
+.sm-rule-sets-table th, .sm-preview-table th,
+.sm-run-table th, .sm-history-table th {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .8px;
+    color: #475569; background: #f1f5f9; font-weight: 700;
+}
+
+/* Intro callout — explains what gets written */
+.sm-intro-callout {
+    background: #fff7ed; border: 1px solid #fdba74; border-radius: 6px;
+    padding: 10px 14px; margin-bottom: 18px; font-size: 12.5px; color: #7c2d12;
+}
+.sm-intro-callout ul { padding-left: 20px; margin: 4px 0; }
+.sm-intro-callout code { background: #fed7aa; color: #7c2d12; padding: 1px 4px; border-radius: 3px; }
+
+/* Status badges */
+.sm-badge {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 999px; line-height: 1.4;
+    background: #f1f5f9; color: #475569;
+}
+.sm-badge-draft     { background: #f1f5f9; color: #475569; }
+.sm-badge-active    { background: #dbeafe; color: #1e40af; }
+.sm-badge-completed { background: #d1fae5; color: #065f46; }
+.sm-badge-pending   { background: #fef3c7; color: #92400e; }
+.sm-badge-failed    { background: #fee2e2; color: #991b1b; }
+.sm-badge-skipped   { background: #ede9fe; color: #5b21b6; }
+.sm-badge-needs-ack { background: #fee2e2; color: #7f1d1d; border: 1px solid #fca5a5; }
+
+/* New-code pill (shown in preview + run tables) */
+.sm-newcode-pill {
+    display: inline-block; font-size: 11.5px;
+    background: #ecfeff; color: #155e75; border: 1px solid #a5f3fc;
+    padding: 1px 6px; border-radius: 4px; margin: 1px 2px;
+    white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;
+}
+.sm-newcode-pill code { background: transparent; padding: 0; color: #0e7490; font-weight: 700; }
+
+/* Warning chip — clickable, opens references modal */
+.sm-warning-chip {
+    background: #fff1f2; color: #9f1239; border: 1px solid #fda4af;
+    padding: 2px 8px; border-radius: 999px; font-weight: 600;
+}
+.sm-warning-chip:hover { background: #ffe4e6; text-decoration: none; }
+.sm-warning-chip small { font-weight: 400; margin-left: 4px; }
+
+/* Rule editor */
+.sm-rules-toolbar { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.sm-rules-textarea {
+    font-family: SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12.5px;
+}
+
+/* Preview summary stat row */
+.sm-summary {
+    display: flex; gap: 18px; flex-wrap: wrap;
+    margin-bottom: 12px; padding: 10px 14px;
+    background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;
+    font-size: 13px;
+}
+.sm-stat { color: #475569; }
+.sm-stat strong { color: #0f172a; font-size: 15px; }
+
+/* Run tab progress */
+.sm-progress { margin: 6px 0 18px; }
+.sm-progress-bar-wrap {
+    background: #f1f5f9; border-radius: 999px; height: 12px;
+    overflow: hidden; margin-bottom: 6px;
+}
+.sm-progress-bar {
+    height: 100%; width: 0;
+    background: linear-gradient(90deg, #2563eb 0%, #7c3aed 100%);
+    transition: width .3s;
+}
+.sm-progress-label { font-size: 12.5px; color: #475569; }
+
+/* Modal (vanilla — no Bootstrap dependency) */
+.sm-modal {
+    position: fixed; inset: 0; background: rgba(15,23,42,.5);
+    display: flex; align-items: center; justify-content: center; z-index: 9999;
+}
+.sm-modal-inner {
+    background: #fff; border-radius: 8px; width: min(900px, 95vw);
+    max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+}
+.sm-modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 18px; border-bottom: 1px solid #e2e8f0;
+}
+.sm-modal-header .close {
+    background: none; border: 0; font-size: 22px; line-height: 1;
+    color: #475569; cursor: pointer;
+}
+.sm-modal-body { padding: 14px 18px; }
+
+/* Tables — let long values wrap rather than expand the column. */
+.sm-preview-table td,
+.sm-history-table td,
+.sm-run-table td { word-break: break-word; }
+
+/* Compact table */
+#oncore-site-migration .table-sm { font-size: 13.5px; }
+</style>
+</head>
+<body>
+
+<!-- ───────────────────────────────────────────────────────────────────────
+     Login section — copied verbatim from
+     www/modules-local/group_therapy_sms_v9.9.9/pages/loginMockup.php
+     ─────────────────────────────────────────────────────────────────────── -->
+<style>
+    .gradient-custom-2 {
+        background: #c23127;
+    }
+    @media (min-width: 768px) {
+        .gradient-form { height: 100vh !important; }
+    }
+    @media (min-width: 769px) {
+        .gradient-custom-2 {
+            border-top-right-radius: .3rem;
+            border-bottom-right-radius: .3rem;
+        }
+    }
+</style>
+<section class="h-100 gradient-form" style="background-color: #eee;">
+    <div class="container py-5 h-100">
+        <div class="row d-flex justify-content-center align-items-center h-100">
+            <div class="col-xl-10">
+                <div class="card rounded-3 text-black">
+                    <div class="row g-0">
+                        <div class="col-lg-6">
+                            <div class="card-body p-md-5 mx-md-4">
+
+                                <div class="text-center">
+                                    <h4 class="mt-1 mb-5 pb-1">OnCore Site Migration</h4>
+                                </div>
+
+                                <form>
+                                    <p>Please login to your account</p>
+
+                                    <div class="form-outline mb-4">
+                                        <input id="username" class="form-control"/>
+                                        <label class="form-label" for="username">Username</label>
+                                    </div>
+
+                                    <div class="form-outline mb-4">
+                                        <input id="phone" class="form-control"
+                                               placeholder="(XXX) - XXX - XXXX" />
+                                        <label class="form-label" for="phone">Phone number</label>
+                                    </div>
+
+
+                                    <div class="text-center pt-1 mb-5 pb-1">
+                                        <button id="generate" class="btn btn-primary btn-block fa-lg gradient-custom-2 mb-3" type="button">Generate Code</button>
+                                    </div>
+                                    <div class="text-center pt-1 mb-5 pb-1">
+                                        <button id="login" class="btn btn-primary btn-block fa-lg mb-3 d-none" type="button">Login</button>
+                                    </div>
+                                </form>
+
+                            </div>
+                        </div>
+                        <div class="col-lg-6 d-flex align-items-center gradient-custom-2">
+                            <div class="text-white px-3 py-4 p-md-5 mx-md-4">
+                                <h4 class="mb-4">OnCore Study Site Migration</h4>
+                                <p class="small mb-0">Apply OnCore study-site renames, merges, keeps, and sunsets
+                                    retroactively across all OnCore-linked REDCap projects. Super-user access required.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─────────────────────────────────────────────────────────────────────── -->
+     Markup is a verbatim copy of
+     www/modules-local/oncore_integration_v9.9.9/pages/site_migration.php
+     (PHP echoes resolved to static values; library <option>s seeded from
+     the same getSubSettings('libraries') shape).
+     ─────────────────────────────────────────────────────────────────────── -->
+<div id="oncore-site-migration" class="container-fluid">
+    <h2>OnCore Study Site Migration</h2>
+    <p class="text-muted small">
+        Apply OnCore study-site renames, merges, keeps, and sunsets retroactively across
+        all OnCore-linked REDCap projects.
+    </p>
+    <div class="sm-intro-callout">
+        <div><strong>What gets written:</strong></div>
+        <ul class="mb-0">
+            <li><code>redcap_metadata.element_enum</code> — labels: rename relabels in place; merge allocates a new code and suffixes old ones <code>(retired — migrated to X)</code></li>
+            <li><code>redcap_external_modules_settings</code> — project site subset + value mapping + library site list</li>
+            <li><code>redcap_data*</code> (sharded) — <strong>merge and target-bound sunset rewrite record values</strong> from old code → new code on the project's resolved shard (<code>getDataTable($pid)</code> + allowlist regex). Renames leave records untouched.</li>
+        </ul>
+        <div class="mt-1 small">
+            Before any merge runs, a code-reference scan flags branching logic / alerts / ASI / report filters that reference the old codes. Findings appear as warnings; admin must Acknowledge each project before its migration is allowed to run.
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs" id="smTabs" role="tablist">
+        <li class="nav-item"><a class="nav-link active" data-tab="rule-sets" href="#">Rule Sets</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="editor" href="#">Rule Editor</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="preview" href="#">Preview</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="run" href="#">Run Migration</a></li>
+        <li class="nav-item"><a class="nav-link" data-tab="history" href="#">History</a></li>
+    </ul>
+
+    <!-- TAB: Rule Sets ------------------------------------------------- -->
+    <div class="sm-tab" data-tab-panel="rule-sets">
+        <div class="sm-toolbar">
+            <button class="btn btn-primary btn-sm" id="sm-new-rule-set">+ New Rule Set</button>
+            <button class="btn btn-link btn-sm" id="sm-reload-rule-sets">Reload</button>
+        </div>
+        <table class="table table-sm sm-rule-sets-table">
+            <thead>
+                <tr><th>ID</th><th>Name</th><th>Status</th><th>Library</th><th>Created</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="sm-rule-sets-body">
+                <tr><td colspan="6" class="text-muted">Loading…</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- TAB: Rule Editor ---------------------------------------------- -->
+    <div class="sm-tab" data-tab-panel="editor" style="display:none">
+        <form id="sm-editor-form">
+            <input type="hidden" id="sm-rule-id" value="0">
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label>Name</label>
+                    <input type="text" class="form-control form-control-sm" id="sm-name" required>
+                </div>
+                <div class="form-group col-md-4">
+                    <label>Library</label>
+                    <select class="form-control form-control-sm" id="sm-library">
+                        <!-- Seeded from MOCK_LIBRARIES below; matches getSubSettings('libraries') shape -->
+                        <option value="0">Stanford OnCore (18 sites)</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-2">
+                    <label>Status</label>
+                    <input type="text" class="form-control form-control-sm" id="sm-status" value="draft" disabled>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" class="form-control form-control-sm" id="sm-description"
+                       placeholder="e.g. Per Subject Study Site Worksheet (May 2026)">
+            </div>
+
+            <div class="sm-rules-toolbar">
+                <strong>Rules (JSON)</strong>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="sm-seed-may2026">
+                    Load May 2026 Stanford Worksheet
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="sm-validate-rules">
+                    Validate JSON
+                </button>
+            </div>
+            <textarea id="sm-rules-json" class="form-control sm-rules-textarea" rows="18"
+                      placeholder='[{"type":"keep","old_sites":["Byers Eye Institute"]}]'></textarea>
+            <small class="form-text text-muted">
+                Rule schema:
+                <code>{"id"?, "type": "rename|merge|keep|sunset", "old_sites": [...], "new_site"?, "primary_old_site"?, "merged_into"?, "retired_on"?}</code>.
+                <br>
+                <strong>rename</strong> = relabel the existing code in place; no <code>redcap_data*</code> write.
+                <strong>merge</strong> = allocate a new per-project code (<code>max+1</code>), suffix old codes <code>(retired — migrated to X)</code>, rewrite records on the project's shard.
+                <strong>sunset</strong> = suffix label <code>(retired YYYY-MM-DD)</code>; if <code>merged_into</code> is set, also rewrites records.
+                <strong>keep</strong> = no-op.
+                <br>
+                <code>primary_old_site</code> is informational only (used to seed the UI default) — the primary's code is <strong>not</strong> reused; merges always allocate a fresh code.
+                See <code>SITE_MIGRATION_PLAN.md</code> §5 and Appendix C.
+            </small>
+
+            <div class="mt-3">
+                <button type="button" class="btn btn-primary btn-sm" id="sm-save-rule-set">Save as Draft</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="sm-cancel-editor">Cancel</button>
+                <span id="sm-editor-msg" class="ml-3 small"></span>
+            </div>
+        </form>
+    </div>
+
+    <!-- TAB: Preview --------------------------------------------------- -->
+    <div class="sm-tab" data-tab-panel="preview" style="display:none">
+        <div class="sm-toolbar">
+            <label class="mb-0 mr-2">Rule Set:</label>
+            <select id="sm-preview-rule-set" class="form-control form-control-sm sm-rule-select"></select>
+            <button class="btn btn-primary btn-sm" id="sm-run-preview">Generate Preview</button>
+            <button class="btn btn-outline-primary btn-sm" id="sm-run-preview-deep" title="Counts records in redcap_data*">
+                Deep Preview (record counts)
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="sm-export-csv">Export CSV</button>
+        </div>
+
+        <div id="sm-preview-summary" class="sm-summary"></div>
+
+        <table class="table table-sm sm-preview-table">
+            <thead>
+                <tr>
+                    <th>PID</th>
+                    <th>Title</th>
+                    <th title="Sites in this project that match a rule's old_sites">Sites</th>
+                    <th title="element_enum label edits">Label Δ</th>
+                    <th title="value_mapping entries added">Map Δ</th>
+                    <th title="Codes newly allocated for merge / target-bound sunset">New Codes</th>
+                    <th title="Records that will be (or were, in deep preview) rewritten">Records</th>
+                    <th title="Code references found in branching logic, alerts, ASI, reports">⚠ Refs</th>
+                    <th>Status</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody id="sm-preview-body">
+                <tr><td colspan="10" class="text-muted">Select a rule set and click Generate Preview.</td></tr>
+            </tbody>
+        </table>
+
+        <!-- Code-reference details modal (filled by getCodeReferenceDetails) -->
+        <div id="sm-refs-modal" class="sm-modal" style="display:none">
+            <div class="sm-modal-inner">
+                <div class="sm-modal-header">
+                    <strong id="sm-refs-title">Code references</strong>
+                    <button type="button" class="close" id="sm-refs-close">&times;</button>
+                </div>
+                <div class="sm-modal-body">
+                    <div id="sm-refs-status" class="small text-muted mb-2"></div>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr><th>Source</th><th>Table</th><th>Row ID</th><th>Snippet</th></tr>
+                        </thead>
+                        <tbody id="sm-refs-body"></tbody>
+                    </table>
+                    <div class="text-right">
+                        <button type="button" class="btn btn-primary btn-sm" id="sm-refs-ack">
+                            Acknowledge — allow this project to run
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: Run Migration --------------------------------------------- -->
+    <div class="sm-tab" data-tab-panel="run" style="display:none">
+        <div class="alert alert-warning">
+            <strong>Heads up:</strong> starting a migration sets
+            <code>migration-in-progress = true</code>, which causes all 4 OnCore sync
+            crons to skip until finalize. The system flag is cleared by Finalize Migration.
+            <br>
+            Merges and target-bound sunsets will write to the project's
+            <code>redcap_data*</code> shard (resolved per project via
+            <code>getDataTable($pid)</code>). Per-project transactions wrap both metadata
+            and data writes, so a failure rolls back atomically.
+        </div>
+        <div id="sm-run-blocked-banner" class="alert alert-info" style="display:none"></div>
+
+        <div class="sm-toolbar">
+            <label class="mb-0 mr-2">Rule Set:</label>
+            <select id="sm-run-rule-set" class="form-control form-control-sm sm-rule-select"></select>
+            <button class="btn btn-success btn-sm" id="sm-run-start">Start Migration</button>
+            <button class="btn btn-warning btn-sm" id="sm-run-pause" disabled>Pause (after current project)</button>
+            <button class="btn btn-primary btn-sm" id="sm-run-finalize" disabled>Finalize</button>
+        </div>
+
+        <div id="sm-run-progress" class="sm-progress">
+            <div class="sm-progress-bar-wrap"><div class="sm-progress-bar" id="sm-progress-bar"></div></div>
+            <div class="sm-progress-label" id="sm-progress-label">No active migration.</div>
+        </div>
+
+        <table class="table table-sm sm-run-table">
+            <thead>
+                <tr>
+                    <th>Project</th>
+                    <th>Status</th>
+                    <th title="Codes newly allocated">New Codes</th>
+                    <th title="Records rewritten in redcap_data*">Records</th>
+                    <th>Changes</th>
+                    <th>Error</th>
+                </tr>
+            </thead>
+            <tbody id="sm-run-body"></tbody>
+        </table>
+    </div>
+
+    <!-- TAB: History --------------------------------------------------- -->
+    <div class="sm-tab" data-tab-panel="history" style="display:none">
+        <div class="sm-toolbar">
+            <button class="btn btn-link btn-sm" id="sm-reload-history">Reload</button>
+        </div>
+        <table class="table table-sm sm-history-table">
+            <thead>
+                <tr>
+                    <th>ID</th><th>Name</th><th>Status</th>
+                    <th>Completed</th><th>Failed</th><th>Skipped</th><th>Total</th>
+                    <th>Created</th><th></th>
+                </tr>
+            </thead>
+            <tbody id="sm-history-body">
+                <tr><td colspan="9" class="text-muted">Loading…</td></tr>
+            </tbody>
+        </table>
+
+        <!-- Project log modal -->
+        <div id="sm-log-modal" class="sm-modal" style="display:none">
+            <div class="sm-modal-inner">
+                <div class="sm-modal-header">
+                    <strong id="sm-log-title">Project log</strong>
+                    <button type="button" class="close" id="sm-log-close">&times;</button>
+                </div>
+                <div class="sm-modal-body">
+                    <div id="sm-log-status" class="small text-muted"></div>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr><th>Change Type</th><th>Field</th><th>Old Value</th><th>New Value</th></tr>
+                        </thead>
+                        <tbody id="sm-log-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ───────────────────────────────────────────────────────────────────────
+     Mock JSMO shim — gives the real site_migration.js something to call.
+     Real backend handlers live in classes/SiteMigration.php; here we just
+     return canned data of the same shape so the page renders end-to-end.
+     ─────────────────────────────────────────────────────────────────────── -->
+<script>
+window.ExternalModules = window.ExternalModules || {};
+window.ExternalModules.Stanford = window.ExternalModules.Stanford || {};
+
+const MOCK_LIBRARIES = [
+    { index: 0, name: 'Stanford OnCore', sites: new Array(18).fill('site') }
+];
+
+const MOCK_RULE_SETS = [
+    { id: 1, name: 'Q2 2026 Stanford Site Restructuring',
+      description: 'Per Subject Study Site Worksheet (May 2026)',
+      status: 'draft', library_index: 0, created: 1748563200, rules: [] },
+    { id: 2, name: '2025 Emeryville sunset (dry run)',
+      description: 'Single-rule test before Q2 push',
+      status: 'completed', library_index: 0, created: 1741132800, rules: [] }
+];
+
+const MOCK_PREVIEW_PROJECTS = [
+    { project_id: 21,  project_title: 'STARR Cohort Discovery',
+      sitesAffected: 4, labelChanges: 6, mappingChanges: 4,
+      newCodes: [{ code: 19, site: 'Main Hospital' }],
+      recordsToMigrate: 1284,
+      codeReferences: { total: 3 }, status: 'needs_ack',
+      note: '3 references in branching logic — acknowledge before run' },
+    { project_id: 22,  project_title: 'Pediatric Oncology Registry',
+      sitesAffected: 3, labelChanges: 5, mappingChanges: 3,
+      newCodes: [{ code: 19, site: "Children's Hospital" }],
+      recordsToMigrate: 642,
+      codeReferences: { total: 0 }, status: 'pending', note: '' },
+    { project_id: 47,  project_title: 'Redwood City Cardiology Study',
+      sitesAffected: 2, labelChanges: 3, mappingChanges: 2,
+      newCodes: [{ code: 14, site: 'Redwood City' }],
+      recordsToMigrate: 318,
+      codeReferences: { total: 1 }, status: 'needs_ack',
+      note: '1 reference in alert email' },
+    { project_id: 83,  project_title: 'Emeryville Imaging Pilot',
+      sitesAffected: 1, labelChanges: 2, mappingChanges: 1,
+      newCodes: [{ code: 11, site: 'Emeryville' }],
+      recordsToMigrate: 96,
+      codeReferences: { total: 0 }, status: 'pending', note: '' },
+    { project_id: 104, project_title: 'Byers Eye Long-term Followup',
+      sitesAffected: 1, labelChanges: 0, mappingChanges: 0,
+      newCodes: [], recordsToMigrate: 0,
+      codeReferences: { total: 0 }, status: 'skipped', note: 'keep-only — no changes' },
+    { project_id: 118, project_title: 'Psych Day Hospital Outcomes',
+      sitesAffected: 2, labelChanges: 2, mappingChanges: 0,
+      newCodes: [], recordsToMigrate: 0,
+      codeReferences: { total: 0 }, status: 'pending', note: 'rename only' },
+    { project_id: 152, project_title: 'Tri-Valley Sports Medicine',
+      sitesAffected: 1, labelChanges: 1, mappingChanges: 0,
+      newCodes: [], recordsToMigrate: 0,
+      codeReferences: { total: 0 }, status: 'pending', note: 'rename only' }
+];
+
+const MOCK_PREVIEW_RESP = {
+    totals: { projects: 7, pending: 4, needs_ack: 2, skipped: 1,
+              sitesAffected: 14, labelChanges: 19, mappingChanges: 10,
+              newCodes: 4, recordsToMigrate: 2340, codeReferences: 4 },
+    projects: MOCK_PREVIEW_PROJECTS
+};
+
+const MOCK_REFS = {
+    21: [
+        { source: 'branching_logic',  table: 'redcap_metadata',           row_id: 'field_id=8421',  snippet: "[study_site] = '7'" },
+        { source: 'alert',            table: 'redcap_alerts',             row_id: 'alert_id=312',    snippet: "[study_site] = '7' or [study_site] = '8'" },
+        { source: 'report_filter',    table: 'redcap_reports',            row_id: 'report_id=144',   snippet: "[study_site] in (7,8,9)" }
+    ],
+    47: [
+        { source: 'alert',            table: 'redcap_alerts',             row_id: 'alert_id=88',     snippet: "[study_site] = '12'" }
+    ]
+};
+
+const MOCK_HISTORY = [
+    { id: 2, name: '2025 Emeryville sunset (dry run)', status: 'completed',
+      completed: 3, failed: 0, skipped: 1, total_projects: 4, created: 1741132800 },
+    { id: 9, name: 'Q4 2025 LPCH cleanup',             status: 'completed',
+      completed: 11, failed: 1, skipped: 2, total_projects: 14, created: 1735689600 }
+];
+
+const MOCK_PROJECT_LOG = {
+    status: { status: 'completed', changes_applied: 18, error_message: '' },
+    changes: [
+        { change_type: 'label_rename',  field_name: 'study_site', old_value: 'SHC Tri-Valley',                     new_value: 'Tri-Valley',     project_id: 152 },
+        { change_type: 'code_allocate', field_name: 'study_site', old_value: '',                                   new_value: '19 = Main Hospital', project_id: 21 },
+        { change_type: 'label_suffix',  field_name: 'study_site', old_value: 'SCI-Palo Alto',                      new_value: 'SCI-Palo Alto (retired — migrated to Main Hospital)', project_id: 21 },
+        { change_type: 'data_rewrite',  field_name: 'study_site', old_value: '7',                                  new_value: '19',             project_id: 21 },
+        { change_type: 'mapping_add',   field_name: 'value_mapping', old_value: '',                                new_value: '7 -> 19',        project_id: 21 },
+        { change_type: 'system_flag',   field_name: 'migration-in-progress', old_value: 'false',                   new_value: 'true',           project_id: 0 }
+    ]
+};
+
+const RUN_QUEUE = [
+    { projectId: 21,  projectTitle: 'STARR Cohort Discovery',         status: 'blocked',   newCodesAllocated: [],                                 recordsMigrated: null, changesApplied: 0,  error: '' },
+    { projectId: 22,  projectTitle: 'Pediatric Oncology Registry',    status: 'completed', newCodesAllocated: [{code:19, site:"Children's Hospital"}], recordsMigrated: 642,  changesApplied: 11, error: '' },
+    { projectId: 47,  projectTitle: 'Redwood City Cardiology Study',  status: 'blocked',   newCodesAllocated: [],                                 recordsMigrated: null, changesApplied: 0,  error: '' },
+    { projectId: 83,  projectTitle: 'Emeryville Imaging Pilot',       status: 'completed', newCodesAllocated: [{code:11, site:'Emeryville'}],    recordsMigrated: 96,   changesApplied: 7,  error: '' },
+    { projectId: 104, projectTitle: 'Byers Eye Long-term Followup',   status: 'skipped',   newCodesAllocated: [],                                 recordsMigrated: 0,    changesApplied: 0,  error: '' },
+    { projectId: 118, projectTitle: 'Psych Day Hospital Outcomes',    status: 'completed', newCodesAllocated: [],                                 recordsMigrated: 0,    changesApplied: 2,  error: '' },
+    { projectId: 152, projectTitle: 'Tri-Valley Sports Medicine',     status: 'failed',    newCodesAllocated: [],                                 recordsMigrated: 0,    changesApplied: 0,  error: 'SQLSTATE[40001]: Deadlock found on redcap_data21; retried 3x' }
+];
+
+// JSMO mock — module.ajax(action, payload) → Promise resolving to the
+// same shapes that the real PHP handlers in SiteMigration.php return.
+const mockModule = {
+    smConfig: { libraries: MOCK_LIBRARIES, csrfToken: 'mock-csrf' },
+    ajax: function (action, payload) {
+        payload = payload || {};
+        let result;
+        switch (action) {
+            case 'listSiteMigrationRuleSets':   result = MOCK_RULE_SETS; break;
+            case 'getSiteMigrationRuleSet':     result = MOCK_RULE_SETS.find(r => r.id === Number(payload.id)) || null; break;
+            case 'saveSiteMigrationRuleSet':    result = { id: payload.id || 99 }; break;
+            case 'deleteSiteMigrationRuleSet':  result = { ok: true }; break;
+            case 'previewSiteMigration':
+            case 'previewSiteMigrationDeep':    result = MOCK_PREVIEW_RESP; break;
+            case 'getCodeReferenceDetails':     result = MOCK_REFS[Number(payload.project_id)] || []; break;
+            case 'acknowledgeProjectWarnings':  result = { ok: true }; break;
+            case 'exportMigrationPreview':      result = { csv: 'pid,title,records\n21,STARR,1284\n', filename: 'preview-mock.csv' }; break;
+            case 'startSiteMigration':          result = { blocked: [21, 47], total: 7, current: 0, completed: 0, failed: 0, skipped: 0, needs_ack: 2 }; runState._idx = 0; break;
+            case 'processNextMigrationProject': result = nextRunStep(); break;
+            case 'finalizeMigration':           result = { finalized: true }; break;
+            case 'getMigrationHistory':         result = MOCK_HISTORY; break;
+            case 'getMigrationProjectLog':      result = MOCK_PROJECT_LOG; break;
+            default: console.warn('Unmocked ajax action:', action); result = null;
+        }
+        // Mimic the PHP wrapper: {success, result} with result as JSON string.
+        return new Promise(resolve => setTimeout(
+            () => resolve({ success: true, result: JSON.stringify(result) }),
+            120
+        ));
+    }
+};
+
+const runState = { _idx: 0 };
+function nextRunStep() {
+    const i = runState._idx++;
+    if (i >= RUN_QUEUE.length) {
+        return { status: 'idle', projectId: null,
+                 progress: { total: RUN_QUEUE.length, current: RUN_QUEUE.length,
+                             completed: 3, failed: 1, skipped: 1, needs_ack: 2 } };
+    }
+    const r = RUN_QUEUE[i];
+    return Object.assign({}, r, {
+        status: r.status === 'blocked' ? 'blocked' : r.status,
+        progress: { total: RUN_QUEUE.length, current: i + 1,
+                    completed: RUN_QUEUE.slice(0, i + 1).filter(x => x.status === 'completed').length,
+                    failed:    RUN_QUEUE.slice(0, i + 1).filter(x => x.status === 'failed').length,
+                    skipped:   RUN_QUEUE.slice(0, i + 1).filter(x => x.status === 'skipped').length,
+                    needs_ack: RUN_QUEUE.slice(0, i + 1).filter(x => x.status === 'blocked').length }
+    });
+}
+
+window.ExternalModules.Stanford.OnCoreIntegration = mockModule;
+
+// initializeJavascriptModuleObject() is normally what produced `module`;
+// here we just expose the mock so site_migration.js's IIFE picks it up.
+</script>
+
+<!-- ───────────────────────────────────────────────────────────────────────
+     The real site_migration.js, loaded as-is. No edits.
+     ─────────────────────────────────────────────────────────────────────── -->
+<script src="../assets/scripts/site_migration.js"></script>
+
+<script>
+// Kick off the controller (the PHP page calls module.initSiteMigration()).
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof mockModule.initSiteMigration === 'function') {
+        mockModule.initSiteMigration();
+    } else {
+        console.error('initSiteMigration was not attached — check script load order.');
+    }
+});
+</script>
+</body>
+</html>
+

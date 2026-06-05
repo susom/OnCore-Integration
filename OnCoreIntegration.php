@@ -1590,6 +1590,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             'getMigrationStatus',        'finalizeMigration',
             'getMigrationHistory',       'getMigrationProjectLog',
             'getCodeReferenceDetails',   'acknowledgeProjectWarnings',
+            'previewSingleMigrationProject', 'migrateSpecificProject',
         ];
         return in_array($action, $actions, true);
     }
@@ -2108,6 +2109,19 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $rsid = (int)($payload['id'] ?? 0);
                         $logPid = isset($payload['project_id']) ? (int)$payload['project_id'] : null;
                         $result = $this->getSiteMigration()->getMigrationProjectLog($rsid, $logPid);
+                        break;
+
+                    // ─── Single-project dry run + targeted migration ──────────────
+                    case "previewSingleMigrationProject":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $pid  = (int)($payload['project_id'] ?? 0);
+                        $deep = !empty($payload['deep']);
+                        $result = $this->getSiteMigration()->previewSingleProject($rsid, $pid, $deep);
+                        break;
+                    case "migrateSpecificProject":
+                        $rsid = (int)($payload['id'] ?? 0);
+                        $pid  = (int)($payload['project_id'] ?? 0);
+                        $result = $this->getSiteMigration()->migrateSpecificProject($rsid, $pid);
                         break;
                 }
                 $return_o["success"] = 1;

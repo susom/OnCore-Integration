@@ -1,0 +1,531 @@
+Implementation prompt: migrate OnCore SiteMigration from rev-2 (label-suffix-only) to rev-3 (new-code allocation + sharded data rewrite)
+
+  Context
+
+  You are continuing an in-progress OnCore Integration EM feature: a Control Center page that retroactively applies OnCore study-site renames / merges / keeps /
+  sunsets across ~100 REDCap projects.
+
+  The design pivoted in rev 3 of SITE_MIGRATION_PLAN.md (now committed). The plan is the single source of truth — read it before coding. Key inflection points:
+
+  ┌─────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │    Plan section     │                                                    What changed in rev 3                                                     │
+  ├─────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ §2 design decisions │ redcap_data* IS now written for merges + target-bound sunsets. Renames stay in-place.                                        │
+  ├─────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ §3.4 / §3.5         │ Element_enum gets new codes allocated (max+1 per project) for merges. Records are rewritten on the project's resolved shard. │
+  ├─────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ §5                  │ Each rule type's exact behavior — read carefully, this is the spec.                                                          │
+  ├─────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ §6.2 / §6.3         │ Entity schema additions (new columns + change_types + needs_ack status).                                                     │
+  ├─────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ §7                  │ The full PHP API of SiteMigration after the rewrite.                                                                         │
+  ├─────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ §8                  │ Two new AJAX actions: getCodeReferenceDetails, acknowledgeProjectWarnings.                                                   │
+  ├─────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ §9                  │ Sequence diagram showing scan + acknowledge gating.                                                                          │
+  ├─────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ §10 / §13 / §16     │ UI / perf / shard contract.                                                                                                  │
+  └─────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  The Control Center UI shell is already updated (pages/site_migration.php, assets/scripts/site_migration.js, assets/styles/site_migration.css) to consume the rev-3
+  payload shape — see the columns newCodes, recordsToMigrate, codeReferences, the needs_ack status, the blocked[] array on startSiteMigration, the references modal. Do
+   not change the UI unless the JS expects a different field name than what you return. If conflicts arise, prefer the JS contract — easier to adapt the server.
+  
+  Current code state (verified, 2026-06-01)
+
+  - classes/SiteMigration.php — already exists, ~1605 lines, implementing rev-2 (suffix-only (changed to X) / (merged into X)). Many helpers you need
+  (getProjectDataTable, countRecordsWithSiteCode, getStudySiteMapping, getRcCodeForSite, suffixEnumLabel, claimNextPendingProject, markProjectStatus, transaction
+  wrapping) already work — keep them.
+  - OnCoreIntegration.php — 3 entity-type constants declared (REDCAP_ENTITY_ONCORE_SITE_MIGRATION, …_LOG, …_MIGRATION_PROJECT_STATUS); 13 AJAX cases routed; cron
+  guards in place on all 4 crons; migration-in-progress constant defined.
+  - config.json — 13 site-migration actions in auth-ajax-actions; the page is registered.
+  - pages/site_migration.php / .js / .css — rev-3-ready (intro callout, 10-col preview table with New Codes / Records / ⚠ Refs columns, refs modal, blocked banner,
+  status badges).
+
+  Deltas to apply (file by file)
+  
+  A. classes/SiteMigration.php — primary rewrite
+
+  A.1 Add constants
+
+  public const RULE_RENAME = 'rename';
+  public const RULE_MERGE  = 'merge';
+  public const RULE_KEEP   = 'keep';
+  public const RULE_SUNSET = 'sunset';
+
+  public const CHANGE_LIBRARY_SETTING        = 'library_setting';
+  public const CHANGE_PROJECT_SUBSET         = 'project_subset';
+  public const CHANGE_VALUE_MAPPING          = 'value_mapping';
+  public const CHANGE_FIELD_LABEL            = 'field_label';
+  public const CHANGE_CODE_ALLOCATION        = 'code_allocation';            // NEW
+  public const CHANGE_RECORD_VALUE_MIGRATION = 'record_value_migration';     // NEW
+
+  public const PROJECT_PENDING     = 'pending';
+  public const PROJECT_NEEDS_ACK   = 'needs_ack';     // NEW
+  public const PROJECT_IN_PROGRESS = 'in_progress';
+  public const PROJECT_COMPLETED   = 'completed';
+  public const PROJECT_FAILED      = 'failed';
+  public const PROJECT_SKIPPED     = 'skipped';
+  public const PROJECT_BLOCKED     = 'blocked';       // transient response status, never persisted
+
+  Reuse existing ones if already present; do not duplicate.
+
+  A.2 Add helpers (new methods)
+
+  private function validateDataTableName(string $tableName): string
+  // Allowlist regex /^redcap_data[2-8]?$/ — throw if it doesn't match.
+
+  private function parseElementEnum(string $raw): array       // "1, A | 2, B" → [1=>'A', 2=>'B']
+  private function serializeElementEnum(array $codes): string // [1=>'A', 2=>'B'] → "1, A | 2, B"
+  private function loadElementEnum(int $pid, string $fieldName): array
+  // returns ['raw' => string, 'codes' => [int|string => string]]; null/empty enum → ['raw'=>'', 'codes'=>[]]
+
+  private function allocateNewCode(array $codes): int
+  // max(array_keys($codes)) + 1; if codes is empty, return 1
+
+  private function findCodeForLabel(array $codes, string $label): ?int
+  // Return the code whose label exactly equals $label (no retirement suffix); used for idempotent re-runs.
+  // Compare with a normalizer that strips trailing "(retired …)" so a re-run can still find a previously allocated new code.
+
+  A.3 The keystone: planFieldChanges
+
+  This is the pure function that drives both preview and execution. It MUST be deterministic for the same (pid, rules) input and the same element_enum state.
+
+  public function planFieldChanges(int $pid, array $rules): array
+
+  Return shape (see plan §7):
+  
+  [
+      'field_name'        => 'site_dropdown' | null,
+      'code_allocations'  => [
+          ['rule_id'=>'...', 'new_site'=>'Main Hospital', 'new_code'=>24, 'reason'=>'merge'|'sunset'],
+          ...
+      ],
+      'label_updates'     => [
+          ['rule_id'=>'...', 'code'=>'1', 'mode'=>'in_place'|'suffix',
+           'old_label'=>'SCI-Palo Alto', 'new_label'=>'SCI-Palo Alto (retired — migrated to Main Hospital)'],
+          ...
+      ],
+      'record_migrations' => [
+          ['rule_id'=>'...', 'old_code'=>'1', 'new_code'=>24, 'reason'=>'merge'|'sunset'],
+          ...
+      ],
+  ]
+  
+  Algorithm — implement exactly as in plan §7 "planFieldChanges":
+
+  - For keep: skip.
+  - For rename: one entry in label_updates with mode='in_place'. No new code, no record migration.
+  - For merge and sunset with merged_into:
+    - Reuse a code via findCodeForLabel($codes, $newSite) if already present; else allocateNewCode($codes). If newly allocated, append to code_allocations. Update
+  local $codes so subsequent allocations don't collide.
+          ['rule_id'=>'...', 'code'=>'1', 'mode'=>'in_place'|'suffix',
+           'old_label'=>'SCI-Palo Alto', 'new_label'=>'SCI-Palo Alto (retired — migrated to Main Hospital)'],
+          ...
+      ],
+      'record_migrations' => [
+          ['rule_id'=>'...', 'old_code'=>'1', 'new_code'=>24, 'reason'=>'merge'|'sunset'],
+          ...
+      ],
+  ]
+
+  Algorithm — implement exactly as in plan §7 "planFieldChanges":
+
+  - For keep: skip.
+  - For rename: one entry in label_updates with mode='in_place'. No new code, no record migration.
+  - For merge and sunset with merged_into:
+    - Reuse a code via findCodeForLabel($codes, $newSite) if already present; else allocateNewCode($codes). If newly allocated, append to code_allocations. Update
+  local $codes so subsequent allocations don't collide.
+    - For each old_site: look up its current rc code via getRcCodeForSite. Append a label_updates entry with mode='suffix', suffix (retired — migrated to <NewSite>)
+  (or (retired YYYY-MM-DD, migrated to <NewSite>) for sunset+target). Append a record_migrations entry. Update local $codes so the suffix sticks for subsequent rules.
+  - For sunset without merged_into: just a mode='suffix' label update with (retired YYYY-MM-DD). No code allocation, no record migration.
+  - Idempotency: the suffix branch must check if the existing label already contains (retired — or (retired YYYY- — skip if so. The allocation branch must skip if
+  findCodeForLabel already returns a code with the exact new label (means a previous run created it). The data-migration branch is naturally idempotent (UPDATE matches
+   zero rows on re-run).
+
+  Use a working copy of $codes so the plan reflects cumulative state across rules within one project (an important edge case: a merge into "Emeryville" + a sunset of
+  "SHC - Emeryville" → "Emeryville" must reuse the same allocated code).
+
+  A.4 Replace updateFieldLabels with applyFieldChanges(int $pid, array $plan): array
+
+  - Load current element_enum, parse to codes.
+  - For each label_updates entry: rewrite the code's label (in place or with suffix). Skip on idempotent no-op.
+  - For each code_allocations entry: append (int)$alloc['new_code'] => $alloc['new_site'] to the codes map.
+  - Serialize and write back via a single UPDATE redcap_metadata SET element_enum=? WHERE project_id=? AND field_name=?.
+  - Return change-log entries: one CHANGE_FIELD_LABEL per non-trivial label update, one CHANGE_CODE_ALLOCATION per allocation. The allocation entry's new_value should
+  be "<code>, <label>".
+
+  Delete or deprecate the old updateFieldLabels body (and buildLabelSuffix — its rev-2 suffix shapes are gone). Keep suffixEnumLabel only if you reuse it as a
+  low-level utility; otherwise inline.
+
+  A.5 Rewrite updateValueMapping to take the plan
+
+  public function updateValueMapping(int $pid, array $rules, array $plan): array
+
+  For each rule:
+  - rename: append {oc: $rule['new_site'], rc: <oldCode>} to both pull and push value_mapping. (Use the existing rc code for the renamed site.)
+  - merge / sunset with target: append {oc: $newSite, rc: <newCode>} using the code from $plan['code_allocations'] (or the reused code returned by findCodeForLabel).
+  - sunset without target: no new mapping entry.
+  
+  Keep all existing oc → rc entries (do not remove old entries — backward compat per §4.3).
+
+  Skip duplicate additions (idempotent by {oc, rc} pair).
+
+  Return change-log entries (CHANGE_VALUE_MAPPING).
+  
+  A.6 New: updateRecordValues
+
+  private function updateRecordValues(int $pid, string $fieldName, string $oldCode, string $newCode): int
+  
+  $dataTable = $this->validateDataTableName($this->getProjectDataTable($pid));
+  $sql = "UPDATE `{$dataTable}`
+            SET value = ?
+          WHERE project_id = ?
+            AND field_name = ?
+            AND value = ?";
+  $this->module->query($sql, [(string)$newCode, $pid, $fieldName, (string)$oldCode]);
+  // Return affected_rows. The Stanford EM query wrapper exposes affected_rows on the mysqli result
+  // or a separate getter — check the existing accessor pattern in OnCoreIntegration.php (search for
+  // affected_rows usage) and use the same pattern. If unavailable, do a SELECT COUNT(*) of the
+  // same predicate BEFORE the UPDATE and return that.
+
+  Watchout 1 — table-name safety: never call query with the table name as a parameter; allowlist-validate then interpolate.
+
+  Watchout 2 — value column type: REDCap stores enum values as strings in redcap_data*.value. Always cast both sides of the comparison to string.
+
+  A.7 New: code-reference scan
+  
+  private function scanCodeReferences(int $pid, string $fieldName, array $oldCodes): array
+
+  Return shape:
+
+  [
+      'branching_logic'   => int,
+      'action_tags'       => int,
+      'alerts'            => int,
+      'surveys_emails'    => int,
+      'surveys_scheduler' => int,
+      'reports'           => int,
+      'total'             => int,
+  ]
+  
+  Plan §7 spells out the queries — six sources, one COUNT(*) each, REGEXP matching \[<field>\][[:space:]]*=[[:space:]]*['"]?(<oldCode1>|<oldCode2>|…)['"]?.
+
+  Anchor list (verify column names against this REDCap install — names sometimes drift):
+
+  ┌───────────────────┬──────────────────────────┬─────────────────┬──────────────────────────────────────────────────────────────────────────┐
+  │    Source key     │          Table           │     Column      │                                  Scope                                   │
+  ├───────────────────┼──────────────────────────┼─────────────────┼──────────────────────────────────────────────────────────────────────────┤
+  │ branching_logic   │ redcap_metadata          │ branching_logic │ project_id = ?                                                           │
+  ├───────────────────┼──────────────────────────┼─────────────────┼──────────────────────────────────────────────────────────────────────────┤
+  │ action_tags       │ redcap_metadata          │ misc            │ project_id = ?                                                           │
+  ├───────────────────┼──────────────────────────┼─────────────────┼──────────────────────────────────────────────────────────────────────────┤
+  │ alerts            │ redcap_alerts            │ trigger_logic   │ project_id = ?                                                           │
+  ├───────────────────┼──────────────────────────┼─────────────────┼──────────────────────────────────────────────────────────────────────────┤
+  │ surveys_emails    │ redcap_surveys_emails    │ condition_logic │ survey_id IN (SELECT survey_id FROM redcap_surveys WHERE project_id = ?) │
+  ├───────────────────┼──────────────────────────┼─────────────────┼──────────────────────────────────────────────────────────────────────────┤
+  │ surveys_scheduler │ redcap_surveys_scheduler │ condition_logic │ same                                                                     │
+  ├───────────────────┼──────────────────────────┼─────────────────┼──────────────────────────────────────────────────────────────────────────┤
+  │ reports           │ redcap_reports           │ limiter_logic   │ project_id = ?                                                           │
+  └───────────────────┴──────────────────────────┴─────────────────┴──────────────────────────────────────────────────────────────────────────┘
+  
+  If a table or column doesn't exist in this REDCap version, return 0 for that source and log an emDebug once at startup (don't blow up the whole scan).
+
+  A.8 New: getCodeReferenceDetails + acknowledgeProjectWarnings
+
+  public function getCodeReferenceDetails(int $ruleSetId, int $pid): array
+  // Re-runs (or rehydrates from code_references_json) and returns up to 200 row-level findings:
+  //   [{source, table, row_id, snippet}, ...]
+  // The snippet is the actual matched logic excerpt (with code highlighted) — useful for the modal.
+
+  public function acknowledgeProjectWarnings(int $ruleSetId, int $pid): void
+  // Flips redcap_entity_oncore_migration_project_status row from needs_ack → pending.
+  // Stamps acknowledged_at = time(), acknowledged_by = USERID.
+  // Refuse if status isn't currently needs_ack.
+
+  A.9 Rewrite processProject to include record migration + ack gate
+
+  Extend the existing transaction wrap. Pseudocode (plan §7):
+  
+  public function processProject(int $projectId, array $rules, int $migrationId): array
+  {
+      $status = $this->getProjectStatus($migrationId, $projectId);
+      if ($status === self::PROJECT_COMPLETED || $status === self::PROJECT_SKIPPED) {
+          return ['status' => self::PROJECT_SKIPPED, 'changes' => 0, 'error' => ''];
+      }
+      if ($status === self::PROJECT_NEEDS_ACK) {
+          return ['status' => self::PROJECT_BLOCKED, 'changes' => 0,
+                  'error' => 'Warnings unacknowledged'];
+      }
+      if ($status !== self::PROJECT_IN_PROGRESS) {
+          $this->markProjectStatus($migrationId, $projectId, self::PROJECT_IN_PROGRESS);
+      }
+
+      try {
+          $this->module->query('START TRANSACTION', []);
+  
+          $plan = $this->planFieldChanges($projectId, $rules);
+
+          $changes = [];
+          $changes = array_merge($changes, $this->updateProjectSiteSubset($projectId, $rules));
+          $changes = array_merge($changes, $this->updateValueMapping($projectId, $rules, $plan));
+          $changes = array_merge($changes, $this->applyFieldChanges($projectId, $plan));
+
+          $shardName = $plan['field_name']
+              ? $this->validateDataTableName($this->getProjectDataTable($projectId))
+              : null;
+
+          $totalRows = 0;
+          $newCodesAllocated = $plan['code_allocations'];
+
+          foreach ($plan['record_migrations'] as $rm) {
+              $rows = $this->updateRecordValues(
+                  $projectId, $plan['field_name'], (string)$rm['old_code'], (string)$rm['new_code']
+              );
+              $totalRows += $rows;
+              $changes[] = [
+                  'rule_id'     => $rm['rule_id'] ?? null,
+                  'change_type' => self::CHANGE_RECORD_VALUE_MIGRATION,
+                  'field_name'  => $plan['field_name'],
+                  'old_value'   => (string)$rm['old_code'],
+                  'new_value'   => (string)$rm['new_code'],
+                  'details'     => json_encode([
+                      'rows_affected' => $rows,
+                      'data_table'    => $shardName,
+                      'reason'        => $rm['reason'] ?? null,
+                  ]),
+              ];
+          }
+  
+          $this->logToEntity($projectId, $migrationId, $changes);
+          $this->module->query('COMMIT', []);
+
+          $this->logToREDCap($projectId, $changes);
+          $this->markProjectStatus($migrationId, $projectId, self::PROJECT_COMPLETED, count($changes));
+
+          return [
+              'status'              => self::PROJECT_COMPLETED,
+              'changes'             => count($changes),
+              'newCodesAllocated'   => array_map(fn($a) => ['code' => $a['new_code'], 'site' => $a['new_site']], $newCodesAllocated),
+              'recordsMigrated'     => $totalRows,
+              'error'               => '',
+          ];
+      } catch (\Throwable $e) {
+          try { $this->module->query('ROLLBACK', []); } catch (\Throwable $_) {}
+          $this->module->emError("Site migration project $projectId failed: " . $e->getMessage());
+          $this->markProjectStatus($migrationId, $projectId, self::PROJECT_FAILED, 0, $e->getMessage());
+          return ['status' => self::PROJECT_FAILED, 'changes' => 0, 'error' => $e->getMessage()];
+      }
+  }
+
+  The whole transaction must cover both redcap_metadata and redcap_data* writes — verify your DB engine is InnoDB; MyISAM kills rollback.
+
+  A.10 Rewrite previewMigration / analyzeProject
+
+  For each project (skipping completed/skipped):
+
+  1. Resolve the studySites mapping. If absent → status='skipped', note='no site mapping'.
+  2. Call planFieldChanges($pid, $rules).
+  3. Compute counts:
+    - sitesAffected = number of old sites referenced by the plan (label_updates + record_migrations unique by code).
+    - labelChanges = count($plan['label_updates']).
+    - mappingChanges = number of distinct new mapping entries that updateValueMapping would add (don't actually write — simulate; check existing mapping for
+  duplicates).
+    - newCodes = array_map(fn($a)=>['code'=>$a['new_code'],'site'=>$a['new_site']], $plan['code_allocations']).
+    - recordsToMigrate:
+        - Shallow preview: null (UI shows —).
+      - Deep preview: sum over record_migrations of countRecordsWithSiteCode($pid, $fieldName, $oldCode).
+  4. If $plan['record_migrations'] is non-empty (i.e., merge or target-sunset will rewrite codes): call scanCodeReferences($pid, $fieldName, oldCodes). Persist the
+  result to code_references_json on the project_status entity row.
+  5. If total > 0 and status isn't already acknowledged: set status to needs_ack. Otherwise pending.
+  6. Return the row with all the fields the JS expects (see UI shell):
+
+  [
+      'project_id'        => $pid,
+      'project_title'     => $title,
+      'sitesAffected'     => int,
+      'labelChanges'      => int,
+      'mappingChanges'    => int,
+      'newCodes'          => [['code'=>24, 'site'=>'Main Hospital'], ...],
+      'recordsToMigrate'  => int|null,
+      'codeReferences'    => ['total'=>3, 'branching_logic'=>2, 'alerts'=>1, ...],
+      'status'            => 'pending'|'needs_ack'|'skipped'|'completed'|'failed',
+      'note'              => string,
+  ]
+
+  7. Aggregate totals:
+
+  [
+      'projects'         => int,
+      'pending'          => int,
+      'needs_ack'        => int,
+      'skipped'          => int,
+      'sitesAffected'    => int,
+      'labelChanges'     => int,
+      'mappingChanges'   => int,
+      'newCodes'         => int,   // count of new codes across all projects
+      'recordsToMigrate' => int,   // sum (deep only; 0 in shallow)
+      'codeReferences'   => int,   // sum across all projects
+  ]
+
+  A.11 Update startMigration, getMigrationStatus, finalizeMigration, processNextProject
+
+  - startMigration: enumerate project_status rows; pending → pending list; needs_ack → blocked list; return {sessionId, total, projects, blocked}.
+  - getMigrationStatus: include a needs_ack count alongside completed/failed/skipped/in_progress.
+  - finalizeMigration: if any project is still needs_ack or failed, set rule-set status active and finalized: false. Else completed and finalized: true.
+  - processNextProject: return newCodesAllocated, recordsMigrated, projectTitle, projectId, status matching what appendRunRow expects in the JS.
+
+  A.12 Update exportPreviewCSV
+
+  One row per planned change. New columns: change_type, rule_id, code, old_code, new_code, old_label, new_label, records_affected_estimate. Include code_allocation and
+   record_migration rows alongside label/mapping/subset rows. Should be a flat dump useful for human review.
+
+  B. OnCoreIntegration.php — small additions
+
+  B.1 Entity schema additions in redcap_entity_types()
+
+  Locate the definition of redcap_entity_oncore_migration_project_status and add three columns to its properties array:
+
+  'code_references_json' => [
+      'name' => 'Code reference scan result',
+      'type' => 'long_text',
+      'default' => null,
+  ],
+  'acknowledged_at' => [
+      'name' => 'Warnings acknowledged at',
+      'type' => 'integer',
+      'default' => null,
+  ],
+  'acknowledged_by' => [
+      'name' => 'Warnings acknowledged by',
+      'type' => 'text',
+      'default' => null,
+  ],
+
+  If the status column has an enum-like choices list, add needs_ack to it.
+
+  Locate redcap_entity_oncore_site_migration_log definition and ensure it has a details column (long_text). If it doesn't, add it.
+
+  After schema changes, REDCap Entity won't auto-migrate existing tables. Either:
+  - Drop and recreate (acceptable while in dev — no production data yet).
+  - Or write a one-shot ALTER TABLE migration in a system_enable hook.
+  
+  B.2 Add 2 AJAX cases in redcap_module_ajax()
+
+  Around line ~2050 (next to the other site-migration cases):
+
+  case "getCodeReferenceDetails":
+      $rsid = (int)($payload['id'] ?? 0);
+      $pid  = (int)($payload['project_id'] ?? 0);
+      $result = $this->getSiteMigration()->getCodeReferenceDetails($rsid, $pid);
+      break;
+  case "acknowledgeProjectWarnings":
+      $rsid = (int)($payload['id'] ?? 0);
+      $pid  = (int)($payload['project_id'] ?? 0);
+      $this->getSiteMigration()->acknowledgeProjectWarnings($rsid, $pid);
+      $result = ['ok' => true, 'project_id' => $pid, 'acknowledged_at' => time()];
+      break;
+
+  B.3 Cron guards
+
+  Already in place. Verify each of the 4 crons (onCoreProtocolsScanCron, onCoreAutoPullCron, onCoreProtocolsSubjectsScanCron, onCoreREDCapRecordsScanCron) early-exits
+  when SiteMigration::isMigrationInProgress($this) is true. The grep confirmed they all do (lines 1283, 1337, 1615, 2175) — but double-check after any edits.
+
+  C. config.json — add 2 actions
+
+  "auth-ajax-actions": [
+      ...existing 13...,
+      "getCodeReferenceDetails",
+      "acknowledgeProjectWarnings"
+  ]
+
+  That's the only change to config.json. The control-center link and migration-in-progress setting are already there.
+
+  D. UI files — DO NOT EDIT (sanity check only)
+  
+  pages/site_migration.php, assets/scripts/site_migration.js, assets/styles/site_migration.css are already rev-3-ready. Verify these JS expectations match your server
+  responses:
+
+  - previewSiteMigration / previewSiteMigrationDeep return {totals, projects: [...]} with the fields listed in A.10.
+  - startSiteMigration returns {sessionId, total, projects, blocked: [pid, ...], current, completed, failed, skipped, needs_ack} (the JS reads progress shape from this
+   directly).
+  - processNextMigrationProject returns {current, total, projectId, projectTitle, status, changesApplied, newCodesAllocated, recordsMigrated, error, progress: {...}}.
+  - getCodeReferenceDetails returns [{source, table, row_id, snippet}, ...].
+  - acknowledgeProjectWarnings returns {ok: true, project_id, acknowledged_at}.
+
+  If you change a field name, change it in site_migration.js too — search the file for the field name first.
+
+  Implementation order
+  
+  Follow plan §15 phases — but with two phases already done (foundation + UI shell) you can start at phase 2 with a focused order:
+
+  1. Entity schema (B.1) — bump first because everything else writes/reads these columns. Drop/recreate the 3 tables in dev.
+  2. Helpers + planFieldChanges (A.2, A.3) — pure, unit-testable; this is the single highest-risk piece. Write fixtures: rename / merge-of-three / merge-of-one /
+  sunset-with-target / sunset-without-target / keep / re-run idempotency.
+  3. applyFieldChanges + updateValueMapping rewrite (A.4, A.5) — exercise against a test project.
+  4. Sharded updateRecordValues + validateDataTableName (A.6) — test against a project living on redcap_data AND one on redcap_data2+ if available.
+  5. scanCodeReferences + persist + ack (A.7, A.8) — verify the REGEXP against fixtures of branching logic with single quotes, double quotes, space variants.
+  6. processProject rewrite (A.9) — verify full transaction rollback under simulated failure (throw mid-flight).
+  7. Preview rewrites (A.10, A.12) — verify against the May 2026 worksheet seed (plan Appendix C).
+  sunset-with-target / sunset-without-target / keep / re-run idempotency.
+  3. applyFieldChanges + updateValueMapping rewrite (A.4, A.5) — exercise against a test project.
+  4. Sharded updateRecordValues + validateDataTableName (A.6) — test against a project living on redcap_data AND one on redcap_data2+ if available.
+  5. scanCodeReferences + persist + ack (A.7, A.8) — verify the REGEXP against fixtures of branching logic with single quotes, double quotes, space variants.
+  6. processProject rewrite (A.9) — verify full transaction rollback under simulated failure (throw mid-flight).
+  7. Preview rewrites (A.10, A.12) — verify against the May 2026 worksheet seed (plan Appendix C).
+  8. AJAX cases (B.2) + config additions (C).
+  9. Status/finalize updates (A.11).
+  10. End-to-end against a 2-project staging setup.
+
+  Acceptance criteria
+
+  - A rename rule applied to a project leaves redcap_data* untouched, changes only element_enum (one code's label changes), and adds one value_mapping entry.
+  Re-running is a no-op.
+  - A merge rule with three old sites on a project on redcap_data3:
+    - Adds a new code to element_enum (verify max-existing + 1).
+    - Suffixes the three old codes' labels with (retired — migrated to <NewSite>).
+    - Issues UPDATE redcap_data3 statements that move all records from the three old codes to the new code.
+    - Logs one code_allocation, three field_label, three record_value_migration entries (each with details.rows_affected and details.data_table = "redcap_data3").
+    - Adds one new value_mapping entry pointing the new site to the new code.
+    - Re-running is a no-op (zero rows touched, zero log entries).
+  - A project with branching logic [site] = '1' referencing a soon-to-be-rewritten code:
+    - Appears in preview with codeReferences.branching_logic >= 1 and status='needs_ack'.
+    - Is excluded from the pending list in startSiteMigration and included in blocked.
+    - The references modal lists the row with a snippet.
+    - Clicking Acknowledge flips status to pending and the next run loop picks it up.
+  - A simulated mid-processProject exception (throw after the data-table update) leaves the project's element_enum, value_mapping, project_subset, AND
+  redcap_data*.value all in their pre-migration state.
+  - Crons (onCoreProtocolsScanCron et al.) early-exit when migration-in-progress is true.
+  - The REDCap audit log (logEvent) shows one entry per migrated project with a multi-line description matching plan §12.
+  - Sunset-without-target leaves records untouched and only suffixes the label.
+  - A second rule set targeting the same projects skips already-completed projects without re-running plans against them.
+
+  Watchouts / pitfalls
+
+  - Per-project code numbering — each project has its own element_enum. Project A's "Main Hospital" might be code 24, Project B's might be 51. value_mapping is
+  per-project too, so this is fine. Never assume codes are stable across projects.
+  - Pull + push mapping — both branches in redcap-oncore-fields-mapping need the new entry. Easy to forget the push side.
+  - Codes can be non-numeric — element_enum allows alphanumeric codes. parseElementEnum should treat them as strings, not ints. allocateNewCode should compute max+1
+  only when all codes are numeric; otherwise allocate the smallest unused positive integer.
+  - oc values with quotes / brackets — site names like Quarry Rd clinics;Hoover Pavilion and Psychiatry: Page Mill, Porter Dr, other contain characters that look like
+  enum delimiters. Use proper parsing: split on | (space-pipe-space), then split the first ,  only.
+  - mysqli affected_rows — check how the existing query() wrapper surfaces this. If it doesn't, count rows BEFORE the UPDATE and use that as the reported count.
+  - getDataTable availability — framework v5+. The existing getProjectDataTable already handles the fallback. Don't rebuild that.
+  - Don't log code references inside the transaction — the scan ran during preview; persist in code_references_json then. Live execution just reads it. Re-running the
+  scan during processProject is wasted work.
+  - Library setting update runs ONCE, not per project — updateLibrarySettings(rules, libraryIndex) is called by startMigration, not by processProject. Make sure rev-3
+  doesn't accidentally move it into the per-project loop.
+  - REGEXP escaping — preg_quote for PCRE; for MySQL REGEXP you need to escape ] and \ differently. Test the pattern in MySQL directly.
+
+  Out of scope
+
+  - Auto-rewriting branching logic / alerts when codes change (plan §4.8 explicitly rejects this).
+  - Cross-library moves (plan §4.2).
+  - Backfilling (changed to X) suffixes left by old rev-2 runs (no production runs yet).
+  - An "undo" tool (mentioned as future work in §4.9).
+
+  Source-of-truth pointers
+
+  - Spec: SITE_MIGRATION_PLAN.md rev 3 — read §3 (storage), §5 (rule effects), §7 (class API), §9 (flow), §16 (shards) before writing code.
+  - Framework reference for any $module-> call: /Users/ihabz/php/redcap-docker-compose-master/www/modules-local/EXTERNAL_MODULES_INDEX.md.
+  - Seed data: Subject Study Site Worksheet.pdf (referenced) and SITE_MIGRATION_PLAN.md Appendix C for the canonical test rule set.

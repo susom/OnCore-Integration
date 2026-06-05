@@ -113,7 +113,9 @@
     "getMigrationHistory",
     "getMigrationProjectLog",
     "getCodeReferenceDetails",
-    "acknowledgeProjectWarnings"
+    "acknowledgeProjectWarnings",
+    "previewSingleMigrationProject",
+    "migrateSpecificProject"
   ],
   "project-settings": [
     {
