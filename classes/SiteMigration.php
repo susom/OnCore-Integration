@@ -11,9 +11,10 @@ namespace Stanford\OnCoreIntegration;
  * Per rule-type effect summary:
  *   - rename             → in-place element_enum relabel; no new code; no record write.
  *   - merge              → allocate per-project max+1 code with clean new label;
- *                          suffix each old code's label "(retired — migrated to <new>)";
- *                          UPDATE redcap_data* records from each old code → new code.
- *   - sunset w/ target   → merge variant; new label suffix carries "(retired YYYY-MM-DD, migrated to <new>)".
+ *                          suffix each old code's label "(retired, merged into <new>)";
+ *                          UPDATE redcap_data* records from each old code → new code
+ *                          (each rewritten record is logged via REDCap::logEvent()).
+ *   - sunset w/ target   → merge variant; new label suffix carries "(retired YYYY-MM-DD, merged into <new>)".
  *   - sunset w/o target  → label-only suffix "(retired YYYY-MM-DD)"; no code allocation; no record write.
  *   - keep               → no-op.
  *
@@ -50,6 +51,14 @@ class SiteMigration
     public const PROJECT_COMPLETED   = 'completed';
     public const PROJECT_FAILED      = 'failed';
     public const PROJECT_SKIPPED     = 'skipped';
+
+    /**
+     * Max per-record REDCap::logEvent() entries written per project during record-value
+     * migration. Beyond this, a single summarizing entry is logged per code pair so a
+     * pathological project (thousands of subjects at a merged site) can't blow the
+     * request's execution time with thousands of synchronous log INSERTs.
+     */
+    public const PER_RECORD_LOG_CAP = 500;
 
     /** Change-type values */
     public const CHANGE_LIBRARY_SETTING        = 'library_setting';
@@ -329,8 +338,10 @@ class SiteMigration
                     if ($newSite === '') {
                         continue;
                     }
-                    $oldSite = $rule['old_sites'][0] ?? '';
-                    $newRc = $this->getRcCodeForSite($oldSite, $vmap);
+                    // Prefer the planner's resolved code; fall back to vmap lookup for
+                    // safety if site_code_map is absent (e.g. called from older code paths).
+                    $newRc = $plan['site_code_map'][$newSite]
+                          ?? $this->getRcCodeForSite($rule['old_sites'][0] ?? '', $vmap);
                 } elseif ($type === self::RULE_MERGE
                        || ($type === self::RULE_SUNSET && !empty($rule['merged_into']))) {
                     $newSite = $type === self::RULE_MERGE
@@ -339,12 +350,13 @@ class SiteMigration
                     if ($newSite === '') {
                         continue;
                     }
-                    if (isset($allocByNewSite[$newSite])) {
-                        $newRc = $allocByNewSite[$newSite];
-                    } else {
-                        // Re-run case: a previous run allocated this label already.
-                        $newRc = $this->getRcCodeForSite($newSite, $vmap);
-                    }
+                    // Use the plan's authoritative code (allocation or existing element_enum
+                    // code found by findCodeForLabel).  Do NOT fall back to getRcCodeForSite
+                    // here — value_mapping may carry a stale entry from a prior rename run
+                    // that points to the wrong rc, causing the correct entry to be skipped.
+                    $newRc = $plan['site_code_map'][$newSite]
+                          ?? $allocByNewSite[$newSite]
+                          ?? null;
                 } else {
                     // Sunset without target — no new mapping entry.
                     continue;
@@ -415,6 +427,9 @@ class SiteMigration
             'code_allocations'  => [],
             'label_updates'     => [],
             'record_migrations' => [],
+            // new_site => resolved_rc: authoritative source for updateValueMapping so it
+            // doesn't fall back to a stale value_mapping entry when no allocation occurred.
+            'site_code_map'     => [],
         ];
 
         $mapping = $this->getStudySiteMapping($pid);
@@ -451,8 +466,15 @@ class SiteMigration
                     continue;
                 }
                 $existingLabel = (string)$codes[$oldCode];
-                if ($existingLabel === $newSite) {
-                    continue; // already renamed
+                // Skip if already renamed — compare against the clean label so a retire
+                // suffix accidentally added by a previous run is not treated as a new name.
+                if (trim($this->stripRetiredSuffix($existingLabel)) === trim($newSite)) {
+                    continue;
+                }
+                // Don't rename a code that has already been retired by a merge/sunset;
+                // doing so would strip the retirement marker.
+                if ($this->labelAlreadyRetired($existingLabel)) {
+                    continue;
                 }
                 $plan['label_updates'][] = [
                     'rule_id'   => $rule['id'] ?? null,
@@ -462,6 +484,7 @@ class SiteMigration
                     'new_label' => $newSite,
                 ];
                 $codes[$oldCode] = $newSite;
+                $plan['site_code_map'][$newSite] = $oldCode;
                 continue;
             }
 
@@ -490,13 +513,22 @@ class SiteMigration
                         'reason'   => $type,
                     ];
                 }
+                // Record the authoritative code so updateValueMapping never falls back
+                // to a stale value_mapping entry (e.g. one added by a previous rename).
+                $plan['site_code_map'][$newSite] = $newCode;
 
                 $suffix = ($type === self::RULE_SUNSET && !empty($rule['retired_on']))
-                    ? "(retired {$rule['retired_on']}, migrated to $newSite)"
-                    : "(retired — migrated to $newSite)";
+                    ? "(retired {$rule['retired_on']}, merged into $newSite)"
+                    : "(retired, merged into $newSite)";
 
                 foreach ($rule['old_sites'] as $oldSite) {
                     $oldCode = $this->getRcCodeForSite($oldSite, $vmap);
+                    if ($oldCode === null) {
+                        // vmap has no entry for this old site — fall back to matching the
+                        // element_enum label so the code is retired even when the project's
+                        // value_mapping is missing or incomplete for this site.
+                        $oldCode = $this->findCodeForLabel($codes, $oldSite);
+                    }
                     if ($oldCode === null) {
                         continue;
                     }
@@ -510,7 +542,16 @@ class SiteMigration
                     }
                     $existingLabel = (string)$codes[$oldCode];
                     if ($this->labelAlreadyRetired($existingLabel)) {
-                        continue; // already suffixed in a prior run
+                        // Label was already retired by a prior run — no label_update, but
+                        // still plan the record migration: the prior run may have retired the
+                        // label and then failed or been rolled back before records were moved.
+                        $plan['record_migrations'][] = [
+                            'rule_id'  => $rule['id'] ?? null,
+                            'old_code' => $oldCode,
+                            'new_code' => $newCode,
+                            'reason'   => $type,
+                        ];
+                        continue;
                     }
                     $newLabel = rtrim($existingLabel) . ' ' . $suffix;
                     $plan['label_updates'][] = [
@@ -562,6 +603,126 @@ class SiteMigration
         }
 
         return $plan;
+    }
+
+    /**
+     * Turn a plan into per-rule, plain-English change items for the UI. Only rules that
+     * actually affect THIS project (produced a label / code / record change) are returned,
+     * so the preview reads as "what happens here", not the whole rule set.
+     *
+     * @param array $rules         the rule set's rules (for type + site names)
+     * @param array $plan          output of planFieldChanges()
+     * @param array $recordCounts  optional old_code => count; when present, record counts
+     *                             are shown (deep preview) or reflect rows actually moved
+     * @return array<int,array{rule_id:?string,type:string,kind:string,headline:string,lines:array,records:?int}>
+     */
+    public function buildHumanChanges(array $rules, array $plan, array $recordCounts = []): array
+    {
+        // Index plan entries by rule_id.
+        $byRule = [];
+        $push = function (string $bucket, $entry) use (&$byRule) {
+            $rid = (string)($entry['rule_id'] ?? '');
+            $byRule[$rid][$bucket][] = $entry;
+        };
+        foreach (($plan['label_updates']     ?? []) as $e) $push('labels',     $e);
+        foreach (($plan['code_allocations']  ?? []) as $e) $push('allocs',     $e);
+        foreach (($plan['record_migrations'] ?? []) as $e) $push('migrations', $e);
+
+        $haveDeep = !empty($recordCounts);
+        $items = [];
+
+        foreach ($rules as $rule) {
+            $rid  = (string)($rule['id'] ?? '');
+            $type = (string)($rule['type'] ?? '');
+            $entries = $byRule[$rid] ?? null;
+            if (!$entries) {
+                continue; // rule did nothing in this project — omit
+            }
+            $labels     = $entries['labels']     ?? [];
+            $allocs     = $entries['allocs']      ?? [];
+            $migrations = $entries['migrations']  ?? [];
+
+            // clean old-label lookup by code (from suffix label updates)
+            $oldLabelByCode = [];
+            foreach ($labels as $lu) {
+                if (($lu['mode'] ?? '') === 'suffix') {
+                    $oldLabelByCode[(string)$lu['code']] = $this->stripRetiredSuffix((string)$lu['old_label']);
+                }
+            }
+
+            $lines   = [];
+            $records = $haveDeep ? 0 : null;
+
+            // ---- RENAME ----
+            if ($type === self::RULE_RENAME) {
+                foreach ($labels as $lu) {
+                    $lines[] = sprintf('“%s” → “%s” (label only — records keep code %s)',
+                        $lu['old_label'], $lu['new_label'], $lu['code']);
+                }
+                $items[] = [
+                    'rule_id'  => $rule['id'] ?? null,
+                    'type'     => $type,
+                    'kind'     => 'rename',
+                    'headline' => 'Rename → ' . (string)($rule['new_site'] ?? ''),
+                    'lines'    => $lines,
+                    'records'  => 0,
+                ];
+                continue;
+            }
+
+            // ---- MERGE / SUNSET-with-target ----
+            $isMergeLike = ($type === self::RULE_MERGE)
+                || ($type === self::RULE_SUNSET && !empty($rule['merged_into']));
+            if ($isMergeLike) {
+                $newSite = $type === self::RULE_MERGE
+                    ? (string)($rule['new_site'] ?? '')
+                    : (string)($rule['merged_into'] ?? '');
+
+                foreach ($allocs as $a) {
+                    $lines[] = sprintf('New site “%s” added as code %s', $a['new_site'], $a['new_code']);
+                }
+                foreach ($migrations as $rm) {
+                    $oc   = (string)$rm['old_code'];
+                    $name = $oldLabelByCode[$oc] ?? ('code ' . $oc);
+                    if ($haveDeep) {
+                        $cnt = (int)($recordCounts[$oc] ?? 0);
+                        $records += $cnt;
+                        $lines[] = sprintf('“%s” retired → %d record(s) moved to “%s”', $name, $cnt, $newSite);
+                    } else {
+                        $lines[] = sprintf('“%s” retired → records moved to “%s”', $name, $newSite);
+                    }
+                }
+                if (empty($migrations) && !empty($allocs)) {
+                    $lines[] = 'No existing records use the retired sites in this project.';
+                }
+                $items[] = [
+                    'rule_id'  => $rule['id'] ?? null,
+                    'type'     => $type,
+                    'kind'     => $type === self::RULE_MERGE ? 'merge' : 'sunset_target',
+                    'headline' => ($type === self::RULE_MERGE ? 'Merge → ' : 'Retire & merge → ') . $newSite,
+                    'lines'    => $lines,
+                    'records'  => $records,
+                ];
+                continue;
+            }
+
+            // ---- SUNSET without target (label suffix only) ----
+            if ($type === self::RULE_SUNSET) {
+                foreach ($labels as $lu) {
+                    $lines[] = sprintf('“%s” → “%s”', $lu['old_label'], $lu['new_label']);
+                }
+                $items[] = [
+                    'rule_id'  => $rule['id'] ?? null,
+                    'type'     => $type,
+                    'kind'     => 'sunset',
+                    'headline' => 'Retire (label only)',
+                    'lines'    => $lines,
+                    'records'  => 0,
+                ];
+            }
+        }
+
+        return $items;
     }
 
     /**
@@ -711,6 +872,35 @@ class SiteMigration
         );
         $row = $r ? $r->fetch_assoc() : null;
         return (int)($row['c'] ?? 0);
+    }
+
+    /**
+     * Return the exact rows that updateRecordValues() will rewrite — same
+     * (project_id, field_name, value) WHERE clause, so the captured set equals
+     * the updated set. Captured BEFORE the UPDATE so per-record REDCap::logEvent()
+     * can attribute each data change to its record + event after the rewrite.
+     *
+     * @return array<int,array{record:string,event_id:string,instance:?string}>
+     */
+    public function getRecordsWithSiteCode(int $pid, string $fieldName, string $rcCode): array
+    {
+        $table = $this->validateDataTableName($this->getProjectDataTable($pid));
+        $r = $this->module->query(
+            "SELECT record, event_id, instance FROM `$table`
+              WHERE project_id = ? AND field_name = ? AND value = ?",
+            [$pid, $fieldName, (string)$rcCode]
+        );
+        $rows = [];
+        if ($r) {
+            while ($row = $r->fetch_assoc()) {
+                $rows[] = [
+                    'record'   => (string)($row['record'] ?? ''),
+                    'event_id' => (string)($row['event_id'] ?? ''),
+                    'instance' => $row['instance'] !== null ? (string)$row['instance'] : null,
+                ];
+            }
+        }
+        return $rows;
     }
 
     // =======================================================================
@@ -958,6 +1148,77 @@ class SiteMigration
         );
     }
 
+    /**
+     * Per-record audit logging for record-value migrations.
+     *
+     * Raw UPDATEs on redcap_data* bypass REDCap's normal data-change logging, so each
+     * rewritten row is recorded here via REDCap::logEvent() attached to its record +
+     * event_id. The entry type is "OTHER" (the public API forces it), so it appears in
+     * the record's Logging trail. changes_made is formatted "<field> = '<newCode>'" with
+     * the old→new context so it reads cleanly.
+     *
+     * Capped at PER_RECORD_LOG_CAP entries for the whole project; once exhausted, a single
+     * summarizing entry per code pair states how many more rows were recoded.
+     *
+     * Best-effort: called AFTER commit. A logging failure never rolls back the migration.
+     *
+     * @param array<int,array{old_code:string,new_code:string,reason:?string,old_label:?string,new_site:?string,rows:array}> $migrations
+     */
+    public function logRecordMigrationsToREDCap(int $pid, string $fieldName, array $migrations, string $title = 'OnCore Site Migration — study site recoded'): void
+    {
+        if ($pid <= 0 || $fieldName === '' || empty($migrations)) {
+            return;
+        }
+        $logged = 0;
+        foreach ($migrations as $m) {
+            $oldCode  = (string)($m['old_code'] ?? '');
+            $newCode  = (string)($m['new_code'] ?? '');
+            $newSite  = (string)($m['new_site'] ?? '');
+            $oldLabel = (string)($m['old_label'] ?? '');
+            $rows     = is_array($m['rows'] ?? null) ? $m['rows'] : [];
+
+            $context = ($oldLabel !== '' && $newSite !== '')
+                ? "$oldLabel → $newSite"
+                : "site code $oldCode → $newCode";
+
+            $deferred = 0;
+            foreach ($rows as $row) {
+                if ($logged >= self::PER_RECORD_LOG_CAP) {
+                    $deferred++;
+                    continue;
+                }
+                $record = (string)($row['record'] ?? '');
+                if ($record === '') {
+                    continue;
+                }
+                $eventId = (isset($row['event_id']) && $row['event_id'] !== '')
+                    ? (int)$row['event_id'] : null;
+
+                \REDCap::logEvent(
+                    $title,
+                    sprintf("%s = '%s'\n(migrated from '%s'; %s)", $fieldName, $newCode, $oldCode, $context),
+                    '',         // sql
+                    $record,    // record — attaches the entry to this record's log
+                    $eventId,   // numeric event_id
+                    $pid
+                );
+                $logged++;
+            }
+
+            if ($deferred > 0) {
+                \REDCap::logEvent(
+                    $title . ' (summary)',
+                    sprintf(
+                        "%s: %d additional record(s) recoded from '%s' to '%s' (%s). "
+                        . "Per-record logging capped at %d entries for this project.",
+                        $fieldName, $deferred, $oldCode, $newCode, $context, self::PER_RECORD_LOG_CAP
+                    ),
+                    '', null, null, $pid
+                );
+            }
+        }
+    }
+
     // =======================================================================
     // Cron guard primitives
     // =======================================================================
@@ -1167,6 +1428,7 @@ class SiteMigration
             'changesApplied'    => $outcome['changes'] ?? 0,
             'newCodesAllocated' => $outcome['newCodesAllocated'] ?? [],
             'recordsMigrated'   => $outcome['recordsMigrated'] ?? null,
+            'human_changes'     => $outcome['human_changes'] ?? [],
             'error'             => $outcome['error'] ?? '',
             'progress'          => $this->getMigrationStatus($ruleSetId),
         ];
@@ -1270,22 +1532,54 @@ class SiteMigration
 
             // Sharded record-value migrations (merge / target-bound sunset).
             $shardName = null;
+            $capturedMigrations = [];   // captured-before-UPDATE rows, for per-record logging after commit
+            $appliedCounts      = [];   // old_code => rows actually moved, for the human summary
             if (!empty($plan['record_migrations']) && !empty($plan['field_name'])) {
                 $shardName = $this->validateDataTableName($this->getProjectDataTable($projectId));
+
+                // Resolve human-readable names for per-record logging:
+                //   old code → clean old site label (from the suffix label_updates)
+                //   new code → new site name (from the plan's authoritative site_code_map)
+                $oldLabelByCode = [];
+                foreach ($plan['label_updates'] as $lu) {
+                    if (($lu['mode'] ?? '') === 'suffix') {
+                        $oldLabelByCode[(string)$lu['code']] = $this->stripRetiredSuffix((string)$lu['old_label']);
+                    }
+                }
+                $newSiteByCode = [];
+                foreach (($plan['site_code_map'] ?? []) as $site => $code) {
+                    $newSiteByCode[(string)$code] = (string)$site;
+                }
+
                 foreach ($plan['record_migrations'] as $rm) {
-                    $rows = $this->updateRecordValues(
-                        $projectId,
-                        $plan['field_name'],
-                        (string)$rm['old_code'],
-                        (string)$rm['new_code']
-                    );
+                    $oldCode = (string)$rm['old_code'];
+                    $newCode = (string)$rm['new_code'];
+
+                    // Capture affected rows BEFORE the rewrite — identical WHERE to
+                    // updateRecordValues(), so the captured set equals the updated set.
+                    $affected = $this->getRecordsWithSiteCode($projectId, $plan['field_name'], $oldCode);
+
+                    $rows = $this->updateRecordValues($projectId, $plan['field_name'], $oldCode, $newCode);
                     $totalRows += $rows;
+                    $appliedCounts[$oldCode] = $rows;
+
+                    if (!empty($affected)) {
+                        $capturedMigrations[] = [
+                            'old_code'  => $oldCode,
+                            'new_code'  => $newCode,
+                            'reason'    => $rm['reason'] ?? null,
+                            'old_label' => $oldLabelByCode[$oldCode] ?? null,
+                            'new_site'  => $newSiteByCode[$newCode] ?? null,
+                            'rows'      => $affected,
+                        ];
+                    }
+
                     $allChanges[] = [
                         'rule_id'     => $rm['rule_id'] ?? null,
                         'change_type' => self::CHANGE_RECORD_VALUE_MIGRATION,
                         'field_name'  => $plan['field_name'],
-                        'old_value'   => (string)$rm['old_code'],
-                        'new_value'   => (string)$rm['new_code'],
+                        'old_value'   => $oldCode,
+                        'new_value'   => $newCode,
                         'details'     => json_encode([
                             'rows_affected' => $rows,
                             'data_table'    => $shardName,
@@ -1305,8 +1599,20 @@ class SiteMigration
 
             $this->module->query('COMMIT', []);
 
-            // Best-effort follow-ups.
-            $this->logToREDCap($projectId, $allChanges);
+            // Best-effort follow-ups — post-commit and FULLY ISOLATED. A logging failure
+            // must never reach the outer catch: data is already committed, so flipping the
+            // project to FAILED would be a lie AND would lose the per-record audit forever
+            // (on re-run the capture SELECT finds nothing — records are already moved).
+            try {
+                $this->logToREDCap($projectId, $allChanges);
+                $this->logRecordMigrationsToREDCap($projectId, (string)($plan['field_name'] ?? ''), $capturedMigrations);
+            } catch (\Throwable $logErr) {
+                $this->module->emError(
+                    "Site migration post-commit logging for project $projectId failed "
+                    . "(data already committed; project still COMPLETED): " . $logErr->getMessage()
+                );
+            }
+
             $this->markProjectStatus($migrationId, $projectId, self::PROJECT_COMPLETED, count($allChanges));
 
             return [
@@ -1314,6 +1620,7 @@ class SiteMigration
                 'changes'           => count($allChanges),
                 'newCodesAllocated' => $newCodesAllocated,
                 'recordsMigrated'   => $totalRows,
+                'human_changes'     => $this->buildHumanChanges($rules, $plan, $appliedCounts),
                 'error'             => '',
             ];
         } catch (\Throwable $e) {
@@ -1668,8 +1975,8 @@ class SiteMigration
 
             if ($type === self::RULE_RENAME) {
                 $newSite = $rule['new_site'] ?? '';
-                $oldSite = $rule['old_sites'][0] ?? '';
-                $rc = $this->getRcCodeForSite($oldSite, $vmap);
+                $rc = $plan['site_code_map'][$newSite]
+                   ?? $this->getRcCodeForSite($rule['old_sites'][0] ?? '', $vmap);
                 if ($newSite === '' || $rc === null) continue;
                 if (!$this->mappingHas($vmap, $newSite, (string)$rc)) {
                     $out[] = ['rule_id' => $rule['id'] ?? null, 'new_oc' => $newSite, 'new_rc' => (string)$rc];
@@ -1681,7 +1988,9 @@ class SiteMigration
                 $newSite = $type === self::RULE_MERGE
                     ? ($rule['new_site'] ?? '')
                     : ($rule['merged_into'] ?? '');
-                $rc = $allocByNewSite[$newSite] ?? $this->getRcCodeForSite($newSite, $vmap);
+                // Use the planner's resolved code; do NOT fall back to getRcCodeForSite
+                // which may return a stale entry from a prior rename.
+                $rc = $plan['site_code_map'][$newSite] ?? $allocByNewSite[$newSite] ?? null;
                 if ($newSite === '' || $rc === null) continue;
                 if (!$this->mappingHas($vmap, $newSite, (string)$rc)) {
                     $out[] = ['rule_id' => $rule['id'] ?? null, 'new_oc' => $newSite, 'new_rc' => (string)$rc];
@@ -1772,35 +2081,47 @@ class SiteMigration
     // =======================================================================
 
     /**
-     * Parse "1, Label A | 2, Label B" into ['1' => 'Label A', '2' => 'Label B'].
-     * Keys are kept as strings (codes may be alphanumeric).
-     * Splits on " | " (space-pipe-space) and then on the FIRST ", " only so commas
-     * inside labels like "Psychiatry: Page Mill, Porter Dr, other" are preserved.
+     * Parse REDCap's element_enum ("1, Label A \n 2, Label B") into
+     * ['1' => 'Label A', '2' => 'Label B']. Keys are kept as strings (codes may be
+     * alphanumeric).
+     *
+     * REDCap delimits choices with the literal two-character sequence "\n"
+     * (backslash + n), optionally padded with spaces — NOT a pipe and NOT a real
+     * newline (see redcap core DataExport::…  implode(" \n ", …)). Within each
+     * choice we split on the FIRST ", " only, so commas inside labels like
+     * "Psychiatry: Page Mill, Porter Dr, other" are preserved.
      */
     public function parseElementEnum(string $raw): array
     {
         $codes = [];
         if ($raw === '') return $codes;
-        $entries = preg_split('/\s*\|\s*/', $raw);
+        // Split on a literal backslash-n delimiter with optional surrounding whitespace.
+        $entries = preg_split('/\s*\\\\n\s*/', $raw);
         foreach ($entries as $entry) {
             if (!preg_match('/^\s*([^,]+?)\s*,\s*(.*)$/s', $entry, $m)) {
                 continue;
             }
             $code = trim($m[1]);
-            $label = $m[2];
+            $label = trim($m[2]);
             if ($code === '') continue;
             $codes[$code] = $label;
         }
         return $codes;
     }
 
+    /**
+     * Serialize back to REDCap's canonical element_enum format: "code, label"
+     * choices joined by " \n " (backslash-n with spaces), matching REDCap core's
+     * own writer (DataExport: implode(" \n ", $choices)). MUST NOT use a pipe —
+     * a pipe-delimited string parses as a single choice in REDCap.
+     */
     public function serializeElementEnum(array $codes): string
     {
         $parts = [];
         foreach ($codes as $code => $label) {
             $parts[] = $code . ', ' . $label;
         }
-        return implode(' | ', $parts);
+        return implode(" \\n ", $parts);
     }
 
     public function loadElementEnum(int $pid, string $fieldName): array
@@ -2021,6 +2342,7 @@ class SiteMigration
                 'record_migrations' => [],
                 'code_references'   => ['total' => 0],
                 'record_counts'     => [],
+                'human_changes'     => [],
                 'status'            => self::PROJECT_SKIPPED,
                 'note'              => 'No studySites mapping configured',
             ];
@@ -2081,6 +2403,7 @@ class SiteMigration
             'record_migrations' => $plan['record_migrations'],
             'code_references'   => $codeRefs,
             'record_counts'     => $recordCounts,
+            'human_changes'     => $this->buildHumanChanges($ruleSet['rules'], $plan, $recordCounts),
             'status'            => $newStatus,
             'note'              => '',
         ];
@@ -2142,8 +2465,319 @@ class SiteMigration
             'changesApplied'    => $outcome['changes'] ?? 0,
             'newCodesAllocated' => $outcome['newCodesAllocated'] ?? [],
             'recordsMigrated'   => $outcome['recordsMigrated'] ?? null,
+            'human_changes'     => $outcome['human_changes'] ?? [],
             'error'             => $outcome['error'] ?? '',
             'progress'          => $this->getMigrationStatus($ruleSetId),
+        ];
+    }
+
+    // =======================================================================
+    // One-time remediation — clean up duplicate study-site codes + value_mapping
+    // pollution left by earlier buggy runs (pre element_enum-delimiter fix).
+    // =======================================================================
+
+    /**
+     * Plan a cleanup of a project's study-site field WITHOUT writing anything.
+     *
+     *   - Duplicate element_enum codes (identical trimmed labels) are consolidated
+     *     onto ONE canonical code; the rest are removed and their records repointed.
+     *   - value_mapping entries are repointed so each OnCore name maps to the code
+     *     whose label matches it (fixes "Main Hospital -> 2" style pollution), and
+     *     identical {oc,rc} pairs are de-duplicated. Entries whose oc has no current
+     *     label match are left untouched (backward-compat) and reported.
+     *
+     * Canonical selection minimizes breakage: the code in a dup group that is MOST
+     * referenced in project logic wins (tie -> lowest numeric code), so removing the
+     * others breaks the fewest references. Because removal — unlike the migration's
+     * relabel — is destructive to any branching-logic/report/ASI reference, if a code
+     * slated for removal is still referenced anywhere, the plan sets requires_ack.
+     */
+    public function planStudySiteCleanup(int $pid): array
+    {
+        $plan = [
+            'field_name'        => null,
+            'duplicates'        => [],
+            'codes_removed'     => [],
+            'removed_with_refs' => [],
+            'requires_ack'      => false,
+            'records_repointed' => 0,
+            'vmap_fixes'        => [],
+            'vmap_unresolved'   => [],
+            'vmap_deduped'      => 0,
+            'note'              => '',
+        ];
+
+        $mapping = $this->getStudySiteMapping($pid);
+        if (!$mapping) {
+            $plan['note'] = 'No studySites mapping configured';
+            return $plan;
+        }
+        $field = $mapping['redcap_field'];
+        $plan['field_name'] = $field;
+
+        $enum  = $this->loadElementEnum($pid, $field);
+        $codes = $enum['codes'];
+
+        // 1. Group codes by exact trimmed label; >1 in a group ⇒ duplicates.
+        $byLabel = [];
+        foreach ($codes as $code => $label) {
+            $byLabel[trim((string)$label)][] = (string)$code;
+        }
+
+        $removed = []; // removedCode => canonicalCode
+        foreach ($byLabel as $label => $group) {
+            if (count($group) < 2) {
+                continue;
+            }
+            $meta = [];
+            foreach ($group as $c) {
+                $refScan = $this->scanCodeReferences($pid, $field, [$c]);
+                $meta[$c] = [
+                    'refs'    => (int)($refScan['total'] ?? 0),
+                    'records' => $this->countRecordsWithSiteCode($pid, $field, $c),
+                ];
+            }
+            $canonical = $this->chooseCanonicalCode($group, $meta);
+
+            $removeList = [];
+            foreach ($group as $c) {
+                if ($c === $canonical) continue;
+                $removed[$c] = $canonical;
+                $plan['codes_removed'][] = $c;
+                $plan['records_repointed'] += $meta[$c]['records'];
+                $removeList[] = ['code' => $c, 'records' => $meta[$c]['records'], 'refs' => $meta[$c]['refs']];
+                if ($meta[$c]['refs'] > 0) {
+                    $plan['removed_with_refs'][] = ['code' => $c, 'refs' => $meta[$c]['refs']];
+                    $plan['requires_ack'] = true;
+                }
+            }
+            $plan['duplicates'][] = [
+                'label'          => $label,
+                'canonical'      => $canonical,
+                'canonical_refs' => $meta[$canonical]['refs'],
+                'remove'         => $removeList,
+            ];
+        }
+
+        // 2. Cleaned codes = current codes minus removed.
+        $cleaned = $codes;
+        foreach (array_keys($removed) as $rc) {
+            unset($cleaned[$rc]);
+        }
+
+        // 3. value_mapping fixes (both directions) via the shared cleaner.
+        $raw = $this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, $pid);
+        $fm  = $raw ? (json_decode($raw, true) ?: []) : [];
+        foreach (['pull', 'push'] as $direction) {
+            $vmap = $fm[$direction][OnCoreIntegration::ONCORE_STUDY_SITE]['value_mapping'] ?? null;
+            if (!is_array($vmap)) continue;
+            $res = $this->cleanValueMapping($vmap, $cleaned, $removed);
+            foreach ($res['fixes'] as $f)      $plan['vmap_fixes'][]      = ['direction' => $direction] + $f;
+            foreach ($res['unresolved'] as $u) $plan['vmap_unresolved'][] = ['direction' => $direction] + $u;
+            $plan['vmap_deduped'] += $res['deduped'];
+        }
+
+        return $plan;
+    }
+
+    /**
+     * Pick the canonical code for a duplicate-label group: most-referenced wins
+     * (keep what logic points at), tie-break the lowest numeric code.
+     */
+    private function chooseCanonicalCode(array $group, array $meta): string
+    {
+        $best = null; $bestRefs = -1; $bestNum = PHP_INT_MAX;
+        foreach ($group as $c) {
+            $refs = (int)($meta[$c]['refs'] ?? 0);
+            $num  = ctype_digit((string)$c) ? (int)$c : PHP_INT_MAX;
+            if ($refs > $bestRefs || ($refs === $bestRefs && $num < $bestNum)) {
+                $best = (string)$c; $bestRefs = $refs; $bestNum = $num;
+            }
+        }
+        return (string)$best;
+    }
+
+    /**
+     * Repoint each value_mapping entry's rc to the code whose label matches its oc
+     * (on the cleaned code set); repoint references to removed dup codes onto their
+     * canonical; drop identical {oc,rc} duplicates. Entries whose oc resolves to no
+     * current label are kept verbatim (backward-compat) and reported as unresolved.
+     *
+     * @return array{vmap:array,fixes:array,unresolved:array,deduped:int}
+     */
+    private function cleanValueMapping(array $vmap, array $cleanedCodes, array $removed): array
+    {
+        $out = []; $seen = []; $fixes = []; $unresolved = []; $deduped = 0;
+        foreach ($vmap as $entry) {
+            $oc = (string)($entry['oc'] ?? '');
+            $rc = (string)($entry['rc'] ?? '');
+            if ($oc === '') continue; // drop empty oc rows
+
+            $target = $this->findCodeForLabel($cleanedCodes, $oc);
+            if ($target === null && isset($removed[$rc])) {
+                $target = $removed[$rc]; // a reference to a removed dup → its canonical
+            }
+            if ($target !== null) {
+                if ((string)$target !== $rc) {
+                    $fixes[] = ['oc' => $oc, 'old_rc' => $rc, 'new_rc' => (string)$target];
+                }
+                $rc = (string)$target;
+            } else {
+                $unresolved[] = ['oc' => $oc, 'rc' => $rc]; // keep as-is
+            }
+
+            $key = $oc . "\x00" . $rc;
+            if (isset($seen[$key])) { $deduped++; continue; }
+            $seen[$key] = true;
+            $out[] = ['oc' => $oc, 'rc' => $rc];
+        }
+        return ['vmap' => $out, 'fixes' => $fixes, 'unresolved' => $unresolved, 'deduped' => $deduped];
+    }
+
+    /**
+     * Apply the cleanup planned by planStudySiteCleanup() in a single transaction:
+     * repoint records off removed dup codes, drop those codes from element_enum, and
+     * fix + de-dupe value_mapping. Per-record changes are logged via REDCap::logEvent
+     * post-commit (isolated). Idempotent: a clean project returns status 'noop'.
+     *
+     * @throws \RuntimeException if removed codes are still referenced and !$acknowledged
+     */
+    public function applyStudySiteCleanup(int $pid, bool $acknowledged = false): array
+    {
+        $plan = $this->planStudySiteCleanup($pid);
+        $field = $plan['field_name'];
+        if (!$field) {
+            return ['status' => 'skipped', 'note' => $plan['note'],
+                    'recordsRepointed' => 0, 'codesRemoved' => 0, 'vmapFixes' => 0];
+        }
+        if (empty($plan['codes_removed']) && empty($plan['vmap_fixes']) && $plan['vmap_deduped'] === 0) {
+            return ['status' => 'noop', 'recordsRepointed' => 0, 'codesRemoved' => 0, 'vmapFixes' => 0];
+        }
+        if ($plan['requires_ack'] && !$acknowledged) {
+            throw new \RuntimeException(
+                count($plan['removed_with_refs']) . ' duplicate code(s) being removed are still '
+                . 'referenced in project logic (branching logic / alerts / ASI / reports). '
+                . 'Review and acknowledge before applying — removal will leave those references dangling.'
+            );
+        }
+
+        // removedCode => canonicalCode
+        $removedMap = [];
+        foreach ($plan['duplicates'] as $g) {
+            foreach ($g['remove'] as $r) {
+                $removedMap[(string)$r['code']] = (string)$g['canonical'];
+            }
+        }
+
+        $changes  = [];
+        $captured = [];
+        $totalRepointed = 0;
+
+        try {
+            $this->module->query('START TRANSACTION', []);
+
+            // 1. Repoint records off each removed dup code onto its canonical.
+            $shard = $this->validateDataTableName($this->getProjectDataTable($pid));
+            foreach ($removedMap as $old => $canon) {
+                $rows = $this->getRecordsWithSiteCode($pid, $field, $old);
+                $n    = $this->updateRecordValues($pid, $field, $old, $canon);
+                $totalRepointed += $n;
+                if (!empty($rows)) {
+                    $captured[] = [
+                        'old_code'  => $old,
+                        'new_code'  => $canon,
+                        'reason'    => 'duplicate_cleanup',
+                        'old_label' => 'duplicate code ' . $old,
+                        'new_site'  => 'code ' . $canon,
+                        'rows'      => $rows,
+                    ];
+                }
+                $changes[] = [
+                    'change_type' => self::CHANGE_RECORD_VALUE_MIGRATION,
+                    'field_name'  => $field,
+                    'old_value'   => $old,
+                    'new_value'   => $canon,
+                    'details'     => json_encode(['rows_affected' => $n, 'data_table' => $shard, 'reason' => 'duplicate_cleanup']),
+                ];
+            }
+
+            // 2. Drop removed dup codes from element_enum.
+            $enum  = $this->loadElementEnum($pid, $field);
+            $codes = $enum['codes'];
+            foreach (array_keys($removedMap) as $old) {
+                if (array_key_exists($old, $codes)) {
+                    $changes[] = [
+                        'change_type' => self::CHANGE_FIELD_LABEL,
+                        'field_name'  => $field,
+                        'old_value'   => $old . ', ' . $codes[$old],
+                        'new_value'   => '(removed duplicate of code ' . $removedMap[$old] . ')',
+                    ];
+                    unset($codes[$old]);
+                }
+            }
+            $newRaw = $this->serializeElementEnum($codes);
+            if ($newRaw !== $enum['raw']) {
+                $this->module->query(
+                    'UPDATE redcap_metadata SET element_enum = ? WHERE project_id = ? AND field_name = ?',
+                    [$newRaw, $pid, $field]
+                );
+            }
+
+            // 3. Fix + de-dupe value_mapping (both directions).
+            $raw    = $this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME, $pid);
+            $fm     = $raw ? (json_decode($raw, true) ?: []) : [];
+            $origFm = $fm;
+            foreach (['pull', 'push'] as $direction) {
+                $vmap = $fm[$direction][OnCoreIntegration::ONCORE_STUDY_SITE]['value_mapping'] ?? null;
+                if (!is_array($vmap)) continue;
+                $res = $this->cleanValueMapping($vmap, $codes, $removedMap);
+                $fm[$direction][OnCoreIntegration::ONCORE_STUDY_SITE]['value_mapping'] = $res['vmap'];
+                foreach ($res['fixes'] as $fx) {
+                    $changes[] = [
+                        'change_type' => self::CHANGE_VALUE_MAPPING,
+                        'field_name'  => $field,
+                        'old_value'   => $fx['oc'] . ' (rc=' . $fx['old_rc'] . ')',
+                        'new_value'   => $fx['oc'] . ' (rc=' . $fx['new_rc'] . ')',
+                        'details'     => json_encode(['direction' => $direction, 'reason' => 'cleanup']),
+                    ];
+                }
+            }
+            if ($fm !== $origFm) {
+                $this->module->setProjectSetting(
+                    OnCoreIntegration::REDCAP_ONCORE_FIELDS_MAPPING_NAME,
+                    json_encode($fm),
+                    $pid
+                );
+            }
+
+            // Entity audit log INSIDE the transaction (migration_id 0 = standalone cleanup).
+            $this->logToEntity($pid, 0, $changes);
+
+            $this->module->query('COMMIT', []);
+        } catch (\Throwable $e) {
+            try { $this->module->query('ROLLBACK', []); } catch (\Throwable $_) { /* swallow */ }
+            $this->module->emError("Study-site cleanup for project $pid failed: " . $e->getMessage());
+            throw $e;
+        }
+
+        // Post-commit, isolated (a logging failure must not undo a committed cleanup).
+        try {
+            $this->logToREDCap($pid, $changes);
+            $this->logRecordMigrationsToREDCap(
+                $pid, $field, $captured,
+                'OnCore Site Migration — duplicate study-site code consolidated'
+            );
+        } catch (\Throwable $logErr) {
+            $this->module->emError("Cleanup post-commit logging for project $pid failed (committed): " . $logErr->getMessage());
+        }
+
+        return [
+            'status'           => 'completed',
+            'recordsRepointed' => $totalRepointed,
+            'codesRemoved'     => count($plan['codes_removed']),
+            'codes_removed'    => $plan['codes_removed'],
+            'vmapFixes'        => count($plan['vmap_fixes']),
+            'vmapDeduped'      => $plan['vmap_deduped'],
         ];
     }
 

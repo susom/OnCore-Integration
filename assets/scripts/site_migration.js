@@ -33,14 +33,39 @@
         if (!Array.isArray(arr) || arr.length === 0) return '<span class="text-muted">—</span>';
         return arr.map(nc => `<div class="sm-newcode-pill"><code>${escapeHtml(nc.code)}</code>: ${escapeHtml(nc.site || nc.new_site || '')}</div>`).join('');
     }
+
+    // Plain-English, per-rule change summary (server-built via buildHumanChanges()).
+    const SM_HC_ICON = { rename: '✏️', merge: '🔀', sunset_target: '🌇', sunset: '🌇' };
+    function renderHumanChanges(items) {
+        if (!Array.isArray(items) || items.length === 0) return '';
+        const body = items.map(function (it) {
+            const kind = it.kind || '';
+            const recs = (it.records == null)
+                ? ''
+                : `<span class="sm-hc-records">${escapeHtml(it.records)} record${Number(it.records) === 1 ? '' : 's'}</span>`;
+            const lines = (it.lines || []).map(l => `<li>${escapeHtml(l)}</li>`).join('');
+            return `<div class="sm-hc-item sm-hc-${escapeHtml(kind)}">
+                        <div class="sm-hc-head">
+                            <span class="sm-hc-icon">${SM_HC_ICON[kind] || '•'}</span>
+                            <strong>${escapeHtml(it.headline || '')}</strong>
+                            ${recs}
+                        </div>
+                        ${lines ? `<ul class="sm-hc-lines">${lines}</ul>` : ''}
+                    </div>`;
+        }).join('');
+        return `<div class="sm-human-changes">${body}</div>`;
+    }
     function actionsCell(r, ruleSetId) {
-        if (r.status === 'completed' || r.status === 'skipped') {
-            return '<span class="text-muted">—</span>';
-        }
         const pid = escapeHtml(r.project_id);
         const rsid = escapeHtml(ruleSetId);
+        // Cleanup is remediation of the field itself — available regardless of migration status.
+        const cleanup = `<button class="btn btn-link btn-sm sm-action-cleanup" data-pid="${pid}" title="Consolidate duplicate codes & repair value_mapping">Clean up</button>`;
+        if (r.status === 'completed' || r.status === 'skipped') {
+            return cleanup;
+        }
         return `<button class="btn btn-link btn-sm sm-action-dryrun" data-pid="${pid}" data-rsid="${rsid}">Details</button>`
-             + `<button class="btn btn-outline-success btn-sm sm-action-migrate-single" data-pid="${pid}" data-rsid="${rsid}">Migrate</button>`;
+             + `<button class="btn btn-outline-success btn-sm sm-action-migrate-single" data-pid="${pid}" data-rsid="${rsid}">Migrate</button>`
+             + cleanup;
     }
 
     function refsCell(refs, pid, ruleSetId) {
@@ -122,6 +147,7 @@
         if (btn.classList.contains('sm-refs-view'))             return openRefsModal(btn.dataset.rsid, btn.dataset.pid);
         if (btn.classList.contains('sm-action-dryrun'))         return openDryRun(btn.dataset.rsid, btn.dataset.pid);
         if (btn.classList.contains('sm-action-migrate-single')) return migrateOneProject(btn.dataset.rsid, btn.dataset.pid, btn);
+        if (btn.classList.contains('sm-action-cleanup'))        return openCleanup(btn.dataset.pid);
     });
 
     function deleteRuleSet(id) {
@@ -374,12 +400,36 @@
             return '<div class="alert alert-warning">' + escapeHtml(data.note || 'No studySites mapping configured.') + '</div>';
         }
 
+        const deep = data.record_counts && Object.keys(data.record_counts).length > 0;
         let html = '<div class="mb-2"><strong>Field:</strong> <code>' + escapeHtml(data.field_name) + '</code>'
-                 + ' &nbsp; ' + statusBadge(data.status) + '</div>';
+                 + ' &nbsp; ' + statusBadge(data.status)
+                 + (deep ? '' : ' <small class="text-muted">— run “Deep Preview” for record counts</small>')
+                 + '</div>';
 
-        // Label changes.
+        // 1) Plain-English summary — what actually happens in THIS project.
+        const hc = renderHumanChanges(data.human_changes);
+        html += '<h6 class="mt-2 sm-section-title">What will change</h6>';
+        html += hc || '<p class="text-muted small">No site changes apply to this project.</p>';
+
+        // 2) Code-reference warning — stays prominent (gates running the project).
+        if (data.code_references && data.code_references.total > 0) {
+            const refs = data.code_references;
+            const detail = ['branching_logic','action_tags','alerts','surveys_emails','surveys_scheduler','reports','calc_fields']
+                .filter(function (k) { return (refs[k] || 0) > 0; })
+                .map(function (k) { return '<li>' + escapeHtml(k) + ': ' + escapeHtml(refs[k]) + '</li>'; })
+                .join('');
+            html += '<div class="alert alert-warning mt-3">'
+                  + '<strong>⚠ ' + escapeHtml(refs.total) + ' code reference(s) found — review before migrating.</strong>'
+                  + '<ul class="mt-1 mb-0 small">' + detail + '</ul>'
+                  + '<div class="mt-1 small">Acknowledge this project in the <strong>⚠ Refs</strong> column of the preview table before running.</div>'
+                  + '</div>';
+        }
+
+        // 3) Technical detail (raw codes / labels / record pairs) — collapsed by default.
+        let tech = '';
+
         if (data.label_updates && data.label_updates.length > 0) {
-            html += '<h6 class="mt-3">Label Changes (' + data.label_updates.length + ')</h6>'
+            tech += '<h6 class="mt-3">Label Changes (' + data.label_updates.length + ')</h6>'
                   + '<table class="table table-sm"><thead><tr>'
                   + '<th>Code</th><th>Mode</th><th>Old Label</th><th>New Label</th>'
                   + '</tr></thead><tbody>'
@@ -394,12 +444,11 @@
                   }).join('')
                   + '</tbody></table>';
         } else {
-            html += '<p class="text-muted small mt-2">No label changes planned.</p>';
+            tech += '<p class="text-muted small mt-2">No label changes planned.</p>';
         }
 
-        // Code allocations.
         if (data.code_allocations && data.code_allocations.length > 0) {
-            html += '<h6 class="mt-3">New Code Allocations (' + data.code_allocations.length + ')</h6>'
+            tech += '<h6 class="mt-3">New Code Allocations (' + data.code_allocations.length + ')</h6>'
                   + '<table class="table table-sm"><thead><tr>'
                   + '<th>New Code</th><th>New Site</th><th>Reason</th>'
                   + '</tr></thead><tbody>'
@@ -414,38 +463,26 @@
                   + '</tbody></table>';
         }
 
-        // Record migrations.
         if (data.record_migrations && data.record_migrations.length > 0) {
-            const hasDeep = data.record_counts && Object.keys(data.record_counts).length > 0;
-            html += '<h6 class="mt-3">Record Migrations (' + data.record_migrations.length + ' code pair(s))</h6>'
+            tech += '<h6 class="mt-3">Record Migrations (' + data.record_migrations.length + ' code pair(s))</h6>'
                   + '<table class="table table-sm"><thead><tr>'
                   + '<th>Old Code</th><th>→ New Code</th><th>Reason</th>'
-                  + (hasDeep ? '<th>Records</th>' : '')
+                  + (deep ? '<th>Records</th>' : '')
                   + '</tr></thead><tbody>'
                   + data.record_migrations.map(function (rm) {
                       return '<tr>'
                            + '<td><code>' + escapeHtml(rm.old_code) + '</code></td>'
                            + '<td><code>' + escapeHtml(rm.new_code) + '</code></td>'
                            + '<td>' + escapeHtml(rm.reason || '') + '</td>'
-                           + (hasDeep ? '<td>' + escapeHtml(data.record_counts[rm.old_code] != null ? data.record_counts[rm.old_code] : '—') + '</td>' : '')
+                           + (deep ? '<td>' + escapeHtml(data.record_counts[rm.old_code] != null ? data.record_counts[rm.old_code] : '—') + '</td>' : '')
                            + '</tr>';
                   }).join('')
                   + '</tbody></table>';
         }
 
-        // Code references warning.
-        if (data.code_references && data.code_references.total > 0) {
-            const refs = data.code_references;
-            const detail = ['branching_logic','action_tags','alerts','surveys_emails','surveys_scheduler','reports','calc_fields']
-                .filter(function (k) { return (refs[k] || 0) > 0; })
-                .map(function (k) { return '<li>' + escapeHtml(k) + ': ' + escapeHtml(refs[k]) + '</li>'; })
-                .join('');
-            html += '<div class="alert alert-warning mt-3">'
-                  + '<strong>⚠ ' + escapeHtml(refs.total) + ' code reference(s) found — review before migrating.</strong>'
-                  + '<ul class="mt-1 mb-0 small">' + detail + '</ul>'
-                  + '<div class="mt-1 small">Acknowledge this project in the <strong>⚠ Refs</strong> column of the preview table before running.</div>'
-                  + '</div>';
-        }
+        html += '<details class="sm-tech-details mt-3">'
+              + '<summary>Technical details (codes, labels, record pairs)</summary>'
+              + '<div class="mt-2">' + tech + '</div></details>';
 
         return html;
     }
@@ -491,12 +528,133 @@
                         + (resp.recordsMigrated ? ', ' + escapeHtml(resp.recordsMigrated) + ' records rewritten' : '')
                         + (resp.error ? ': ' + escapeHtml(resp.error) : '')
                         + '</div>';
+                    const doneHc = renderHumanChanges(resp.human_changes);
+                    if (doneHc) {
+                        $('#sm-dryrun-content').innerHTML +=
+                            '<h6 class="mt-2 sm-section-title">Applied changes</h6>' + doneHc;
+                    }
                 }
             })
             .catch(function (e) {
                 if (triggerBtn) triggerBtn.disabled = false;
                 showAjaxError(e);
             });
+    }
+
+    // ─── Duplicate-code / value_mapping cleanup ──────────────────────────────
+    let currentCleanupPid = null;
+
+    function openCleanup(pid) {
+        currentCleanupPid = Number(pid);
+        $('#sm-cleanup-title').textContent = 'Clean up — Project ' + pid;
+        $('#sm-cleanup-content').innerHTML = '<span class="text-muted">Analyzing…</span>';
+        $('#sm-cleanup-apply').disabled = true;
+        $('#sm-cleanup-modal').style.display = '';
+        ajax('previewStudySiteCleanup', { project_id: Number(pid) })
+            .then(function (plan) {
+                $('#sm-cleanup-content').innerHTML = renderCleanupPlan(plan);
+                const nothing = (!plan.codes_removed || !plan.codes_removed.length)
+                              && (!plan.vmap_fixes || !plan.vmap_fixes.length)
+                              && !plan.vmap_deduped;
+                $('#sm-cleanup-apply').disabled = nothing;
+                // Re-enable apply only when ack is satisfied.
+                const ackBox = $('#sm-cleanup-ack');
+                if (ackBox) {
+                    $('#sm-cleanup-apply').disabled = nothing || !ackBox.checked;
+                    ackBox.addEventListener('change', function () {
+                        $('#sm-cleanup-apply').disabled = nothing || !ackBox.checked;
+                    });
+                }
+            })
+            .catch(function (e) {
+                $('#sm-cleanup-content').innerHTML = '<div class="text-danger">' + escapeHtml(String(e)) + '</div>';
+            });
+    }
+
+    function renderCleanupPlan(plan) {
+        if (!plan.field_name) {
+            return '<div class="alert alert-warning">' + escapeHtml(plan.note || 'No studySites mapping configured.') + '</div>';
+        }
+        const nDup = (plan.codes_removed || []).length;
+        const nFix = (plan.vmap_fixes || []).length;
+        if (!nDup && !nFix && !plan.vmap_deduped) {
+            return '<div class="alert alert-success mb-0">Nothing to clean up — this field has no duplicate codes or value-mapping pollution.</div>';
+        }
+
+        let html = '<div class="mb-2 small text-muted">Field <code>' + escapeHtml(plan.field_name) + '</code></div>';
+
+        // Reference gate (destructive removal of a referenced code).
+        if (plan.requires_ack) {
+            html += '<div class="alert alert-danger">'
+                  + '<strong>⚠ ' + escapeHtml((plan.removed_with_refs || []).length)
+                  + ' code(s) being removed are still referenced in project logic.</strong> '
+                  + 'Removing them will leave those branching-logic / alert / report references dangling. '
+                  + 'Fix those references first, or acknowledge to proceed anyway.'
+                  + '</div>';
+        }
+
+        // Duplicate consolidations.
+        if (nDup) {
+            html += '<h6 class="mt-2 sm-section-title">Duplicate codes to consolidate</h6><ul class="sm-hc-lines">';
+            (plan.duplicates || []).forEach(function (g) {
+                const rm = (g.remove || []).map(function (r) {
+                    const refWarn = r.refs > 0 ? ` <span class="text-danger">(${escapeHtml(r.refs)} ref${r.refs==1?'':'s'}!)</span>` : '';
+                    return `code ${escapeHtml(r.code)}${refWarn} → ${escapeHtml(r.records)} record(s) repointed`;
+                }).join('; ');
+                html += `<li>“${escapeHtml(g.label)}”: keep code <code>${escapeHtml(g.canonical)}</code>, remove ${rm}</li>`;
+            });
+            html += '</ul>';
+        }
+
+        // value_mapping fixes.
+        if (nFix || plan.vmap_deduped) {
+            html += '<h6 class="mt-2 sm-section-title">Value-mapping repairs</h6><ul class="sm-hc-lines">';
+            (plan.vmap_fixes || []).forEach(function (f) {
+                html += `<li><span class="text-muted">[${escapeHtml(f.direction)}]</span> “${escapeHtml(f.oc)}”: rc <code>${escapeHtml(f.old_rc)}</code> → <code>${escapeHtml(f.new_rc)}</code></li>`;
+            });
+            if (plan.vmap_deduped) html += `<li>${escapeHtml(plan.vmap_deduped)} duplicate mapping entr${plan.vmap_deduped==1?'y':'ies'} removed</li>`;
+            html += '</ul>';
+        }
+
+        // Unresolved (kept) — transparency.
+        if ((plan.vmap_unresolved || []).length) {
+            const u = plan.vmap_unresolved.map(function (x) { return escapeHtml(x.oc) + '→' + escapeHtml(x.rc); }).join(', ');
+            html += '<details class="sm-tech-details mt-2"><summary>'
+                  + escapeHtml(plan.vmap_unresolved.length) + ' mapping entr(y/ies) left unchanged (no current label match — kept for backward-compat)</summary>'
+                  + '<div class="small text-muted mt-1">' + u + '</div></details>';
+        }
+
+        // Ack checkbox only when destructive-with-refs.
+        if (plan.requires_ack) {
+            html += '<div class="form-check mt-3"><input type="checkbox" class="form-check-input" id="sm-cleanup-ack">'
+                  + '<label class="form-check-label" for="sm-cleanup-ack">I understand the referenced codes will be removed and their references left dangling.</label></div>';
+        }
+        return html;
+    }
+
+    function applyCleanup() {
+        const pid = currentCleanupPid;
+        if (!pid) return;
+        const ackBox = $('#sm-cleanup-ack');
+        const acknowledged = ackBox ? ackBox.checked : false;
+        if (!confirm('Apply cleanup to project ' + pid + '?\n\nThis repoints records, removes duplicate field options, and repairs the value mapping. It cannot be auto-undone.')) return;
+        $('#sm-cleanup-apply').disabled = true;
+        ajax('applyStudySiteCleanup', { project_id: Number(pid), acknowledged: acknowledged })
+            .then(function (res) {
+                let msg;
+                if (res.status === 'noop') {
+                    msg = '<div class="alert alert-info mt-2 mb-0">Nothing to clean up.</div>';
+                } else if (res.status === 'skipped') {
+                    msg = '<div class="alert alert-warning mt-2 mb-0">' + escapeHtml(res.note || 'Skipped.') + '</div>';
+                } else {
+                    msg = '<div class="alert alert-success mt-2 mb-0"><strong>Cleanup applied.</strong> '
+                        + escapeHtml(res.codesRemoved || 0) + ' duplicate code(s) removed, '
+                        + escapeHtml(res.recordsRepointed || 0) + ' record(s) repointed, '
+                        + escapeHtml(res.vmapFixes || 0) + ' mapping fix(es).</div>';
+                }
+                $('#sm-cleanup-content').innerHTML += msg;
+            })
+            .catch(function (e) { $('#sm-cleanup-apply').disabled = false; showAjaxError(e); });
     }
 
     // ─── Tab 4: Run Migration ───────────────────────────────────────────────
@@ -581,6 +739,16 @@
             <td><small class="text-danger">${escapeHtml(resp.error || '')}</small></td>
         `;
         $('#sm-run-body').appendChild(tr);
+
+        // Full-width detail row: plain-English summary of what changed in this project.
+        const hc = renderHumanChanges(resp.human_changes);
+        if (hc) {
+            const tr2 = document.createElement('tr');
+            tr2.classList.add('sm-run-detail');
+            if (cls) tr2.classList.add(cls);
+            tr2.innerHTML = `<td colspan="6">${hc}</td>`;
+            $('#sm-run-body').appendChild(tr2);
+        }
     }
 
     function updateProgress(p) {
@@ -734,6 +902,11 @@
                 if (!ruleSetId || !pid) return;
                 migrateOneProject(ruleSetId, pid, null);
             });
+
+            // Cleanup modal (Preview tab).
+            $('#sm-cleanup-close').addEventListener('click', () => $('#sm-cleanup-modal').style.display = 'none');
+            $('#sm-cleanup-close-btn').addEventListener('click', () => $('#sm-cleanup-modal').style.display = 'none');
+            $('#sm-cleanup-apply').addEventListener('click', applyCleanup);
 
             // Start on Rule Sets tab.
             activateTab('rule-sets');

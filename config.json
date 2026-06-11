@@ -115,7 +115,9 @@
     "getCodeReferenceDetails",
     "acknowledgeProjectWarnings",
     "previewSingleMigrationProject",
-    "migrateSpecificProject"
+    "migrateSpecificProject",
+    "previewStudySiteCleanup",
+    "applyStudySiteCleanup"
   ],
   "project-settings": [
     {

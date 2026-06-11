@@ -47,7 +47,7 @@ $module->initializeJavascriptModuleObject();
     <div class="sm-intro-callout">
         <div><strong>What gets written:</strong></div>
         <ul class="mb-0">
-            <li><code>redcap_metadata.element_enum</code> — labels: rename relabels in place; merge allocates a new code and suffixes old ones <code>(retired — migrated to X)</code></li>
+            <li><code>redcap_metadata.element_enum</code> — labels: rename relabels in place; merge allocates a new code and suffixes old ones <code>(retired, merged into X)</code></li>
             <li><code>redcap_external_modules_settings</code> — project site subset + value mapping + library site list</li>
             <li><code>redcap_data*</code> (sharded) — <strong>merge and target-bound sunset rewrite record values</strong> from old code → new code on the project's resolved shard (<code>getDataTable($pid)</code> + allowlist regex). Renames leave records untouched.</li>
         </ul>
@@ -126,7 +126,7 @@ $module->initializeJavascriptModuleObject();
                 <code>{"id"?, "type": "rename|merge|keep|sunset", "old_sites": [...], "new_site"?, "primary_old_site"?, "merged_into"?, "retired_on"?}</code>.
                 <br>
                 <strong>rename</strong> = relabel the existing code in place; no <code>redcap_data*</code> write.
-                <strong>merge</strong> = allocate a new per-project code (<code>max+1</code>), suffix old codes <code>(retired — migrated to X)</code>, rewrite records on the project's shard.
+                <strong>merge</strong> = allocate a new per-project code (<code>max+1</code>), suffix old codes <code>(retired, merged into X)</code>, rewrite records on the project's shard (each rewritten record is logged via <code>REDCap::logEvent()</code>).
                 <strong>sunset</strong> = suffix label <code>(retired YYYY-MM-DD)</code>; if <code>merged_into</code> is set, also rewrites records.
                 <strong>keep</strong> = no-op.
                 <br>
@@ -190,6 +190,31 @@ $module->initializeJavascriptModuleObject();
                         <button type="button" class="btn btn-outline-secondary btn-sm" id="sm-dryrun-close-btn">Close</button>
                         <button type="button" class="btn btn-success btn-sm ml-2" id="sm-dryrun-migrate">
                             Migrate This Project
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Duplicate-code / value_mapping cleanup modal (filled by previewStudySiteCleanup) -->
+        <div id="sm-cleanup-modal" class="sm-modal" style="display:none">
+            <div class="sm-modal-inner">
+                <div class="sm-modal-header">
+                    <strong id="sm-cleanup-title">Clean up</strong>
+                    <button type="button" class="close" id="sm-cleanup-close">&times;</button>
+                </div>
+                <div class="sm-modal-body">
+                    <p class="small text-muted">
+                        Remediation for residue left by earlier runs: consolidates
+                        <strong>duplicate field options</strong> (same label, different code) onto one
+                        canonical code, repoints their records, and repairs
+                        <code>value_mapping</code> entries that point at the wrong code. Independent of any rule set.
+                    </p>
+                    <div id="sm-cleanup-content"><span class="text-muted">Loading…</span></div>
+                    <div class="text-right mt-3">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="sm-cleanup-close-btn">Close</button>
+                        <button type="button" class="btn btn-warning btn-sm ml-2" id="sm-cleanup-apply" disabled>
+                            Apply Cleanup
                         </button>
                     </div>
                 </div>

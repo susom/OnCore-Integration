@@ -1591,6 +1591,7 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
             'getMigrationHistory',       'getMigrationProjectLog',
             'getCodeReferenceDetails',   'acknowledgeProjectWarnings',
             'previewSingleMigrationProject', 'migrateSpecificProject',
+            'previewStudySiteCleanup',   'applyStudySiteCleanup',
         ];
         return in_array($action, $actions, true);
     }
@@ -2122,6 +2123,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $rsid = (int)($payload['id'] ?? 0);
                         $pid  = (int)($payload['project_id'] ?? 0);
                         $result = $this->getSiteMigration()->migrateSpecificProject($rsid, $pid);
+                        break;
+
+                    // ─── One-time remediation: duplicate codes + value_mapping cleanup ──
+                    case "previewStudySiteCleanup":
+                        $pid    = (int)($payload['project_id'] ?? 0);
+                        $result = $this->getSiteMigration()->planStudySiteCleanup($pid);
+                        break;
+                    case "applyStudySiteCleanup":
+                        $pid    = (int)($payload['project_id'] ?? 0);
+                        $ack    = !empty($payload['acknowledged']);
+                        $result = $this->getSiteMigration()->applyStudySiteCleanup($pid, $ack);
                         break;
                 }
                 $return_o["success"] = 1;
