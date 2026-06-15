@@ -37,6 +37,8 @@ namespace Stanford\OnCoreIntegration {
         const REDCAP_ENTITY_ONCORE_SITE_MIGRATION           = 'x';
         const REDCAP_ENTITY_ONCORE_SITE_MIGRATION_LOG       = 'redcap_entity_oncore_site_migration_log';
         const REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS = 'redcap_entity_oncore_migration_project_status';
+        const REDCAP_ENTITY_ONCORE_PROTOCOLS                = 'redcap_entity_oncore_protocols';
+        const ONCORE_PROTOCOL_STATUS_YES                    = 2;
     }
 
     class FakeResult {
@@ -53,6 +55,7 @@ namespace Stanford\OnCoreIntegration {
         public array $recordRowsByCode = [];        // code => [ {record,event_id,instance}, ... ]
         public array $refsByCode = [];              // code => branching-logic ref count
         public array $enumWrites = [];              // element_enum UPDATE payloads
+        public bool $linkageApproved = true;
 
         function getDataTable($pid){ return 'redcap_data'; }
         function getProjectSetting($k, $pid = null){
@@ -62,6 +65,9 @@ namespace Stanford\OnCoreIntegration {
             if ($k === 'redcap-oncore-fields-mapping') $this->savedFm = $v;
         }
         function query($sql, $p){
+            if (strpos($sql, 'redcap_entity_oncore_protocols') !== false) {
+                return new FakeResult($this->linkageApproved ? [['ok' => '1']] : []);
+            }
             // 1) code-reference scan: "... <col> REGEXP ?" — code is inside the pattern param.
             if (strpos($sql, 'REGEXP') !== false) {
                 $pattern = end($p);
@@ -209,6 +215,18 @@ namespace Stanford\OnCoreIntegration {
     $out5 = makeSM($m5)->applyStudySiteCleanup(248);
     assert_equal('still completed despite log throw', $out5['status'], 'completed');
     assert_true ('logging failure recorded via emError', !empty($m5->errors));
+
+    // ════════════════════════════════════════════════════════════════════════
+    echo "\nTest 6: unapproved OnCore linkage → plan flags it, apply refuses\n";
+    $m6 = new MockModule(); $m6->enum = pollutedEnum(); $m6->fmJson = pollutedFm(pollutedVmap());
+    $m6->linkageApproved = false;
+    $plan6 = makeSM($m6)->planStudySiteCleanup(248);
+    assert_equal('plan reports linkage_approved false', $plan6['linkage_approved'], false);
+    $threw6 = false;
+    try { makeSM($m6)->applyStudySiteCleanup(248); } catch (\Throwable $e) { $threw6 = true; }
+    assert_true('apply refuses unapproved linkage', $threw6);
+    // No element_enum write attempted.
+    assert_equal('no element_enum write on refusal', count($m6->enumWrites), 0);
 
     echo "\nResults: $passed passed, $failed failed\n";
     exit($failed === 0 ? 0 : 1);

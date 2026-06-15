@@ -48,6 +48,8 @@ namespace Stanford\OnCoreIntegration {
         const REDCAP_ENTITY_ONCORE_SITE_MIGRATION           = 'redcap_entity_oncore_site_migration';
         const REDCAP_ENTITY_ONCORE_SITE_MIGRATION_LOG       = 'redcap_entity_oncore_site_migration_log';
         const REDCAP_ENTITY_ONCORE_MIGRATION_PROJECT_STATUS = 'redcap_entity_oncore_migration_project_status';
+        const REDCAP_ENTITY_ONCORE_PROTOCOLS                = 'redcap_entity_oncore_protocols';
+        const ONCORE_PROTOCOL_STATUS_YES                    = 2;
     }
 
     class FakeResult
@@ -72,6 +74,7 @@ namespace Stanford\OnCoreIntegration {
         public string $enumRaw = "23, SCI-LPCH \\n 26, Children's Hospital";
         /** rows the capture SELECT returns */
         public array $records = [['record' => '77', 'event_id' => '88', 'instance' => null]];
+        public bool $linkageApproved = true;
 
         public function getDataTable($pid): string { return 'redcap_data'; }
 
@@ -94,6 +97,9 @@ namespace Stanford\OnCoreIntegration {
         public function query(string $sql, array $params): ?FakeResult
         {
             $this->seen[] = ['sql' => $sql, 'params' => $params];
+            if (strpos($sql, 'redcap_entity_oncore_protocols') !== false) {
+                return new FakeResult($this->linkageApproved ? [['ok' => '1']] : []);
+            }
             if (strpos($sql, 'SELECT element_enum') !== false) {
                 return new FakeResult([['element_enum' => $this->enumRaw]]);
             }
@@ -176,6 +182,20 @@ namespace Stanford\OnCoreIntegration {
     assert_equal('NOT marked FAILED',                    $mock2->markedStatus('failed'),    false);
     assert_equal('marked COMPLETED',                     $mock2->markedStatus('completed'), true);
     assert_true('logging failure recorded via emError',  !empty($mock2->errors));
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Test 3 — unapproved OnCore linkage → SKIPPED, never mutated
+    // ════════════════════════════════════════════════════════════════════════
+    echo "\nTest 3: unapproved OnCore linkage → SKIPPED, no transaction\n";
+    \REDCap::reset();
+    $mock3 = new MockModule();
+    $mock3->linkageApproved = false;
+    $out3 = makeSM($mock3)->processProject(248, $MERGE, 7);
+    assert_equal('status SKIPPED',            $out3['status'], 'skipped');
+    assert_equal('0 records migrated',        $out3['recordsMigrated'], 0);
+    assert_equal('marked SKIPPED in status',  $mock3->markedStatus('skipped'), true);
+    $startedTxn = (bool)array_filter($mock3->seen, fn($q) => stripos($q['sql'], 'START TRANSACTION') !== false);
+    assert_equal('no transaction opened',     $startedTxn, false);
 
     echo "\nResults: $passed passed, $failed failed\n";
     exit($failed === 0 ? 0 : 1);

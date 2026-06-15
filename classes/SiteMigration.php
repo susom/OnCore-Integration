@@ -1508,6 +1508,17 @@ class SiteMigration
             return ['status' => self::PROJECT_SKIPPED, 'changes' => 0,
                     'newCodesAllocated' => [], 'recordsMigrated' => 0, 'error' => ''];
         }
+
+        // Only migrate projects whose OnCore linkage is approved. Re-checked here (not just
+        // at enumeration) so a linkage revoked after the project was seeded is skipped, never
+        // mutated. No transaction is opened for an unapproved project.
+        if (!$this->isOnCoreLinkageApproved($projectId)) {
+            $this->markProjectStatus($migrationId, $projectId, self::PROJECT_SKIPPED, 0, 'OnCore linkage not approved');
+            return ['status' => self::PROJECT_SKIPPED, 'changes' => 0,
+                    'newCodesAllocated' => [], 'recordsMigrated' => 0, 'human_changes' => [],
+                    'error' => '', 'note' => 'OnCore linkage not approved'];
+        }
+
         // NOTE: PROJECT_NEEDS_ACK rows are filtered out by claimNextPendingProject(),
         // so they never reach processProject(). The run loop surfaces them via
         // startMigration()['blocked'] instead.
@@ -2052,6 +2063,26 @@ class SiteMigration
         return $out;
     }
 
+    /**
+     * True iff the project has an APPROVED OnCore linkage — at least one entity-protocol
+     * row with status = ONCORE_PROTOCOL_STATUS_YES. This is the same gate enumerateProjects()
+     * applies to the bulk preview/run; every per-project mutating entry point re-checks it so
+     * a stale UI, a linkage revoked after seeding, or a crafted request can never migrate /
+     * clean up a project whose linkage is only pending (1) or not linked (0).
+     */
+    public function isOnCoreLinkageApproved(int $pid): bool
+    {
+        if ($pid <= 0) {
+            return false;
+        }
+        $r = $this->module->query(
+            'SELECT 1 FROM ' . OnCoreIntegration::REDCAP_ENTITY_ONCORE_PROTOCOLS . '
+              WHERE redcap_project_id = ? AND status = ? LIMIT 1',
+            [$pid, OnCoreIntegration::ONCORE_PROTOCOL_STATUS_YES]
+        );
+        return (bool)($r && $r->fetch_assoc());
+    }
+
     private function summarizeTotals(array $rows): array
     {
         $t = [
@@ -2426,6 +2457,13 @@ class SiteMigration
             throw new \RuntimeException("Rule set #$ruleSetId not found.");
         }
 
+        // Refuse before any side effect (crons/library) if the linkage isn't approved.
+        if (!$this->isOnCoreLinkageApproved($pid)) {
+            throw new \RuntimeException(
+                "Project $pid does not have an approved OnCore linkage — migration is not allowed."
+            );
+        }
+
         // First-call init: disable crons + mark active + library update (all idempotent).
         if ($ruleSet['status'] === self::STATUS_DRAFT || !self::isMigrationInProgress($this->module)) {
             $this->disableCrons();
@@ -2496,6 +2534,7 @@ class SiteMigration
     {
         $plan = [
             'field_name'        => null,
+            'linkage_approved'  => $this->isOnCoreLinkageApproved($pid),
             'duplicates'        => [],
             'codes_removed'     => [],
             'removed_with_refs' => [],
@@ -2645,6 +2684,12 @@ class SiteMigration
     public function applyStudySiteCleanup(int $pid, bool $acknowledged = false): array
     {
         $plan = $this->planStudySiteCleanup($pid);
+        // Only operate on projects whose OnCore linkage is approved (same gate as migration).
+        if (!$plan['linkage_approved']) {
+            throw new \RuntimeException(
+                "Project $pid does not have an approved OnCore linkage — cleanup is not allowed."
+            );
+        }
         $field = $plan['field_name'];
         if (!$field) {
             return ['status' => 'skipped', 'note' => $plan['note'],
