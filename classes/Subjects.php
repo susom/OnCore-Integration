@@ -255,7 +255,7 @@ class Subjects extends SubjectDemographics
                     }
                 }
             } else {
-                if ($onCoreValue != $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']]) {
+                if (Mapping::normalizeQuoteLike($onCoreValue) != Mapping::normalizeQuoteLike($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']])) {
                     return OnCoreIntegration::PARTIAL_MATCH;
                 }
             }
