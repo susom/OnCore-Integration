@@ -57,7 +57,11 @@ $site_selection[] = "<ul>\r\n";
 
 foreach ($study_sites as $site) {
     $checked = in_array($site, $project_study_sites) ? "checked" : "";
-    $site_selection[] = "<li><label><input type='checkbox' $checked name='site_study_subset' value='$site'><span>$site</span></label></li>\r\n";
+    // Encode the site name so values containing quotes/apostrophes (e.g. "Children's Hospital")
+    // are not truncated when rendered into the HTML attribute.
+    $site_attr = htmlspecialchars($site, ENT_QUOTES, "UTF-8");
+    $site_label = htmlspecialchars($site, ENT_QUOTES, "UTF-8");
+    $site_selection[] = "<li><label><input type='checkbox' $checked name='site_study_subset' value='$site_attr'><span>$site_label</span></label></li>\r\n";
 }
 
 // Ensure total items are a multiple of 3

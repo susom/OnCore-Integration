@@ -1726,7 +1726,11 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
                         $result = $this->getMapping()->makeFieldMappingUI();
                         break;
                     case "saveSiteStudies":
-                        $result = !empty($payload["site_studies_subset"]) ? filter_var_array($payload["site_studies_subset"], FILTER_SANITIZE_STRING) : null;
+                        // Use strip_tags instead of FILTER_SANITIZE_STRING so that quotes/apostrophes in
+                        // site names (e.g. "Children's Hospital") are not HTML-encoded to "Children&#39;s Hospital".
+                        $result = !empty($payload["site_studies_subset"]) ? array_map(function ($v) {
+                            return trim(strip_tags((string)$v));
+                        }, (array)$payload["site_studies_subset"]) : null;
                         $this->getMapping()->setProjectSiteStudies($result);
                         break;
                     case "saveFilterLogic":
