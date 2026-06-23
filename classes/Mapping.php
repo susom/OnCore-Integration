@@ -320,11 +320,15 @@ class Mapping
         if (!empty($value_set)) {
             if ($push) {
                 foreach ($value_set as $set) {
-                    $temp[$set["rc"]] = $set["oc"];
+                    // Decode any HTML-encoded OnCore value (e.g. legacy "Children&#39;s Hospital") so it
+                    // matches the raw OnCore valid values used as keys/options during render and sync.
+                    $oc = is_string($set["oc"]) ? html_entity_decode($set["oc"], ENT_QUOTES, "UTF-8") : $set["oc"];
+                    $temp[$set["rc"]] = $oc;
                 }
             } else {
                 foreach ($value_set as $set) {
-                    $temp[$set["oc"]] = $set["rc"];
+                    $oc = is_string($set["oc"]) ? html_entity_decode($set["oc"], ENT_QUOTES, "UTF-8") : $set["oc"];
+                    $temp[$oc] = $set["rc"];
                 }
             }
         }
@@ -568,6 +572,10 @@ class Mapping
      */
     public function setProjectSiteStudies(array $site_studies_subset): void
     {
+        // Always store the raw, decoded site names so they match the OnCore study site list.
+        $site_studies_subset = array_map(function ($v) {
+            return is_string($v) ? html_entity_decode($v, ENT_QUOTES, "UTF-8") : $v;
+        }, $site_studies_subset);
 //        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, json_encode($site_studies_subset));
         $this->module->setProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, json_encode($site_studies_subset));
         $this->site_studies_subset = $site_studies_subset;
@@ -581,6 +589,14 @@ class Mapping
     {
         if (empty($this->site_studies_subset)) {
             $arr = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES), true);
+            // Normalize any HTML-encoded values (e.g. legacy "Children&#39;s Hospital") back to their
+            // raw form ("Children's Hospital") so they match the OnCore study site names. Without this,
+            // array_intersect() against the OnCore site list would drop sites containing quotes/apostrophes.
+            if (is_array($arr)) {
+                $arr = array_map(function ($v) {
+                    return is_string($v) ? html_entity_decode($v, ENT_QUOTES, "UTF-8") : $v;
+                }, $arr);
+            }
             $this->site_studies_subset = $arr ?: [];
         }
         return $this->site_studies_subset;
@@ -1358,7 +1374,9 @@ class Mapping
         //$mappedValues = $mappedValues['value_mapping_pull'];
         $mappedValues = $mappedValues['value_mapping'];
         foreach ($mappedValues as $mappedValue) {
-            if ($OnCoreValue == $mappedValue['oc']) {
+            // Decode any HTML-encoded stored OnCore value so it matches the raw value coming from OnCore.
+            $oc = is_string($mappedValue['oc']) ? html_entity_decode($mappedValue['oc'], ENT_QUOTES, "UTF-8") : $mappedValue['oc'];
+            if ($OnCoreValue == $oc) {
                 return $mappedValue;
             }
         }
