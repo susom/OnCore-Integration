@@ -92,7 +92,11 @@ The most complex subsystem. See `SITE_MIGRATION_PLAN.md` for the full spec.
 - **`value_mapping`** → repoint each `{oc,rc}` so `rc = findCodeForLabel(cleanedCodes, oc)` (fixes "Main Hospital → 2" artifacts), de-dupe identical pairs, and **leave entries whose `oc` has no current label match untouched** (backward-compat — e.g. a renamed OnCore name, or `SCI-LPCH→23`). Applies to both pull and push directions.
 - Transactional + idempotent (second run → `noop`); post-commit logging isolated. AJAX: `previewStudySiteCleanup` / `applyStudySiteCleanup`. UI: per-row "Clean up" button in the Preview tab.
 
-**Tests (125 total):** `planFieldChanges_test.php` (planner + delimiter regression, 36), `recordLogging_test.php` (capture / `buildHumanChanges` / per-record logging via global `\REDCap` stub, 28), `processProject_test.php` (transaction + post-commit isolation, 12), `elementEnum_test.php` (parse/serialize/round-trip corruption guard, byte-exact fixtures, 21), `cleanup_test.php` (dup consolidation, ack gating, idempotency, vmap backward-compat, isolation, 28).
+**Tests (160 total):** `planFieldChanges_test.php` (planner + delimiter regression, 36), `recordLogging_test.php` (capture / `buildHumanChanges` / per-record logging via global `\REDCap` stub, 28), `processProject_test.php` (transaction + post-commit isolation, 16), `elementEnum_test.php` (parse/serialize/round-trip corruption guard, byte-exact fixtures, 21), `cleanup_test.php` (dup consolidation, ack gating, idempotency, vmap backward-compat, isolation, 31), `repeatingInstances_test.php` (repeating-instrument read flatten + save-row split, 28 — see `REPEATING_INSTRUMENTS_FIX.md`).
+
+### Repeating instruments (sync support)
+
+`\REDCap::getData` nests fields on repeating instruments/events under `[record]['repeat_instances'][event][form][instance][field]`, but the module reads `$record[$eventId][$field]` everywhere. `Subjects::flattenRepeatingInstances()` (applied after every `getData`) merges instance data up to the event level (ascending instances, first non-empty wins, event-level values take precedence). On writes, `Subjects::prepareRowsForSave()` splits save rows per repeating form and adds `redcap_repeat_instrument`/`redcap_repeat_instance = 1` (JSON imports reject repeating-form fields without them). Full background in `REPEATING_INSTRUMENTS_FIX.md`.
 
 ### Test file load-order constraint
 

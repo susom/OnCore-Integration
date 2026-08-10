@@ -293,15 +293,18 @@ class Protocols
                                 $data[\REDCap::getRecordIdField()] = $item['id'];
                                 $data[$fields['pull']['protocolSubjectId']['redcap_field']] = $subject['protocolSubjectId'];
                                 $data['redcap_event_name'] = OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event']);
-                                $response = \REDCap::saveData($this->getEntityRecord()['redcap_project_id'], 'json', json_encode(array($data)));
-                                if (!empty($response['errors'])) {
-                                    {
-                                        if (is_array($response['errors'])) {
-                                            throw new \Exception(implode(",", $response['errors']));
-                                        } else {
-                                            throw new \Exception($response['errors']);
-                                        }
+                                $rows = $this->getSubjects()->prepareRowsForSave($this->getEntityRecord()['redcap_project_id'], $data, OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event']));
+                                foreach ($rows as $row) {
+                                    $response = \REDCap::saveData($this->getEntityRecord()['redcap_project_id'], 'json', json_encode(array($row)));
+                                    if (!empty($response['errors'])) {
+                                        {
+                                            if (is_array($response['errors'])) {
+                                                throw new \Exception(implode(",", $response['errors']));
+                                            } else {
+                                                throw new \Exception($response['errors']);
+                                            }
 
+                                        }
                                     }
                                 }
                                 $redcapProtocolSubjectId = $subject['protocolSubjectId'];

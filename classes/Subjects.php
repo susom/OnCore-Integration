@@ -309,7 +309,7 @@ class Subjects extends SubjectDemographics
                                 'events' => $redcapEventId,
                                 'return_format' => 'array'
                             ];
-                            $data = \REDCap::getData($param);
+                            $data = self::flattenRepeatingInstances(\REDCap::getData($param));
                             // if you find more than one record then throw an exception. project needs cleanup.
                             if (count($data) > 1) {
                                 throw new \Exception("More than one record found for $mrn and $protocolSubjectId");
@@ -480,7 +480,169 @@ class Subjects extends SubjectDemographics
             'return_format' => 'array',
             'filterLogic' => $useFilter ? ($this->getMapping()->getOncoreConsentFilterLogic() ?: '') : '',
         );
-        $this->redcapProjectRecords = \REDCap::getData($param);
+        $this->redcapProjectRecords = self::flattenRepeatingInstances(\REDCap::getData($param));
+    }
+
+    /**
+     * determine if a REDCap data value counts as empty (checkbox arrays are empty when nothing is checked)
+     * @param mixed $value
+     * @return bool
+     */
+    public static function isEmptyDataValue($value): bool
+    {
+        if (is_array($value)) {
+            return count(array_filter($value)) === 0;
+        }
+        return $value === '' || $value === null;
+    }
+
+    /**
+     * \REDCap::getData nests fields that live on a repeating instrument/event under
+     * [record]['repeat_instances'][event_id][form][instance][field] instead of [record][event_id][field].
+     * The module reads mapped fields with $record[$eventId][$field], so records whose mapped instrument
+     * repeats would look empty (e.g. no MRN) and be skipped. This merges repeating data up to the
+     * event level: instances are walked in ascending order and the first non-empty value per field wins;
+     * existing non-empty event-level values are never overwritten.
+     * @param mixed $records return of \REDCap::getData in 'array' format
+     * @return mixed
+     */
+    public static function flattenRepeatingInstances($records)
+    {
+        if (!is_array($records)) {
+            return $records;
+        }
+        foreach ($records as $recordId => $record) {
+            if (!isset($record['repeat_instances']) || !is_array($record['repeat_instances'])) {
+                continue;
+            }
+            foreach ($record['repeat_instances'] as $eventId => $forms) {
+                if (!is_array($forms)) {
+                    continue;
+                }
+                foreach ($forms as $formName => $instances) {
+                    if (!is_array($instances)) {
+                        continue;
+                    }
+                    ksort($instances);
+                    foreach ($instances as $instanceData) {
+                        if (!is_array($instanceData)) {
+                            continue;
+                        }
+                        foreach ($instanceData as $fieldName => $value) {
+                            $existing = $records[$recordId][$eventId][$fieldName] ?? '';
+                            if (self::isEmptyDataValue($existing)) {
+                                $records[$recordId][$eventId][$fieldName] = $value;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return $records;
+    }
+
+    /**
+     * REDCap JSON imports reject fields that live on a repeating instrument unless the row carries
+     * redcap_repeat_instrument/redcap_repeat_instance and contains only that instrument's fields.
+     * Splits one flat save row into import-ready rows. Pure: metadata is passed in.
+     * @param array $row flat row (fields + record id + optional redcap_event_name)
+     * @param string $recordIdField record id field name (kept in every split row)
+     * @param array $fieldForms map of field name (checkbox suffix stripped) => form name
+     * @param array $repeatingForms form names that repeat on this event
+     * @param bool $eventRepeats true when the entire event repeats (redcap_repeat_instrument stays blank)
+     * @return array list of rows to feed \REDCap::saveData individually
+     */
+    public static function splitRowForRepeatingForms(array $row, $recordIdField, array $fieldForms, array $repeatingForms, $eventRepeats = false): array
+    {
+        $passthroughKeys = array($recordIdField, 'redcap_event_name', 'redcap_repeat_instrument', 'redcap_repeat_instance');
+
+        if ($eventRepeats) {
+            $row['redcap_repeat_instance'] = 1;
+            return array($row);
+        }
+        if (empty($repeatingForms)) {
+            return array($row);
+        }
+
+        $passthrough = array();
+        $baseRow = array();
+        $repeatRows = array();
+        foreach ($row as $field => $value) {
+            if (in_array($field, $passthroughKeys, true)) {
+                $passthrough[$field] = $value;
+                continue;
+            }
+            // checkbox fields are exported as field___code
+            $baseField = preg_replace('/___.*$/', '', $field);
+            $form = $fieldForms[$baseField] ?? null;
+            if ($form !== null && in_array($form, $repeatingForms, true)) {
+                $repeatRows[$form][$field] = $value;
+            } else {
+                $baseRow[$field] = $value;
+            }
+        }
+
+        $result = array();
+        if (!empty($baseRow)) {
+            $result[] = array_merge($passthrough, $baseRow);
+        }
+        foreach ($repeatRows as $form => $fields) {
+            $result[] = array_merge($passthrough, $fields, array(
+                'redcap_repeat_instrument' => $form,
+                'redcap_repeat_instance' => 1,
+            ));
+        }
+        return $result;
+    }
+
+    /**
+     * DB-backed wrapper around splitRowForRepeatingForms: looks up the project's repeat configuration
+     * for the given event and the forms of the row's fields, then splits the row when needed.
+     * @param int $projectId
+     * @param array $row flat save row
+     * @param int $eventId resolved REDCap event id
+     * @return array list of rows to feed \REDCap::saveData individually
+     */
+    public function prepareRowsForSave($projectId, array $row, $eventId): array
+    {
+        $projectId = (int)$projectId;
+        $eventId = (int)$eventId;
+
+        $eventRepeats = false;
+        $repeatingForms = array();
+        $q = db_query(sprintf("SELECT form_name FROM redcap_events_repeat WHERE event_id = %d", $eventId));
+        while ($r = db_fetch_assoc($q)) {
+            if ($r['form_name'] === null || $r['form_name'] === '') {
+                $eventRepeats = true;
+            } else {
+                $repeatingForms[] = $r['form_name'];
+            }
+        }
+
+        $q = db_query(sprintf("SELECT field_name FROM redcap_metadata WHERE project_id = %d ORDER BY field_order LIMIT 1", $projectId));
+        $first = db_fetch_assoc($q);
+        $recordIdField = $first ? $first['field_name'] : \REDCap::getRecordIdField();
+
+        if (!$eventRepeats && empty($repeatingForms)) {
+            return array($row);
+        }
+
+        $fieldForms = array();
+        $names = array();
+        foreach (array_keys($row) as $field) {
+            if (in_array($field, array($recordIdField, 'redcap_event_name', 'redcap_repeat_instrument', 'redcap_repeat_instance'), true)) {
+                continue;
+            }
+            $names[] = "'" . db_escape(preg_replace('/___.*$/', '', $field)) . "'";
+        }
+        if (!empty($names)) {
+            $q = db_query(sprintf("SELECT field_name, form_name FROM redcap_metadata WHERE project_id = %d AND field_name IN (%s)", $projectId, implode(',', array_unique($names))));
+            while ($r = db_fetch_assoc($q)) {
+                $fieldForms[$r['field_name']] = $r['form_name'];
+            }
+        }
+
+        return self::splitRowForRepeatingForms($row, $recordIdField, $fieldForms, $repeatingForms, $eventRepeats);
     }
 
 
@@ -1041,12 +1203,15 @@ class Subjects extends SubjectDemographics
             $fields['pull']['protocolSubjectId']['redcap_field'] => $protocolSubjectId,
             'redcap_event_name' => $fields['pull']['protocolSubjectId']['event']
         );
-        $response = \REDCap::saveData($linkage['redcap_project_id'], 'json', json_encode(array($data)), 'overwrite');
-        if (!empty($response['errors'])) {
-            if (is_array($response['errors'])) {
-                throw new \Exception(implode(",", $response['errors']));
-            } else {
-                throw new \Exception($response['errors']);
+        $rows = $this->prepareRowsForSave($linkage['redcap_project_id'], $data, OnCoreIntegration::getEventNameUniqueId($fields['pull']['protocolSubjectId']['event']));
+        foreach ($rows as $row) {
+            $response = \REDCap::saveData($linkage['redcap_project_id'], 'json', json_encode(array($row)), 'overwrite');
+            if (!empty($response['errors'])) {
+                if (is_array($response['errors'])) {
+                    throw new \Exception(implode(",", $response['errors']));
+                } else {
+                    throw new \Exception($response['errors']);
+                }
             }
         }
     }
@@ -1097,18 +1262,21 @@ class Subjects extends SubjectDemographics
                 }
                 $array['redcap_event_name'] = $event;
                 // TODO uncheck current checkboxes.
-                $response = \REDCap::saveData($projectId, 'json', json_encode(array($array)), 'overwrite');
-                if (!empty($response['errors'])) {
-                    if (is_array($response['errors'])) {
-                        throw new \Exception(implode(",", $response['errors']));
+                $rows = $this->prepareRowsForSave($projectId, $array, OnCoreIntegration::getEventNameUniqueId($event));
+                foreach ($rows as $row) {
+                    $response = \REDCap::saveData($projectId, 'json', json_encode(array($row)), 'overwrite');
+                    if (!empty($response['errors'])) {
+                        if (is_array($response['errors'])) {
+                            throw new \Exception(implode(",", $response['errors']));
+                        } else {
+                            throw new \Exception($response['errors']);
+                        }
                     } else {
-                        throw new \Exception($response['errors']);
+                        $id = end($response['ids']);
+                        Entities::createLog('OnCore Subject ' . $record['oncore'] . ' was synced into REDCap record ' . $id, Entities::PULL_FROM_ONCORE);
+                        $this->updateLinkageEntityStatus($linkage['id'], OnCoreIntegration::FULL_MATCH);
+                        $this->updateLinkageREDCapRecordId($linkage['id'], $id);
                     }
-                } else {
-                    $id = end($response['ids']);
-                    Entities::createLog('OnCore Subject ' . $record['oncore'] . ' was synced into REDCap record ' . $id, Entities::PULL_FROM_ONCORE);
-                    $this->updateLinkageEntityStatus($linkage['id'], OnCoreIntegration::FULL_MATCH);
-                    $this->updateLinkageREDCapRecordId($linkage['id'], $id);
                 }
             }
             unset($data);
