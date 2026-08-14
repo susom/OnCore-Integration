@@ -27,7 +27,11 @@ try {
                 break;
 
             case "saveSiteStudies":
-                $result = !empty($_POST["site_studies_subset"]) ? filter_var_array($_POST["site_studies_subset"], FILTER_SANITIZE_STRING) : [];
+                // Use strip_tags instead of FILTER_SANITIZE_STRING so that quotes/apostrophes in
+                // site names (e.g. "Children's Hospital") are not HTML-encoded to "Children&#39;s Hospital".
+                $result = !empty($_POST["site_studies_subset"]) ? array_map(function ($v) {
+                    return trim(strip_tags((string)$v));
+                }, (array)$_POST["site_studies_subset"]) : [];
                 $module->getMapping()->setProjectSiteStudies($result);
                 break;
 
@@ -49,7 +53,18 @@ try {
                 //MAKE THIS A MORE GRANULAR SAVE.  GET
                 $project_oncore_subset = $module->getMapping()->getProjectOncoreSubset();
                 $current_mapping = $module->getMapping()->getProjectMapping();
-                $result = !empty($_POST["field_mappings"]) ? filter_var_array($_POST["field_mappings"], FILTER_SANITIZE_STRING) : null;
+                // Use strip_tags (recursively) instead of FILTER_SANITIZE_STRING so that quotes/apostrophes
+                // in mapped values (e.g. value_mapping oc "Children's Hospital") are not HTML-encoded to
+                // "Children&#39;s Hospital", which would break value-map matching on render and during sync.
+                $result = null;
+                if (!empty($_POST["field_mappings"])) {
+                    $result = $_POST["field_mappings"];
+                    array_walk_recursive($result, function (&$v) {
+                        if (is_string($v)) {
+                            $v = trim(strip_tags($v));
+                        }
+                    });
+                }
                 $update_oppo = !empty($_POST["update_oppo"]) ? filter_var($_POST["update_oppo"], FILTER_VALIDATE_BOOLEAN) : null;
 
                 $pull_mapping = !empty($result["mapping"]) ? $result["mapping"] : null;

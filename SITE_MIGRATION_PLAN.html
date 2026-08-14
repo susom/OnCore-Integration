@@ -163,7 +163,7 @@
   }
 
   /* ── Rule cards ── */
-  .rule-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .rule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   .rule-card {
     border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
     box-shadow: var(--shadow);
@@ -175,6 +175,7 @@
   .rule-rename .rule-card-header { background: var(--blue-lt); color: var(--blue-dk); }
   .rule-merge  .rule-card-header { background: var(--purple-lt); color: var(--purple); }
   .rule-keep   .rule-card-header { background: var(--green-lt); color: var(--green); }
+  .rule-sunset .rule-card-header { background: var(--amber-lt); color: var(--amber); }
   .rule-card-body { padding: 18px; background: var(--card-bg); }
   .change-row {
     display: flex; align-items: flex-start; gap: 10px;
@@ -386,13 +387,16 @@
     <a class="nav-link" href="#ajax"><span class="dot" style="background:#059669"></span>AJAX Actions</a>
     <div class="nav-section">Interface</div>
     <a class="nav-link" href="#ui"><span class="dot" style="background:#d97706"></span>UI Mockup</a>
-    <a class="nav-link" href="#open"><span class="dot" style="background:#dc2626"></span>Open Questions</a>
+    <a class="nav-link" href="#open"><span class="dot" style="background:#059669"></span>Decisions (Answered)</a>
+    <a class="nav-link" href="#shards"><span class="dot" style="background:#7c3aed"></span>Sharded Data Tables</a>
+    <a class="nav-link" href="#worksheet"><span class="dot" style="background:#2563eb"></span>May 2026 Worksheet</a>
     <a class="nav-link" href="#phases"><span class="dot" style="background:#2563eb"></span>Implementation</a>
   </div>
   <div class="sidebar-meta">
     Module: oncore_integration_v9.9.9<br>
     Author: ihabz<br>
-    Date: 2026-05-12<br>
+    Date: 2026-05-18 (rev 2)<br>
+    Source: <em>Subject Study Site<br>Worksheet.pdf</em><br>
     Status: Planning
   </div>
 </nav>
@@ -404,11 +408,12 @@
   <div class="hero" id="overview">
     <div class="hero-badges">
       <span class="badge badge-blue">OnCore Integration v9.9.9</span>
-      <span class="badge badge-amber">Planning</span>
+      <span class="badge badge-amber">Planning · rev 2</span>
       <span class="badge badge-green">No redcap_data writes</span>
+      <span class="badge badge-purple">Shard-safe</span>
     </div>
-    <h1>Study Site Rename &amp;<br>Merge Migration</h1>
-    <p style="margin-top:14px">A Control Center tool that applies OnCore study site renaming and merging retroactively across all active REDCap projects — updating settings, value mappings, and field option labels without touching a single row of patient data.</p>
+    <h1>Study Site Rename, Merge &amp;<br>Sunset Migration</h1>
+    <p style="margin-top:14px">A Control Center tool that applies OnCore study site renaming, merging, and retirement retroactively across all active REDCap projects — updating settings, value mappings, and field option labels without touching a single row of patient data across any of the eight sharded <code>redcap_data*</code> tables. Source mapping: <strong><em>Subject Study Site Worksheet.pdf</em></strong> (May 2026 Stanford site re-org).</p>
   </div>
 
   <!-- Stats -->
@@ -419,15 +424,15 @@
     </div>
     <div class="stat-card">
       <div class="num green">0</div>
-      <div class="label">redcap_data rows modified</div>
+      <div class="label">redcap_data* rows modified</div>
     </div>
     <div class="stat-card">
-      <div class="num purple">5</div>
-      <div class="label">Storage layers updated</div>
+      <div class="num purple">18</div>
+      <div class="label">Rules from May 2026 worksheet</div>
     </div>
     <div class="stat-card">
-      <div class="num amber">3</div>
-      <div class="label">New entity tables</div>
+      <div class="num amber">8</div>
+      <div class="label">Data-table shards untouched</div>
     </div>
   </div>
 
@@ -438,14 +443,16 @@
     <table class="tbl" style="background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)">
       <thead><tr><th>Decision</th><th>Choice</th><th>Rationale</th></tr></thead>
       <tbody>
-        <tr><td><strong>Migrate redcap_data</strong></td><td><span class="tag tag-red">No</span></td><td>Coded values stay intact. Historical data never touched.</td></tr>
+        <tr><td><strong>Migrate redcap_data*</strong></td><td><span class="tag tag-red">No</span></td><td>Coded values stay intact across all eight shards (<code>redcap_data</code> … <code>redcap_data8</code>). Historical data never touched.</td></tr>
+        <tr><td><strong>Touch redcap_metadata</strong></td><td><span class="tag tag-blue">Yes — not sharded</span></td><td>Single table. <code>WHERE project_id = ?</code> is shard-safe by definition. Only target: <code>element_enum</code>.</td></tr>
         <tr><td><strong>Forward-compat with OnCore sync</strong></td><td><span class="tag tag-green">value_mapping dual entries</span></td><td>Both old and new OnCore site name strings map to the same REDCap coded value.</td></tr>
-        <tr><td><strong>Researcher visibility</strong></td><td><span class="tag tag-amber">Label suffix</span></td><td><code>"Old Site (changed to New Site)"</code> — full traceability, no data loss.</td></tr>
+        <tr><td><strong>Researcher visibility</strong></td><td><span class="tag tag-amber">Label suffix</span></td><td><code>"Old Site (changed to New Site)"</code> or <code>"… (merged into X)"</code> or <code>"… (retired YYYY-MM-DD)"</code>. Full traceability, no data loss.</td></tr>
         <tr><td><strong>Execution granularity</strong></td><td><span class="tag tag-blue">Per-project atomic transaction</span></td><td>A failure in project N never affects projects 1…N-1.</td></tr>
         <tr><td><strong>Cron safety</strong></td><td><span class="tag tag-red">Disable all 4 sync crons</span></td><td>System-level flag checked at start of each cron method.</td></tr>
         <tr><td><strong>Idempotency</strong></td><td><span class="tag tag-green">Skip-if-migrated check</span></td><td>Rule sets can be re-run safely; already-completed projects are skipped.</td></tr>
         <tr><td><strong>Live progress</strong></td><td><span class="tag tag-blue">Client-driven AJAX polling</span></td><td>One project per call — no PHP timeout risk. Client polls every ~1.5 s.</td></tr>
-        <tr><td><strong>Audit trail</strong></td><td><span class="tag tag-purple">Entity log + REDCap::logEvent</span></td><td>Research team sees changes in Project Logging. Internal log for admin tooling.</td></tr>
+        <tr><td><strong>Audit trail</strong></td><td><span class="tag tag-purple">Entity log + REDCap::logEvent</span></td><td>Research team sees changes in Project Logging. <code>REDCap::logEvent()</code> auto-routes to the right <code>redcap_log_event*</code> shard.</td></tr>
+        <tr><td><strong>Deep preview (optional)</strong></td><td><span class="tag tag-purple">getDataTable($pid)</span></td><td>If used, COUNT queries route to the project's own shard via the framework method — never <code>redcap_data</code> hard-coded.</td></tr>
       </tbody>
     </table>
   </section>
@@ -496,10 +503,10 @@
       <div class="layer" style="background:#fff0f0">
         <div class="layer-icon" style="background:#fee2e2">🚫</div>
         <div class="layer-body">
-          <div class="layer-title">redcap_data — Patient Records</div>
-          <div class="layer-detail">Coded values (e.g. <code>"1"</code>, <code>"2"</code>) remain exactly as stored. No writes. Historical data integrity is preserved.</div>
+          <div class="layer-title">redcap_data, redcap_data2, … redcap_data8 — Patient Records (sharded)</div>
+          <div class="layer-detail">Coded values (e.g. <code>"1"</code>, <code>"2"</code>) remain exactly as stored across <strong>all eight shards</strong>. No writes anywhere. The optional deep-preview path issues read-only <code>COUNT(*)</code> on the project's specific shard via <code>$module-&gt;getDataTable($pid)</code> — never against a hard-coded table name. Historical data integrity is preserved.</div>
         </div>
-        <div class="layer-badge"><span class="tag tag-red">Untouched</span></div>
+        <div class="layer-badge"><span class="tag tag-red">Untouched (× 8)</span></div>
       </div>
 
     </div>
@@ -507,12 +514,17 @@
     <div class="callout callout-blue" style="margin-top:20px">
       <p><strong>Why no entity table updates?</strong> The <code>redcap_entity_oncore_subjects</code> entity stores <em>person-level demographics</em> (MRN, name, DOB) — it has no <code>studySites</code> column. Study site is a protocol-subject-level concept that flows through the value mapping into a REDCap field. Updating the mapping is sufficient.</p>
     </div>
+
+    <div class="callout callout-amber" style="margin-top:12px">
+      <p><strong>Sharding rule for this module:</strong> <code>redcap_metadata</code> is a single table (no shard) — safe to <code>UPDATE ... WHERE project_id = ?</code>. <code>redcap_data*</code> and <code>redcap_log_event*</code> are sharded — never hard-code the table name. Use <code>$module-&gt;getDataTable($pid)</code> for data reads and <code>REDCap::logEvent()</code> for log writes. See <a href="#shards">Sharded Data Tables</a> for the full reference.</p>
+    </div>
   </section>
 
   <!-- Rule types -->
   <section id="rules">
     <div class="section-label">Rules</div>
     <h2>Migration Rule Types</h2>
+    <p>Four rule types, all examples grounded in the May 2026 Stanford worksheet (Appendix C).</p>
     <div class="rule-grid">
 
       <!-- Rename -->
@@ -524,14 +536,14 @@
         <div class="rule-card-body">
           <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;font-family:monospace">
             <div style="color:#94a3b8">old_sites:</div>
-            <div style="color:#dc2626;margin-left:8px">"Stanford Hospital"</div>
+            <div style="color:#dc2626;margin-left:8px">"SHC Tri-Valley"</div>
             <div style="color:#94a3b8;margin-top:4px">new_site:</div>
-            <div style="color:#059669;margin-left:8px">"Stanford Medical Center"</div>
+            <div style="color:#059669;margin-left:8px">"Tri-Valley"</div>
           </div>
-          <div class="change-row"><div class="change-layer">Library</div><div class="change-detail"><span class="old">Stanford Hospital</span> <span class="arrow">→</span> <span class="new">Stanford Medical Center</span></div></div>
+          <div class="change-row"><div class="change-layer">Library</div><div class="change-detail"><span class="old">SHC Tri-Valley</span> <span class="arrow">→</span> <span class="new">Tri-Valley</span></div></div>
           <div class="change-row"><div class="change-layer">Subset</div><div class="change-detail">Replace in project's site JSON array</div></div>
-          <div class="change-row"><div class="change-layer">Mapping</div><div class="change-detail"><span class="plus">+</span><code>{"oc":"Stanford Medical Center","rc":"1"}</code> (same rc)</div></div>
-          <div class="change-row"><div class="change-layer">Label</div><div class="change-detail">Stanford Hospital <span class="suffix">(changed to Stanford Medical Center)</span></div></div>
+          <div class="change-row"><div class="change-layer">Mapping</div><div class="change-detail"><span class="plus">+</span><code>{"oc":"Tri-Valley","rc":"7"}</code> (same rc)</div></div>
+          <div class="change-row"><div class="change-layer">Label</div><div class="change-detail">SHC Tri-Valley <span class="suffix">(changed to Tri-Valley)</span></div></div>
         </div>
       </div>
 
@@ -544,17 +556,18 @@
         <div class="rule-card-body">
           <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;font-family:monospace">
             <div style="color:#94a3b8">old_sites:</div>
-            <div style="color:#dc2626;margin-left:8px">"Palo Alto VA"</div>
-            <div style="color:#dc2626;margin-left:8px">"Menlo Park VA"</div>
+            <div style="color:#dc2626;margin-left:8px">"SCI-Palo Alto"</div>
+            <div style="color:#dc2626;margin-left:8px">"SHC Main Hosp, Pasteur, Welch…"</div>
+            <div style="color:#dc2626;margin-left:8px">"SHC Satellite &amp; Other"</div>
             <div style="color:#94a3b8;margin-top:4px">new_site:</div>
-            <div style="color:#059669;margin-left:8px">"VA Palo Alto HCS"</div>
+            <div style="color:#059669;margin-left:8px">"Main Hospital"</div>
             <div style="color:#94a3b8;margin-top:4px">primary:</div>
-            <div style="color:#7c3aed;margin-left:8px">"Palo Alto VA" ← admin picks</div>
+            <div style="color:#7c3aed;margin-left:8px">"SCI-Palo Alto" ← worksheet "Rename" row</div>
           </div>
-          <div class="change-row"><div class="change-layer">Library</div><div class="change-detail">Remove both, <span class="plus">+</span><span class="new">VA Palo Alto HCS</span></div></div>
-          <div class="change-row"><div class="change-layer">Subset</div><div class="change-detail">Remove both, add merged site</div></div>
-          <div class="change-row"><div class="change-layer">Mapping</div><div class="change-detail"><span class="plus">+</span><code>{"oc":"VA Palo Alto HCS","rc":"2"}</code><br><small style="color:#94a3b8">Both old entries kept</small></div></div>
-          <div class="change-row"><div class="change-layer">Labels</div><div class="change-detail">Palo Alto VA <span class="suffix">(merged into VA Palo Alto HCS)</span><br>Menlo Park VA <span class="suffix">(merged into VA Palo Alto HCS)</span></div></div>
+          <div class="change-row"><div class="change-layer">Library</div><div class="change-detail">Remove all three, <span class="plus">+</span><span class="new">Main Hospital</span></div></div>
+          <div class="change-row"><div class="change-layer">Subset</div><div class="change-detail">Remove all three, add merged site</div></div>
+          <div class="change-row"><div class="change-layer">Mapping</div><div class="change-detail"><span class="plus">+</span><code>{"oc":"Main Hospital","rc":"1"}</code><br><small style="color:#94a3b8">All three old entries kept for OnCore backward compat</small></div></div>
+          <div class="change-row"><div class="change-layer">Labels</div><div class="change-detail">SCI-Palo Alto <span class="suffix">(changed to Main Hospital)</span> <small style="color:#94a3b8">— primary uses "changed to"</small><br>SHC Main Hosp… <span class="suffix">(merged into Main Hospital)</span><br>SHC Satellite &amp; Other <span class="suffix">(merged into Main Hospital)</span></div></div>
         </div>
       </div>
 
@@ -567,13 +580,36 @@
         <div class="rule-card-body">
           <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;font-family:monospace">
             <div style="color:#94a3b8">site:</div>
-            <div style="color:#475569;margin-left:8px">"Site C"</div>
+            <div style="color:#475569;margin-left:8px">"Byers Eye Institute"</div>
             <div style="color:#94a3b8;margin-top:4px">type: keep</div>
+            <div style="color:#94a3b8;margin-top:4px">8 keeps in the worksheet</div>
           </div>
           <div class="change-row"><div class="change-layer">Library</div><div class="change-detail" style="color:#94a3b8">No change</div></div>
           <div class="change-row"><div class="change-layer">Subset</div><div class="change-detail" style="color:#94a3b8">No change</div></div>
           <div class="change-row"><div class="change-layer">Mapping</div><div class="change-detail" style="color:#94a3b8">No change</div></div>
           <div class="change-row"><div class="change-layer">Label</div><div class="change-detail" style="color:#94a3b8">No change</div></div>
+        </div>
+      </div>
+
+      <!-- Sunset -->
+      <div class="rule-card rule-sunset">
+        <div class="rule-card-header">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14h12M8 5V2M4 6L3 5M12 6l1-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Sunset
+        </div>
+        <div class="rule-card-body">
+          <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;font-family:monospace">
+            <div style="color:#94a3b8">old_site:</div>
+            <div style="color:#dc2626;margin-left:8px">"SHC - Emeryville"</div>
+            <div style="color:#94a3b8;margin-top:4px">retired_on:</div>
+            <div style="color:#d97706;margin-left:8px">"2025-09-04"</div>
+            <div style="color:#94a3b8;margin-top:4px">merged_into:</div>
+            <div style="color:#059669;margin-left:8px">"Emeryville" (label only)</div>
+          </div>
+          <div class="change-row"><div class="change-layer">Library</div><div class="change-detail"><span class="old">SHC - Emeryville</span> removed. <small style="color:#94a3b8">No new entry — handled by related rules.</small></div></div>
+          <div class="change-row"><div class="change-layer">Subset</div><div class="change-detail">Remove from project site arrays</div></div>
+          <div class="change-row"><div class="change-layer">Mapping</div><div class="change-detail" style="color:#94a3b8">Old <code>oc</code> entry retained. <strong style="color:var(--amber)">No new entry</strong> — OnCore will not emit this name again.</div></div>
+          <div class="change-row"><div class="change-layer">Label</div><div class="change-detail">SHC - Emeryville <span class="suffix">(retired 2025-09-04, merged into Emeryville)</span></div></div>
         </div>
       </div>
 
@@ -763,7 +799,8 @@
         <tr><td><code>getSiteMigrationRuleSet</code></td><td><span class="tag tag-blue">Management</span></td><td>Full rule set with rules JSON</td></tr>
         <tr><td><code>saveSiteMigrationRuleSet</code></td><td><span class="tag tag-blue">Management</span></td><td><code>{id}</code> of created/updated rule set</td></tr>
         <tr><td><code>deleteSiteMigrationRuleSet</code></td><td><span class="tag tag-blue">Management</span></td><td><code>{ok: true}</code></td></tr>
-        <tr><td><code>previewSiteMigration</code></td><td><span class="tag tag-amber">Preview</span></td><td>Per-project impact: site hits, label changes, status</td></tr>
+        <tr><td><code>previewSiteMigration</code></td><td><span class="tag tag-amber">Preview</span></td><td>Per-project impact: site hits, label changes, status. Settings-level only — cheap.</td></tr>
+        <tr><td><code>previewSiteMigrationDeep</code></td><td><span class="tag tag-amber">Preview</span></td><td>Optional record-level counts. Routes each <code>COUNT(*)</code> to the project's shard via <code>getDataTable($pid)</code>.</td></tr>
         <tr><td><code>exportMigrationPreview</code></td><td><span class="tag tag-amber">Preview</span></td><td>CSV blob for download</td></tr>
         <tr><td><code>startSiteMigration</code></td><td><span class="tag tag-green">Execution</span></td><td><code>{sessionId, total, projects}</code></td></tr>
         <tr><td><code>processNextMigrationProject</code></td><td><span class="tag tag-green">Execution</span></td><td><code>{current, total, projectName, status, errors}</code></td></tr>
@@ -803,17 +840,17 @@
           <thead><tr><th>Name</th><th>Rules</th><th>Status</th><th>Last Run</th><th>Actions</th></tr></thead>
           <tbody>
             <tr>
-              <td><strong>Q2 2026 Site Restructuring</strong><br><small style="color:#94a3b8">Rename 3 sites, merge 2</small></td>
-              <td>5 rules</td>
+              <td><strong>Q2 2026 Stanford Site Restructuring</strong><br><small style="color:#94a3b8">Per Subject Study Site Worksheet — 4 merges, 5 renames, 1 sunset, 8 keeps</small></td>
+              <td>18 rules</td>
               <td><span class="tag tag-green">active</span></td>
               <td>—</td>
               <td><a href="#" style="color:var(--blue);font-size:12px;margin-right:8px">Edit</a><a href="#" style="color:var(--amber);font-size:12px;margin-right:8px">Preview</a><a href="#" style="color:var(--green);font-size:12px;margin-right:8px">Run</a><a href="#" style="color:var(--red);font-size:12px">Delete</a></td>
             </tr>
             <tr>
-              <td><strong>2025 VA Consolidation</strong><br><small style="color:#94a3b8">Merged Palo Alto + Menlo Park VA</small></td>
-              <td>2 rules</td>
+              <td><strong>2025 Emeryville Sunset</strong><br><small style="color:#94a3b8">Retired SHC - Emeryville, redirected to Emeryville</small></td>
+              <td>1 rule</td>
               <td><span class="tag" style="background:#f1f5f9;color:#475569">completed</span></td>
-              <td>2025-11-03</td>
+              <td>2025-09-04</td>
               <td><a href="#" style="color:var(--purple);font-size:12px">View Log</a></td>
             </tr>
           </tbody>
@@ -844,7 +881,7 @@
           </label>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div style="font-weight:700">Rule Set: Q2 2026 Site Restructuring</div>
+          <div style="font-weight:700">Rule Set: Q2 2026 Stanford Site Restructuring <small style="color:#94a3b8;font-weight:400">· 18 rules · Stanford library</small></div>
           <button style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer">⏸ Pause</button>
         </div>
         <div class="progress-label"><span>Overall Progress</span><span><strong>54 / 87</strong> projects</span></div>
@@ -867,39 +904,157 @@
     </div>
   </section>
 
-  <!-- Open questions -->
+  <!-- Answered decisions -->
   <section id="open">
-    <div class="section-label">Decisions Needed</div>
-    <h2>Open Questions</h2>
+    <div class="section-label">Decisions (Answered)</div>
+    <h2>Decision Points — Answered by May 2026 Worksheet</h2>
+    <p>The original plan left four open questions. The Stanford worksheet provides concrete answers for all of them.</p>
     <div class="decision-grid">
-      <div class="decision-box open">
-        <div class="decision-tag">Needs Answer</div>
+      <div class="decision-box decided">
+        <div class="decision-tag">Decided</div>
         <h3>Merge — Primary Code Selection</h3>
-        <p>When "Site X" (rc="1") and "Site Y" (rc="2") merge into "Site Z", future OnCore syncs must map "Site Z" to exactly one existing REDCap coded value.</p>
-        <ul style="margin:10px 0 0 16px;font-size:13px;color:var(--mid)">
-          <li style="margin-bottom:4px"><strong>Option A</strong> — Admin picks via dropdown in rule editor <em>(recommended)</em></li>
-          <li style="margin-bottom:4px"><strong>Option B</strong> — Always default to first listed old site's code</li>
-          <li><strong>Option C</strong> — Create a new dropdown option in REDCap instrument</li>
-        </ul>
+        <p>Admin picks via dropdown in the rule editor (Option A). The worksheet defines an <strong>unambiguous default</strong>: the row marked <em>"Rename"</em> in each merge group is the primary; all rows marked <em>"Move to Line N"</em> or <em>"Sunset"</em> merge into it.</p>
+        <p style="margin-top:8px;font-size:12px"><strong>Worksheet examples:</strong> Main Hospital → primary = <code>SCI-Palo Alto</code>; Children's Hospital → <code>SCI-LPCH</code>; Redwood City → <code>SHC Redwood City</code>; Emeryville → <code>SCI-Emeryville</code>.</p>
       </div>
-      <div class="decision-box open">
-        <div class="decision-tag">Needs Answer</div>
+      <div class="decision-box decided">
+        <div class="decision-tag">Decided</div>
         <h3>Number of Libraries</h3>
-        <p>Study sites are scoped to libraries (sub_settings). Each linked project uses one library index.</p>
-        <p style="margin-top:8px">If <strong>one library</strong> → rule editor is simple, no selector needed.<br>
-        If <strong>multiple libraries</strong> → rule editor needs a library dropdown to know which site list to show.</p>
-        <p style="margin-top:8px"><em>How many libraries are configured in your system?</em></p>
+        <p>For the May 2026 migration: <strong>single library (Stanford)</strong>. The UI still surfaces a library selector when more than one is configured, but the seed rule set targets one library.</p>
+        <p style="margin-top:8px;font-size:12px"><strong>Out of scope:</strong> two worksheet rows (SCI-South Bay, SCI-Emeryville) require an OnCore-side library move from SCI → Stanford. That step is done <em>manually in OnCore</em> before/in parallel with this migration. The EM does not move sites between libraries.</p>
       </div>
       <div class="decision-box decided">
         <div class="decision-tag">Decided</div>
-        <h3>System Site List — Replace vs. Append</h3>
-        <p>Old site name entries are <strong>replaced</strong> in the library (assumes OnCore has already been updated). Both old and new `oc` keys are kept in value_mapping for backward compat with any cached/historical API responses.</p>
+        <h3>System Site List — Replace</h3>
+        <p>Old site name entries are <strong>replaced</strong> in <code>library-oncore-study-sites</code>. Both old and new <code>oc</code> keys are retained in the per-project <code>value_mapping</code> for backward compat with any in-flight OnCore payload during the cutover window.</p>
+        <p style="margin-top:8px;font-size:12px"><strong>Sunset rows:</strong> e.g. <code>SHC - Emeryville</code> retired 2025-09-04 — removed from library, old <code>oc</code> entry retained, no new <code>oc</code> entry added (OnCore will not emit again).</p>
       </div>
       <div class="decision-box decided">
         <div class="decision-tag">Decided</div>
-        <h3>redcap_data — No Migration</h3>
-        <p>REDCap coded values (e.g. "1", "2") are <strong>never written</strong>. The label suffix approach gives researchers full traceability. Future OnCore syncs use value_mapping dual entries to resolve both old and new site names.</p>
+        <h3>redcap_data* — No Migration (× 8 shards)</h3>
+        <p>REDCap coded values (e.g. <code>"1"</code>, <code>"2"</code>) are <strong>never written</strong> in any of the eight <code>redcap_data*</code> shards. The label suffix approach gives researchers full traceability. Future OnCore syncs use <code>value_mapping</code> dual entries.</p>
+        <p style="margin-top:8px;font-size:12px"><strong>Shard-aware reads only:</strong> the optional Deep Preview path uses <code>$module-&gt;getDataTable($pid)</code> to pick the project's shard for read-only COUNT queries — never hard-coded.</p>
       </div>
+    </div>
+  </section>
+
+  <!-- Sharded data tables -->
+  <section id="shards">
+    <div class="section-label">REDCap Architecture</div>
+    <h2>Sharded Data Tables — Reference</h2>
+    <p>REDCap shards record data horizontally across up to eight physical tables. Each project is assigned to exactly one shard, recorded in <code>redcap_projects.data_table</code>. The same scheme applies to <code>redcap_log_event*</code>. This migration's design is shard-safe: every write targets a non-sharded table or goes through a sharding-aware API.</p>
+
+    <table class="tbl" style="background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)">
+      <thead><tr><th>Table family</th><th>Sharded?</th><th>Resolved via</th><th>Touched by this migration?</th></tr></thead>
+      <tbody>
+        <tr><td><code>redcap_data, redcap_data2, … redcap_data8</code></td><td><span class="tag tag-amber">Yes (8 shards)</span></td><td><code>$module-&gt;getDataTable($pid)</code> (framework v5+) · fallback <code>SELECT data_table FROM redcap_projects</code></td><td><span class="tag tag-red">No writes</span> · optional read-only COUNT in Deep Preview</td></tr>
+        <tr><td><code>redcap_log_event, redcap_log_event2, …</code></td><td><span class="tag tag-amber">Yes</span></td><td><code>REDCap::logEvent()</code> — auto-routes to correct shard</td><td><span class="tag tag-green">Yes — via the API</span> (never raw SQL)</td></tr>
+        <tr><td><code>redcap_metadata</code></td><td><span class="tag tag-green">No (single table)</span></td><td>Direct <code>WHERE project_id = ?</code></td><td><span class="tag tag-blue">Yes — UPDATE element_enum</span></td></tr>
+        <tr><td><code>redcap_projects</code></td><td><span class="tag tag-green">No</span></td><td>Direct</td><td><span class="tag tag-red">No</span> · read-only lookup for shard fallback</td></tr>
+        <tr><td><code>redcap_external_modules_settings</code></td><td><span class="tag tag-green">No</span></td><td>EM settings APIs</td><td><span class="tag tag-blue">Yes — via setProjectSetting / setSystemSetting</span></td></tr>
+        <tr><td><code>redcap_entity_oncore_*</code> (this EM)</td><td><span class="tag tag-green">No</span></td><td>Direct (one table per entity type)</td><td><span class="tag tag-blue">Yes — 3 new entity types</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-amber" style="margin-top:18px">
+      <p><strong>Hard rule for <code>SiteMigration.php</code>:</strong> never hard-code the literal string <code>"redcap_data"</code> in any SQL emitted by this class. Always go through <code>getDataTable($pid)</code>. The only place the literal table name appears is in the optional Deep Preview helper <code>countRecordsWithSiteCode()</code>, and even there it's the return value of <code>getDataTable()</code>, not a string literal.</p>
+    </div>
+
+    <div class="callout callout-blue" style="margin-top:12px">
+      <p><strong>Why this matters:</strong> hard-coding <code>redcap_data</code> would silently miss every project that lives on shards 2 through 6 — a class of bug that would compile, pass linting, and produce wrong results without any error. The Deep Preview path is the only read path that touches a data shard, so this is the only place the rule applies in code today; the convention exists to head off the same mistake in any future enhancement.</p>
+    </div>
+  </section>
+
+  <!-- May 2026 worksheet -->
+  <section id="worksheet">
+    <div class="section-label">Source Mapping</div>
+    <h2>May 2026 Stanford Worksheet</h2>
+    <p>The 23 rows in <em>Subject Study Site Worksheet.pdf</em> classify into <strong>4 merges, 5 renames, 1 sunset, 8 keeps</strong> (18 rules — the 4 merge rules consume 13 rows because the merge rule's <code>old_sites</code> array packs multiple worksheet rows).</p>
+
+    <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+      <div class="stat-card"><div class="num purple">4</div><div class="label">Merge groups (MH, CH, RC, EM)</div></div>
+      <div class="stat-card"><div class="num blue">5</div><div class="label">Pure renames</div></div>
+      <div class="stat-card"><div class="num amber">1</div><div class="label">Sunset (SHC - Emeryville)</div></div>
+      <div class="stat-card"><div class="num green">8</div><div class="label">Keeps (leave as-is)</div></div>
+    </div>
+
+    <h3 style="margin-top:24px;margin-bottom:12px">Worksheet rows → rule classification</h3>
+    <table class="tbl" style="background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)">
+      <thead><tr><th>Old Site</th><th>New Name</th><th>Disposition</th><th>Rule</th><th>Group</th></tr></thead>
+      <tbody>
+        <tr><td>SCI-Palo Alto</td><td>Main Hospital</td><td>Rename</td><td><span class="tag tag-purple">merge</span></td><td><strong>MH</strong> (primary)</td></tr>
+        <tr><td>SHC Main Hosp, Pasteur, Welch &amp; campus/nearby clinics</td><td>Main Hospital</td><td>Move to "Main Hospital"</td><td><span class="tag tag-purple">merge</span></td><td>MH</td></tr>
+        <tr><td>SHC Satellite &amp; Other</td><td>Main Hospital</td><td>Move to "Main Hospital"</td><td><span class="tag tag-purple">merge</span></td><td>MH</td></tr>
+        <tr><td>SCI-LPCH</td><td>Children's Hospital</td><td>Rename</td><td><span class="tag tag-purple">merge</span></td><td><strong>CH</strong> (primary)</td></tr>
+        <tr><td>LPCH Main Hosp, Welch Rd &amp; campus/nearby clinics</td><td>Children's Hospital</td><td>Move to "Children's Hospital"</td><td><span class="tag tag-purple">merge</span></td><td>CH</td></tr>
+        <tr><td>LPCH Satellite &amp; Other</td><td>Children's Hospital</td><td>Move to "Children's Hospital"</td><td><span class="tag tag-purple">merge</span></td><td>CH</td></tr>
+        <tr><td>SHC Redwood City</td><td>Redwood City</td><td>Rename</td><td><span class="tag tag-purple">merge</span></td><td><strong>RC</strong> (primary)</td></tr>
+        <tr><td>SCI-Redwood City</td><td>Redwood City</td><td>Move to "Redwood City" (patients pending)</td><td><span class="tag tag-purple">merge</span></td><td>RC</td></tr>
+        <tr><td>SCI-Emeryville</td><td>Emeryville</td><td>Manual (SCI move + rename)</td><td><span class="tag tag-purple">merge</span></td><td><strong>EM</strong> (primary)</td></tr>
+        <tr><td>SHC - Emeryville</td><td>Emeryville</td><td>Sunset · retired 2025-09-04</td><td><span class="tag tag-amber">sunset</span></td><td>EM</td></tr>
+        <tr><td>Quarry Rd clinics;Hoover Pavilion</td><td>Quarry Rd clinics/Hoover Pavilion</td><td>Rename (punctuation)</td><td><span class="tag tag-blue">rename</span></td><td>—</td></tr>
+        <tr><td>Psychiatry: Page Mill, Porter Dr, other</td><td>Page Mill/Porter Dr</td><td>Rename</td><td><span class="tag tag-blue">rename</span></td><td>—</td></tr>
+        <tr><td>SHC Tri-Valley</td><td>Tri-Valley</td><td>Rename</td><td><span class="tag tag-blue">rename</span></td><td>—</td></tr>
+        <tr><td>SCI-South Bay</td><td>South Bay</td><td>Manual (SCI move + rename)</td><td><span class="tag tag-blue">rename</span></td><td>—</td></tr>
+        <tr><td>SCI - Livermore</td><td>Livermore</td><td>Rename</td><td><span class="tag tag-blue">rename</span></td><td>—</td></tr>
+        <tr><td>1070 Arastradero</td><td>—</td><td>Leave as-is</td><td><span class="tag tag-green">keep</span></td><td>—</td></tr>
+        <tr><td>Byers Eye Institute</td><td>—</td><td>Leave as-is</td><td><span class="tag tag-green">keep</span></td><td>—</td></tr>
+        <tr><td>CTRU (800 Welch Rd)</td><td>—</td><td>Leave as-is</td><td><span class="tag tag-green">keep</span></td><td>—</td></tr>
+        <tr><td>Remote interactions (e.g., online/phone/survey)</td><td>—</td><td>Leave as-is</td><td><span class="tag tag-green">keep</span></td><td>—</td></tr>
+        <tr><td>Lucas Center</td><td>—</td><td>Leave as-is</td><td><span class="tag tag-green">keep</span></td><td>—</td></tr>
+        <tr><td>Community site</td><td>—</td><td>Leave as-is</td><td><span class="tag tag-green">keep</span></td><td>—</td></tr>
+        <tr><td>Center for Cognitive and Neurobiological Imaging</td><td>—</td><td>Leave as-is</td><td><span class="tag tag-green">keep</span></td><td>—</td></tr>
+        <tr><td>Stanford Ear Institute</td><td>—</td><td>Leave as-is</td><td><span class="tag tag-green">keep</span></td><td>—</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:28px;margin-bottom:12px">Seed rule set (JSON)</h3>
+    <p>This block can be pasted into the rule editor as the initial draft for the May 2026 migration.</p>
+<pre><span class="cm">// 18 rules — 4 merges + 5 renames + 1 sunset + 8 keeps</span>
+[
+  { <span class="str">"id"</span>: <span class="str">"merge-main-hospital"</span>,    <span class="str">"type"</span>: <span class="str">"merge"</span>,
+    <span class="str">"old_sites"</span>: [<span class="str">"SCI-Palo Alto"</span>, <span class="str">"SHC Main Hosp, Pasteur, Welch &amp; campus/nearby clinics"</span>, <span class="str">"SHC Satellite &amp; Other"</span>],
+    <span class="str">"new_site"</span>: <span class="str">"Main Hospital"</span>, <span class="str">"primary_old_site"</span>: <span class="str">"SCI-Palo Alto"</span> },
+
+  { <span class="str">"id"</span>: <span class="str">"merge-childrens-hospital"</span>, <span class="str">"type"</span>: <span class="str">"merge"</span>,
+    <span class="str">"old_sites"</span>: [<span class="str">"SCI-LPCH"</span>, <span class="str">"LPCH Main Hosp, Welch Rd &amp; campus/nearby clinics"</span>, <span class="str">"LPCH Satellite &amp; Other"</span>],
+    <span class="str">"new_site"</span>: <span class="str">"Children's Hospital"</span>, <span class="str">"primary_old_site"</span>: <span class="str">"SCI-LPCH"</span> },
+
+  { <span class="str">"id"</span>: <span class="str">"merge-redwood-city"</span>,      <span class="str">"type"</span>: <span class="str">"merge"</span>,
+    <span class="str">"old_sites"</span>: [<span class="str">"SHC Redwood City"</span>, <span class="str">"SCI-Redwood City"</span>],
+    <span class="str">"new_site"</span>: <span class="str">"Redwood City"</span>, <span class="str">"primary_old_site"</span>: <span class="str">"SHC Redwood City"</span> },
+
+  { <span class="str">"id"</span>: <span class="str">"merge-emeryville"</span>,        <span class="str">"type"</span>: <span class="str">"merge"</span>,
+    <span class="str">"old_sites"</span>: [<span class="str">"SCI-Emeryville"</span>],
+    <span class="str">"new_site"</span>: <span class="str">"Emeryville"</span>, <span class="str">"primary_old_site"</span>: <span class="str">"SCI-Emeryville"</span> },
+
+  { <span class="str">"id"</span>: <span class="str">"sunset-shc-emeryville"</span>,   <span class="str">"type"</span>: <span class="str">"sunset"</span>,
+    <span class="str">"old_sites"</span>: [<span class="str">"SHC - Emeryville"</span>], <span class="str">"new_site"</span>: <span class="str">"Emeryville"</span>, <span class="str">"retired_on"</span>: <span class="str">"2025-09-04"</span> },
+
+  { <span class="str">"id"</span>: <span class="str">"rename-quarry-rd"</span>,   <span class="str">"type"</span>: <span class="str">"rename"</span>, <span class="str">"old_sites"</span>: [<span class="str">"Quarry Rd clinics;Hoover Pavilion"</span>],         <span class="str">"new_site"</span>: <span class="str">"Quarry Rd clinics/Hoover Pavilion"</span> },
+  { <span class="str">"id"</span>: <span class="str">"rename-psychiatry"</span>,  <span class="str">"type"</span>: <span class="str">"rename"</span>, <span class="str">"old_sites"</span>: [<span class="str">"Psychiatry: Page Mill, Porter Dr, other"</span>],    <span class="str">"new_site"</span>: <span class="str">"Page Mill/Porter Dr"</span> },
+  { <span class="str">"id"</span>: <span class="str">"rename-tri-valley"</span>,  <span class="str">"type"</span>: <span class="str">"rename"</span>, <span class="str">"old_sites"</span>: [<span class="str">"SHC Tri-Valley"</span>],                             <span class="str">"new_site"</span>: <span class="str">"Tri-Valley"</span> },
+  { <span class="str">"id"</span>: <span class="str">"rename-south-bay"</span>,   <span class="str">"type"</span>: <span class="str">"rename"</span>, <span class="str">"old_sites"</span>: [<span class="str">"SCI-South Bay"</span>],                              <span class="str">"new_site"</span>: <span class="str">"South Bay"</span> },
+  { <span class="str">"id"</span>: <span class="str">"rename-livermore"</span>,   <span class="str">"type"</span>: <span class="str">"rename"</span>, <span class="str">"old_sites"</span>: [<span class="str">"SCI - Livermore"</span>],                            <span class="str">"new_site"</span>: <span class="str">"Livermore"</span> },
+
+  { <span class="str">"id"</span>: <span class="str">"keep-arastradero"</span>,   <span class="str">"type"</span>: <span class="str">"keep"</span>, <span class="str">"old_sites"</span>: [<span class="str">"1070 Arastradero"</span>] },
+  { <span class="str">"id"</span>: <span class="str">"keep-byers"</span>,         <span class="str">"type"</span>: <span class="str">"keep"</span>, <span class="str">"old_sites"</span>: [<span class="str">"Byers Eye Institute"</span>] },
+  { <span class="str">"id"</span>: <span class="str">"keep-ctru"</span>,          <span class="str">"type"</span>: <span class="str">"keep"</span>, <span class="str">"old_sites"</span>: [<span class="str">"CTRU (800 Welch Rd)"</span>] },
+  { <span class="str">"id"</span>: <span class="str">"keep-remote"</span>,        <span class="str">"type"</span>: <span class="str">"keep"</span>, <span class="str">"old_sites"</span>: [<span class="str">"Remote interactions (e.g., online/phone/survey)"</span>] },
+  { <span class="str">"id"</span>: <span class="str">"keep-lucas"</span>,         <span class="str">"type"</span>: <span class="str">"keep"</span>, <span class="str">"old_sites"</span>: [<span class="str">"Lucas Center"</span>] },
+  { <span class="str">"id"</span>: <span class="str">"keep-community"</span>,     <span class="str">"type"</span>: <span class="str">"keep"</span>, <span class="str">"old_sites"</span>: [<span class="str">"Community site"</span>] },
+  { <span class="str">"id"</span>: <span class="str">"keep-cnbi"</span>,          <span class="str">"type"</span>: <span class="str">"keep"</span>, <span class="str">"old_sites"</span>: [<span class="str">"Center for Cognitive and Neurobiological Imaging"</span>] },
+  { <span class="str">"id"</span>: <span class="str">"keep-ear-institute"</span>, <span class="str">"type"</span>: <span class="str">"keep"</span>, <span class="str">"old_sites"</span>: [<span class="str">"Stanford Ear Institute"</span>] }
+]</pre>
+
+    <div class="callout callout-amber" style="margin-top:18px">
+      <p><strong>OnCore-side prerequisites (out of scope for this EM):</strong></p>
+      <ul style="margin:8px 0 0 18px;font-size:13.5px;color:var(--mid)">
+        <li><strong>SCI-South Bay</strong> &amp; <strong>SCI-Emeryville</strong> — move from SCI library to Stanford library, then rename. <em>Manual in OnCore.</em></li>
+        <li><strong>SCI-Redwood City</strong> — rename done in OnCore; patient assignment moves still pending per worksheet.</li>
+        <li><strong>SCI - Livermore</strong> — rename in OnCore (Agnes, done per worksheet).</li>
+        <li><strong>SHC - Emeryville</strong> — already retired in OnCore on 2025-09-04.</li>
+      </ul>
+      <p style="margin-top:10px"><strong>Guard:</strong> The rule editor flags any site present in the Stanford library that has no matching rule in the rule set, and refuses to start the migration until every site has an explicit disposition (rename / merge / keep / sunset).</p>
     </div>
   </section>
 

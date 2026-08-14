@@ -309,6 +309,29 @@ class Mapping
     }
 
     /**
+     * Canonicalize "apostrophe-like" characters so values originating from different sources
+     * (OnCore study-site list vs. OnCore subject demographics vs. REDCap data dictionary) compare
+     * equal. Handles HTML entities (&#39;), backtick (`), and typographic single quotes (’ ‘ ‛ ′).
+     * @param mixed $value
+     * @return mixed
+     */
+    public static function normalizeQuoteLike($value)
+    {
+        if (!is_string($value)) {
+            return $value;
+        }
+        // Decode HTML entities first (e.g. "Children&#39;s Hospital").
+        $value = html_entity_decode($value, ENT_QUOTES, "UTF-8");
+        // Normalize backtick and various typographic single quotes to a straight apostrophe.
+        $value = str_replace(
+            array("`", "\u{2018}", "\u{2019}", "\u{201B}", "\u{2032}", "\u{00B4}"),
+            "'",
+            $value
+        );
+        return trim($value);
+    }
+
+    /**
      * @return array
      */
     public function getMappedRedcapValueSet($field_key, $push = false)
@@ -320,11 +343,15 @@ class Mapping
         if (!empty($value_set)) {
             if ($push) {
                 foreach ($value_set as $set) {
-                    $temp[$set["rc"]] = $set["oc"];
+                    // Normalize the OnCore value (HTML entities, backtick, curly quotes) so it
+                    // matches the raw OnCore valid values used as keys/options during render and sync.
+                    $oc = self::normalizeQuoteLike($set["oc"]);
+                    $temp[$set["rc"]] = $oc;
                 }
             } else {
                 foreach ($value_set as $set) {
-                    $temp[$set["oc"]] = $set["rc"];
+                    $oc = self::normalizeQuoteLike($set["oc"]);
+                    $temp[$oc] = $set["rc"];
                 }
             }
         }
@@ -568,6 +595,10 @@ class Mapping
      */
     public function setProjectSiteStudies(array $site_studies_subset): void
     {
+        // Always store the raw, decoded site names so they match the OnCore study site list.
+        $site_studies_subset = array_map(function ($v) {
+            return is_string($v) ? html_entity_decode($v, ENT_QUOTES, "UTF-8") : $v;
+        }, $site_studies_subset);
 //        ExternalModules::setProjectSetting($this->module->getProtocols()->getUser()->getPREFIX(), $this->module->getProtocols()->getEntityRecord()['redcap_project_id'], OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, json_encode($site_studies_subset));
         $this->module->setProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES, json_encode($site_studies_subset));
         $this->site_studies_subset = $site_studies_subset;
@@ -581,6 +612,14 @@ class Mapping
     {
         if (empty($this->site_studies_subset)) {
             $arr = json_decode($this->module->getProjectSetting(OnCoreIntegration::REDCAP_ONCORE_PROJECT_SITE_STUDIES), true);
+            // Normalize any HTML-encoded values (e.g. legacy "Children&#39;s Hospital") back to their
+            // raw form ("Children's Hospital") so they match the OnCore study site names. Without this,
+            // array_intersect() against the OnCore site list would drop sites containing quotes/apostrophes.
+            if (is_array($arr)) {
+                $arr = array_map(function ($v) {
+                    return is_string($v) ? html_entity_decode($v, ENT_QUOTES, "UTF-8") : $v;
+                }, $arr);
+            }
             $this->site_studies_subset = $arr ?: [];
         }
         return $this->site_studies_subset;
@@ -1357,8 +1396,11 @@ class Mapping
     {
         //$mappedValues = $mappedValues['value_mapping_pull'];
         $mappedValues = $mappedValues['value_mapping'];
+        $needle = self::normalizeQuoteLike($OnCoreValue);
         foreach ($mappedValues as $mappedValue) {
-            if ($OnCoreValue == $mappedValue['oc']) {
+            // Normalize both sides so backtick/curly-quote/entity variants of the same OnCore value
+            // (e.g. "Children's Hospital" vs "Children`s Hospital") still match.
+            if ($needle === self::normalizeQuoteLike($mappedValue['oc'])) {
                 return $mappedValue;
             }
         }
@@ -1376,6 +1418,9 @@ class Mapping
         $mappedValues = $mappedValues['value_mapping'];
         foreach ($mappedValues as $mappedValue) {
             if ($REDCapValue == $mappedValue['rc']) {
+                // Normalize the OnCore value (backtick/curly-quote/entity → apostrophe) before it is
+                // pushed to OnCore so it matches OnCore's canonical study-site naming.
+                $mappedValue['oc'] = self::normalizeQuoteLike($mappedValue['oc']);
                 return $mappedValue;
             }
         }
