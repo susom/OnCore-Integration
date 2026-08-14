@@ -187,6 +187,42 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     * Canonicalize an OnCore demographics value for text comparison / saving into REDCap.
+     * OnCore array fields without a value mapping (e.g. additionalSubjectIds) arrive either as a
+     * real PHP array (fresh API pull) or as a JSON-encoded string like "[]" (oncore_subjects
+     * entity-table cache). An empty array in any representation must compare equal to '' —
+     * otherwise records are stuck as PARTIAL_MATCH on a field both sides display as blank.
+     * @param mixed $value
+     * @return mixed scalar values pass through; arrays/JSON arrays become a joined string ('' when empty)
+     */
+    public static function flattenOnCoreValue($value)
+    {
+        if (is_null($value)) {
+            return '';
+        }
+        if (is_string($value)) {
+            $trimmed = trim($value);
+            if ($trimmed !== '' && $trimmed[0] === '[') {
+                $decoded = json_decode($trimmed, true);
+                if (is_array($decoded)) {
+                    $value = $decoded;
+                }
+            }
+        }
+        if (is_array($value)) {
+            $parts = [];
+            foreach ($value as $item) {
+                $item = is_scalar($item) ? trim((string)$item) : json_encode($item);
+                if ($item !== '') {
+                    $parts[] = $item;
+                }
+            }
+            return implode(', ', $parts);
+        }
+        return $value;
+    }
+
+    /**
      * this method will determine if oncore and redcap fully or partially matched.
      * @param $onCoreSubject
      * @param $redcapRecord
@@ -197,7 +233,7 @@ class Subjects extends SubjectDemographics
     {
         foreach ($fields as $key => $field) {
             // has mapped values
-            $onCoreValue = isset($onCoreSubject['demographics'][$key]) ? $onCoreSubject['demographics'][$key] : $onCoreSubject[$key];
+            $onCoreValue = isset($onCoreSubject['demographics'][$key]) ? $onCoreSubject['demographics'][$key] : ($onCoreSubject[$key] ?? null);
             if (isset($field['value_mapping'])) {
                 // oncore is array of text ie. race
                 $onCoreType = $this->getMapping()->getOncoreType($key);
@@ -235,7 +271,9 @@ class Subjects extends SubjectDemographics
                         }
                     } else {
                         // if redcap is text or radio then every race must match the redcap value
-                        foreach ($onCoreValue as $item) {
+                        // NOTE: iterate $parsed (decoded array), NOT $onCoreValue — cached subjects
+                        // deliver JSON strings and iterating a string silently skipped the compare.
+                        foreach ($parsed as $item) {
                             $map = $this->getMapping()->getOnCoreMappedValue($item, $field);
                             // if the oncore value mapped redcap checkbox is not check then partial match
                             if ($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']] != $map['rc']) {
@@ -244,18 +282,26 @@ class Subjects extends SubjectDemographics
                         }
                     }
                 } else {
+                    $redcapValue = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                    // both sides empty: an empty OnCore value has no value-mapping entry, but there is
+                    // nothing to map — without this guard the record is stuck as PARTIAL_MATCH forever
+                    // on a field both sides display as blank.
+                    if (self::flattenOnCoreValue($onCoreValue) === '' && ($redcapValue === '' || $redcapValue === null)) {
+                        continue;
+                    }
                     $map = $this->getMapping()->getOnCoreMappedValue($onCoreValue, $field);
-                    if ($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']] != $map['rc']) {
+                    if ($redcapValue != ($map['rc'] ?? null)) {
                         return OnCoreIntegration::PARTIAL_MATCH;
                     }
                     // no map defined
                     if (empty($map)) {
-                        Entities::createLog("$field: Cant Find mapping for $onCoreValue");
+                        Entities::createLog("$key: Cant Find mapping for " . (is_scalar($onCoreValue) ? $onCoreValue : json_encode($onCoreValue)));
                         return OnCoreIntegration::PARTIAL_MATCH;
                     }
                 }
             } else {
-                if (Mapping::normalizeQuoteLike($onCoreValue) != Mapping::normalizeQuoteLike($redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']])) {
+                $redcapValue = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
+                if (Mapping::normalizeQuoteLike(self::flattenOnCoreValue($onCoreValue)) != Mapping::normalizeQuoteLike(self::flattenOnCoreValue($redcapValue))) {
                     return OnCoreIntegration::PARTIAL_MATCH;
                 }
             }
@@ -948,10 +994,30 @@ class Subjects extends SubjectDemographics
     {
         $key = 'studySites';
         $studySite = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
-        if ($this->getMapping()->canUseDefaultValue($key, $oncoreFieldsDef[$key]['allow_default'], $field['default_value']) && empty($studySite)) {
+        if ($this->getMapping()->canUseDefaultValue($key, $oncoreFieldsDef[$key]['allow_default'], $field['default_value'] ?? '') && empty($studySite)) {
             return $field['default_value'];
         } else {
             $map = $this->getMapping()->getREDCapMappedValue($studySite, $field);
+            if (empty($map)) {
+                // record has no study site at all: return null so createOnCoreProtocolSubject reports
+                // the (accurate) "Study site is missing" error.
+                if ($studySite === '' || $studySite === null) {
+                    return null;
+                }
+                // record HAS a study site — it just is not mapped to one of this protocol's configured
+                // OnCore study sites. Say so explicitly instead of the misleading "Study site is missing".
+                $label = "'" . $studySite . "'";
+                try {
+                    $choices = $this->getMapping()->getRedcapValueSet($field['redcap_field']);
+                    if (!empty($choices[$studySite])) {
+                        $label = "'" . $choices[$studySite] . "' (choice " . $studySite . ")";
+                    }
+                } catch (\Throwable $e) {
+                    // label lookup is best-effort; fall back to the raw coded value
+                }
+                $configured = implode(', ', array_filter(array_column($field['value_mapping'] ?: [], 'oc')));
+                throw new \Exception("This record's study site $label is not mapped to an OnCore study site for this protocol. Study sites configured for this project: $configured. Correct the record's study site or add it to the Study Sites value mapping on the Field Mapping page.");
+            }
             return $map['oc'];
         }
     }
@@ -1151,9 +1217,11 @@ class Subjects extends SubjectDemographics
     {
         $data = [];
         foreach ($fields as $key => $field) {
-            $onCoreValue = isset($OnCoreSubject['demographics'][$key]) ? $OnCoreSubject['demographics'][$key] : $OnCoreSubject[$key];;
+            $onCoreValue = isset($OnCoreSubject['demographics'][$key]) ? $OnCoreSubject['demographics'][$key] : ($OnCoreSubject[$key] ?? null);
             if (!isset($field['value_mapping'])) {
-                $data[$field['event']][$field['redcap_field']] = $onCoreValue;
+                // flatten array values (real arrays from the API or cached JSON strings like "[]")
+                // so REDCap text fields never receive raw JSON junk such as the literal string "[]".
+                $data[$field['event']][$field['redcap_field']] = self::flattenOnCoreValue($onCoreValue);
             } else {
                 $onCoreType = $this->getMapping()->getOncoreType($key);
                 if ($onCoreType == 'array') {
@@ -1189,7 +1257,14 @@ class Subjects extends SubjectDemographics
 
                 } else {
                     $map = $this->getMapping()->getOnCoreMappedValue($onCoreValue, $field);
-                    $data[$field['event']][$field['redcap_field']] = $map['rc'];
+                    if (!empty($map)) {
+                        $data[$field['event']][$field['redcap_field']] = $map['rc'];
+                    } elseif (self::flattenOnCoreValue($onCoreValue) === '') {
+                        // OnCore value is empty: clear the REDCap field rather than leaving stale data.
+                        $data[$field['event']][$field['redcap_field']] = '';
+                    }
+                    // unmapped non-empty OnCore value: leave the REDCap field untouched instead of
+                    // silently blanking it (the old behavior wrote null when no mapping was found).
                 }
             }
         }
