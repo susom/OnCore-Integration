@@ -377,7 +377,9 @@ try {
     if (method_exists($e, 'getResponse')) {
         $response = $e->getResponse();
         $responseBodyAsString = json_decode($response->getBody()->getContents(), true);
-        $responseBodyAsString['message'] = ($responseBodyAsString['field'] ? $responseBodyAsString['field'] . ': ' : '') . $responseBodyAsString['message'];
+        // OnCore error bodies look like {"message": "...", "errorType": "...", "field": "..."|null};
+        // prepend the field name when OnCore provides one (it is null for some validation errors).
+        $responseBodyAsString['message'] = (!empty($responseBodyAsString['field']) ? $responseBodyAsString['field'] . ': ' : '') . ($responseBodyAsString['message'] ?? 'Unknown OnCore API error');
     } else {
         $responseBodyAsString = array();
         $responseBodyAsString['message'] = $e->getMessage();

@@ -125,6 +125,17 @@ class OnCoreIntegration extends \ExternalModules\AbstractExternalModule
         "lastName",
         "firstName",
     );
+
+    /**
+     * OnCore demographics fields that must be sent as JSON booleans. The OnCore API rejects any
+     * other representation with "Invalid boolean. Valid values are [true, false]" and field=null.
+     */
+    public static $ONCORE_DEMOGRAPHICS_BOOLEAN_FIELDS = array(
+        "approximateBirthDate",
+        "birthDateNotAvailable",
+        "approximateExpiredDate",
+    );
+
     /**
      * @var Users
      */

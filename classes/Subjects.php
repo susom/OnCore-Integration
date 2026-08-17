@@ -223,6 +223,44 @@ class Subjects extends SubjectDemographics
     }
 
     /**
+     * Convert a REDCap value into a real boolean for OnCore's boolean demographics fields
+     * (approximateBirthDate, birthDateNotAvailable, approximateExpiredDate). REDCap truefalse/yesno
+     * fields store '1'/'0' STRINGS; the OnCore API rejects anything that is not a JSON true/false
+     * with "Invalid boolean. Valid values are [true, false]" (FieldValidationError, field=null).
+     * @param mixed $value
+     * @return bool|null null when empty/unrecognized — callers must omit the key entirely
+     */
+    public static function toOnCoreBoolean($value)
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_int($value)) {
+            return $value === 1 ? true : ($value === 0 ? false : null);
+        }
+        if (is_string($value)) {
+            $v = strtolower(trim($value));
+            if ($v === '1' || $v === 'true' || $v === 'yes') {
+                return true;
+            }
+            if ($v === '0' || $v === 'false' || $v === 'no') {
+                return false;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param array $fieldDef one entry of the library's OnCore field definitions
+     * @return bool
+     */
+    private static function isOnCoreBooleanType($fieldDef)
+    {
+        $types = $fieldDef['oncore_field_type'] ?? [];
+        return in_array('bool', $types) || in_array('boolean', $types);
+    }
+
+    /**
      * this method will determine if oncore and redcap fully or partially matched.
      * @param $onCoreSubject
      * @param $redcapRecord
@@ -907,6 +945,16 @@ class Subjects extends SubjectDemographics
                 $errors[] = 'Race field is not formatted correctly.';
             }
 
+            // boolean demographics must be real booleans — OnCore rejects anything else with
+            // "Invalid boolean. Valid values are [true, false]" and field=null (no field name),
+            // so name the offending field here before the API call.
+            foreach (OnCoreIntegration::$ONCORE_DEMOGRAPHICS_BOOLEAN_FIELDS as $boolField) {
+                if (array_key_exists($boolField, $subjectDemographics) && !is_bool($subjectDemographics[$boolField])) {
+                    $got = is_scalar($subjectDemographics[$boolField]) ? "'" . $subjectDemographics[$boolField] . "'" : gettype($subjectDemographics[$boolField]);
+                    $errors[] = "$boolField must be true or false (got $got).";
+                }
+            }
+
             if (!empty($e)) {
 //                throw new \Exception("Following field/s are missing values: " . implode(',', $errors));
                 $errors[] = "Following field/s are empty: " . implode(', ', $e);
@@ -1061,7 +1109,7 @@ class Subjects extends SubjectDemographics
             // Onstage data has priority except null
             elseif ($onCoreRecord['subjectSource'] == OnCoreIntegration::ONCORE_SUBJECT_SOURCE_TYPE_ONSTAGE) {
                 // fill Onstage missing data from redcap record.
-                $demographics = $this->fillMissingData($record, $onCoreRecord, $fields);
+                $demographics = $this->fillMissingData($record, $onCoreRecord, $fields, $oncoreFieldsDef);
                 $message = "No OnCore Subject found for MRN $redcapMRN but a Record found on OnStage table. REDCap data will be used ONLY for missing data from OnStage.";
                 Entities::createLog($message, Entities::PUSH_TO_ONCORE_FROM_REDCAP);
                 $result = $this->createOnCoreProtocolSubject($protocolId, $studySite, null, $demographics);
@@ -1081,13 +1129,15 @@ class Subjects extends SubjectDemographics
      * @return mixed
      * @throws Exception
      */
-    public function fillMissingData($redcapRecord, $onCoreRecord, $fields)
+    public function fillMissingData($redcapRecord, $onCoreRecord, $fields, $oncoreFieldsDef = [])
     {
         foreach ($fields as $key => $field) {
             // if oncore race array is empty
             $redcapValue = $redcapRecord[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
-            if (is_array($onCoreRecord[$key]) && empty($onCoreRecord[$key])) {
+            $onCoreValue = $onCoreRecord[$key] ?? null;
+            if (is_array($onCoreValue) && empty($onCoreValue)) {
                 if (is_array($redcapValue)) {
+                    $options = [];
                     foreach ($redcapValue as $id => $value) {
                         //checkbox not checked
                         if (!$value) {
@@ -1108,9 +1158,16 @@ class Subjects extends SubjectDemographics
                     }
                     $onCoreRecord[$key] = array($map['oc']);
                 }
-            } elseif ($onCoreRecord[$key] == '' || is_null($onCoreRecord[$key])) {
-                // ethnicity or gender
-                if (isset($field['value_mapping'])) {
+            } elseif ($onCoreValue == '' || is_null($onCoreValue)) {
+                // OnCore boolean fields take priority over any value_mapping — see the matching
+                // comment in prepareREDCapRecordForSync for why a vmap must never apply here.
+                if (self::isOnCoreBooleanType($oncoreFieldsDef[$key] ?? [])) {
+                    $bool = self::toOnCoreBoolean($redcapValue);
+                    if (!is_null($bool)) {
+                        $onCoreRecord[$key] = $bool;
+                    }
+                } elseif (isset($field['value_mapping'])) {
+                    // ethnicity or gender
                     $map = $this->getMapping()->getREDCapMappedValue($redcapValue, $field);
                     $onCoreRecord[$key] = $map['oc'];
                 } else {
@@ -1135,7 +1192,7 @@ class Subjects extends SubjectDemographics
         foreach ($fields as $key => $field) {
             unset($map);
             // check if default values are allowed for the field and a default value already defined on current redcap project.
-            if ($this->getMapping()->canUseDefaultValue($key, $oncoreFieldsDef[$key]['allow_default'], $field['default_value'] ?: '') && empty($field["redcap_field"])) {
+            if ($this->getMapping()->canUseDefaultValue($key, $oncoreFieldsDef[$key]['allow_default'], ($field['default_value'] ?? '') ?: '') && empty($field["redcap_field"])) {
                 // special case only for birthdate to allow empty default value
                 if ($key == OnCoreIntegration::ONCORE_BIRTHDATE_FIELD) {
                     $data[OnCoreIntegration::ONCORE_BIRTHDATE_NOT_REQUIRED_FIELD] = true;
@@ -1150,6 +1207,20 @@ class Subjects extends SubjectDemographics
             } else {
                 $redcapValue = $record[OnCoreIntegration::getEventNameUniqueId($field['event'])][$field['redcap_field']];
 
+                // OnCore boolean fields: REDCap truefalse/yesno values are '1'/'0' STRINGS — a
+                // value_mapping (if the field mapping page happened to create one, e.g. a REDCap
+                // radio/dropdown field mapped to a boolean OnCore field) sends that string straight
+                // through as $map['oc'], and OnCore rejects any non-JSON-boolean value with "Invalid
+                // boolean. Valid values are [true, false]" (no field name in the response) REGARDLESS
+                // of which value was chosen. Handle booleans first, ignoring value_mapping entirely —
+                // OnCore booleans have no enumerable "valid values" to map in the first place.
+                if (self::isOnCoreBooleanType($oncoreFieldsDef[$key])) {
+                    $bool = self::toOnCoreBoolean($redcapValue);
+                    if (!is_null($bool)) {
+                        $data[$key] = $bool;
+                    }
+                    continue;
+                }
 
                 if (!isset($field['value_mapping'])) {
 
